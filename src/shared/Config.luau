@@ -167,4 +167,13 @@ Config.npc = {
 	carSpeed = 50,
 }
 
+-- Lobby: room pads 1..4 (capacity = room number).
+Config.lobby = {
+	padCountdown = 20, -- seconds after the first player steps on a pad
+	maxRooms = 4,
+	leaderboardRefresh = 60, -- seconds between leaderboard reads
+	leaderboardSize = 10,
+	partyWait = 15, -- game server waits this long for the whole party to arrive
+}
+
 return Config

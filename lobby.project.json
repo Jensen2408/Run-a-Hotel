@@ -1,0 +1,29 @@
+{
+  "name": "RunAMotelLobby",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Lobby": {
+        "$path": "src/lobby/server",
+        "Persistence": { "$path": "src/server/Persistence.luau" },
+        "LightingFX": { "$path": "src/server/LightingFX.luau" }
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "LobbyClient": {
+          "$path": "src/lobby/client",
+          "Icons": { "$path": "src/client/Icons.luau" },
+          "Sfx": { "$path": "src/client/Sfx.luau" },
+          "UiKit": { "$path": "src/client/UiKit.luau" },
+          "Settings": { "$path": "src/client/Settings.luau" }
+        }
+      }
+    }
+  }
+}

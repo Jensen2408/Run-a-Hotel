@@ -20,6 +20,9 @@ local MotelCore = require(script.Parent:WaitForChild("MotelCore"))
 local MapBuilder = require(script.Parent:WaitForChild("MapBuilder"))
 local Visuals = require(script.Parent:WaitForChild("Visuals"))
 local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
+local Persistence = require(script.Parent:WaitForChild("Persistence"))
+local Places = require(Shared:WaitForChild("Places"))
+local TeleportService = game:GetService("TeleportService")
 
 local PA = Constants.PromptAction
 local RA = Constants.RemoteAction
@@ -67,6 +70,24 @@ end
 -- Wait for the first player so Preparation does not tick down on an empty server.
 if #Players:GetPlayers() == 0 then
 	Players.PlayerAdded:Wait()
+end
+
+-- A group teleported from a lobby pad carries its size in the teleport data;
+-- wait (briefly) for everyone so co-op scaling starts with the right count.
+do
+	local first = Players:GetPlayers()[1]
+	local partySize = 1
+	local ok, joinData = pcall(function()
+		return first:GetJoinData()
+	end)
+	local data = ok and joinData and joinData.TeleportData
+	if typeof(data) == "table" and typeof(data.partySize) == "number" then
+		partySize = math.clamp(math.floor(data.partySize), 1, Config.coop.maxPlayers)
+	end
+	local deadline = os.clock() + Config.lobby.partyWait
+	while #Players:GetPlayers() < partySize and os.clock() < deadline do
+		task.wait(0.25)
+	end
 end
 
 local core = MotelCore.new(Config, Constants, {
@@ -289,6 +310,19 @@ actionRemote.OnServerEvent:Connect(function(player: Player, payload)
 			return
 		end
 		ok, msg = core:buyItem(player.UserId, itemId)
+	elseif kind == RA.BackToLobby then
+		if RunService:IsStudio() or Places.lobby == 0 then
+			feedback(player, "Back to lobby works in the live game (not in Studio).", "info")
+			return
+		end
+		local tpOk, err = pcall(function()
+			TeleportService:TeleportAsync(Places.lobby, { player })
+		end)
+		if not tpOk then
+			feedback(player, "Could not reach the lobby, try again.", "error")
+			warn("[Motel] Lobby teleport failed: " .. tostring(err))
+		end
+		return
 	elseif kind == RA.Ready then
 		ok, msg = core:setReady(player.UserId)
 	elseif kind == RA.Restart then
@@ -386,11 +420,32 @@ local eventMessages = {
 ------------------------------------------------------------------------
 
 local lastVersion = -1
+local savedRunId = nil
 local resendTimer = 0
 
 RunService.Heartbeat:Connect(function(dt)
 	local t = now()
 	core:update(t)
+
+	-- Save every finished run once (profile + leaderboard) and announce records.
+	if core.phase == Constants.Phase.RunEnded and savedRunId ~= core.runId then
+		savedRunId = core.runId
+		local nights, served = core.nightsSurvived, core.totals.served
+		for _, player in ipairs(Players:GetPlayers()) do
+			task.spawn(function()
+				local profile, isRecord, saved = Persistence.recordRun(player.UserId, nights, served)
+				if isRecord then
+					feedbackRemote:FireClient(player, {
+						text = ("NEW RECORD! %d night%s survived"):format(nights, if nights == 1 then "" else "s"),
+						kind = "record",
+					})
+				elseif not saved then
+					warn("[Motel] Could not save run for " .. player.Name .. " (DataStore offline?)")
+				end
+				player:SetAttribute("BestNights", profile.best)
+			end)
+		end
+	end
 
 	for _, e in ipairs(core:drainEvents()) do
 		local fn = eventMessages[e.kind]

@@ -16,6 +16,8 @@ local MIN_GAP = 0.06 -- seconds between two plays of the same cue
 function Sfx.new()
 	local self = setmetatable({}, Sfx)
 	self.sounds = {}
+	self.base = {}
+	self.scale = 1
 	self.lastPlayed = {}
 	local folder = Instance.new("Folder")
 	folder.Name = "MotelUiSounds"
@@ -29,6 +31,7 @@ function Sfx.new()
 			s.Volume = def.volume
 			s.Parent = folder
 			self.sounds[name] = s
+			self.base[name] = def.volume
 			table.insert(preload, s)
 		end
 	end
@@ -40,9 +43,17 @@ function Sfx.new()
 	return self
 end
 
+-- Volume multiplier from the settings panel (0..1).
+function Sfx:setScale(scale: number)
+	self.scale = scale
+	for name, sound in pairs(self.sounds) do
+		sound.Volume = self.base[name] * scale
+	end
+end
+
 function Sfx:play(name: string)
 	local s = self.sounds[name]
-	if not s then
+	if not s or self.scale <= 0 then
 		return
 	end
 	local now = os.clock()

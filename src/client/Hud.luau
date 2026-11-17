@@ -1390,13 +1390,26 @@ function Hud:buildReport()
 	self.restartButton = chunkyButton(
 		body,
 		"Restart",
-		UDim2.fromOffset(240, 54),
-		UDim2.new(0.5, -120, 1, -70),
+		UDim2.fromOffset(200, 54),
+		UDim2.new(0.5, -210, 1, -70),
 		BLUE,
 		"PLAY AGAIN",
 		function()
 			self.callbacks.onRestart()
-		end
+		end,
+		"play"
+	)
+	self.lobbyButton = chunkyButton(
+		body,
+		"Lobby",
+		UDim2.fromOffset(200, 54),
+		UDim2.new(0.5, 10, 1, -70),
+		PURPLE,
+		"LOBBY",
+		function()
+			self.callbacks.onBackToLobby()
+		end,
+		"home"
 	)
 end
 
@@ -2350,9 +2363,11 @@ function Hud:setState(s)
 		if P == "RunEnded" then
 			self.reportTitle.Text = if s.complete then "PROTOTYPE COMPLETE!" else "RUN OVER"
 			self.restartButton.holder.Visible = true
+			self.lobbyButton.holder.Visible = true
 		else
 			self.reportTitle.Text = ("NIGHT %d REPORT"):format(r.night)
 			self.restartButton.holder.Visible = false
+			self.lobbyButton.holder.Visible = false
 		end
 		local key = P .. tostring(r.night) .. tostring(s.runId)
 		if self.reportKey ~= key then

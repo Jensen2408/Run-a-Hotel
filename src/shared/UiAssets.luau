@@ -20,7 +20,8 @@ local UiAssets = {}
 
 UiAssets.iconSheets = {
 	"rbxassetid://85647358432325", -- sheet 1: assets/ui/icon-sheet.png
-	"rbxassetid://92991628549421", -- sheet 2: assets/ui/icon-sheet-2.png (paste "rbxassetid://..." after upload)
+	"rbxassetid://92991628549421", -- sheet 2: assets/ui/icon-sheet-2.png
+	"", -- sheet 3: assets/ui/icon-sheet-3.png (lobby/settings icons; paste "rbxassetid://..." after upload)
 }
 UiAssets.cellSize = 256 -- pixels per icon cell in a sheet
 UiAssets.cellInset = 0 -- shave pixels off each cell edge if neighbours bleed in
@@ -61,6 +62,23 @@ UiAssets.icons = {
 	skip = { 2, 2, 4 },
 	sparkle = { 2, 3, 4 },
 	alarm = { 2, 4, 4 },
+	-- Sheet 3 (lobby, settings, ranks)
+	gear = { 3, 1, 1 },
+	music = { 3, 2, 1 },
+	speaker = { 3, 3, 1 },
+	home = { 3, 4, 1 },
+	crown = { 3, 1, 2 },
+	medalSilver = { 3, 2, 2 },
+	medalBronze = { 3, 3, 2 },
+	profile = { 3, 4, 2 },
+	book = { 3, 1, 3 },
+	podium = { 3, 2, 3 },
+	play = { 3, 3, 3 },
+	plus = { 3, 4, 3 },
+	minus = { 3, 1, 4 },
+	people = { 3, 2, 4 },
+	calendar = { 3, 3, 4 },
+	gift = { 3, 4, 4 },
 }
 
 -- Temporary stand-ins while a sheet is empty or loading.
@@ -97,6 +115,22 @@ UiAssets.fallback = {
 	skip = "⏭",
 	sparkle = "✨",
 	alarm = "⏰",
+	gear = "⚙",
+	music = "🎵",
+	speaker = "🔊",
+	home = "🏠",
+	crown = "👑",
+	medalSilver = "🥈",
+	medalBronze = "🥉",
+	profile = "👤",
+	book = "📖",
+	podium = "🏆",
+	play = "▶",
+	plus = "+",
+	minus = "-",
+	people = "👪",
+	calendar = "📅",
+	gift = "🎁",
 }
 
 -- Sheet image + rect for an icon, or nil when its sheet is not uploaded.
@@ -129,6 +163,12 @@ function UiAssets.applyTo(label: ImageLabel, name: string)
 end
 
 export type SoundDef = { id: string, volume: number }
+
+-- Looping background music per place (Settings scales the volume).
+UiAssets.music = {
+	lobby = { id = "rbxassetid://9045473167", volume = 0.35 }, -- APM "Jazz Joint (a 60)"
+	game = { id = "rbxassetid://9112764573", volume = 0.45 }, -- ProSoundEffects "Crickets Night 3" (ambience loop)
+} :: { [string]: SoundDef }
 
 UiAssets.sounds = {
 	click = { id = "rbxassetid://15675032796", volume = 0.5 }, -- Roblox_UI_Small_Click

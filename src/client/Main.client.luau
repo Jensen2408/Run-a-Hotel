@@ -12,6 +12,8 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
 local Sfx = require(script.Parent:WaitForChild("Sfx"))
+local Settings = require(script.Parent:WaitForChild("Settings"))
+local UiKit = require(script.Parent:WaitForChild("UiKit"))
 
 local player = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild(Constants.Remotes.Folder)
@@ -24,8 +26,9 @@ local openLinenRemote = remotes:WaitForChild(Constants.Remotes.OpenLinen)
 
 local RA = Constants.RemoteAction
 
+local sfx = Sfx.new()
 local hud = Hud.new(player:WaitForChild("PlayerGui"), Config, {
-	sfx = Sfx.new(),
+	sfx = sfx,
 	onCheckIn = function(roomId: number)
 		actionRemote:FireServer({ kind = RA.CheckIn, roomId = roomId })
 	end,
@@ -41,10 +44,17 @@ local hud = Hud.new(player:WaitForChild("PlayerGui"), Config, {
 	onReady = function()
 		actionRemote:FireServer({ kind = RA.Ready })
 	end,
+	onBackToLobby = function()
+		actionRemote:FireServer({ kind = RA.BackToLobby })
+	end,
 	onRestart = function()
 		actionRemote:FireServer({ kind = RA.Restart })
 	end,
 })
+
+-- Music + volume settings (gear button, top right).
+UiKit.setSfx(sfx)
+Settings.new(player:WaitForChild("PlayerGui"), sfx, "game")
 
 -- First-night tutorial with arrows (client only).
 local tutorial = Tutorial.new(hud)
@@ -76,9 +86,17 @@ stateRemote.OnClientEvent:Connect(function(snapshot)
 end)
 
 feedbackRemote.OnClientEvent:Connect(function(payload)
-	if typeof(payload) == "table" and typeof(payload.text) == "string" then
-		hud:toast(payload.text, payload.kind)
+	if typeof(payload) ~= "table" or typeof(payload.text) ~= "string" then
+		return
 	end
+	if payload.kind == "record" then
+		-- New personal best: big banner, confetti and fanfare.
+		hud:banner("NEW RECORD!", payload.text, "trophy")
+		hud:confetti(80)
+		sfx:play("fanfare")
+		return
+	end
+	hud:toast(payload.text, payload.kind)
 end)
 
 openCheckInRemote.OnClientEvent:Connect(function()
