@@ -11,6 +11,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
+local Sfx = require(script.Parent:WaitForChild("Sfx"))
 
 local player = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild(Constants.Remotes.Folder)
@@ -22,6 +23,7 @@ local openCheckInRemote = remotes:WaitForChild(Constants.Remotes.OpenCheckIn)
 local RA = Constants.RemoteAction
 
 local hud = Hud.new(player:WaitForChild("PlayerGui"), Config, {
+	sfx = Sfx.new(),
 	onCheckIn = function(roomId: number)
 		actionRemote:FireServer({ kind = RA.CheckIn, roomId = roomId })
 	end,
