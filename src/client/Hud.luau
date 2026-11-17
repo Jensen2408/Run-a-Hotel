@@ -260,6 +260,7 @@ function Hud.new(playerGui: PlayerGui, config, callbacks)
 	self:buildToasts()
 	self:buildPicker()
 	self:buildReport()
+	self:buildTutorial()
 	return self
 end
 
@@ -797,6 +798,76 @@ local function chunkyButton(parent, name: string, size: UDim2, pos: UDim2, color
 	local l = label({ Parent = body, Size = UDim2.fromScale(1, 1), TextSize = 24, Text = text })
 	pressable(holder, body, onClick)
 	return { holder = holder, body = body, grad = grad, label = l }
+end
+
+-- Tutorial card (top right): ribbon with progress, instruction text, NEXT / SKIP.
+function Hud:buildTutorial()
+	local holder, body = chunk({
+		Name = "Tutorial",
+		Parent = self.root,
+		Size = UDim2.fromOffset(340, 156),
+		Position = UDim2.new(1, -14, 0, 150),
+		AnchorPoint = Vector2.new(1, 0),
+		Colors = { CREAM, Color3.fromRGB(244, 230, 196) },
+		Radius = UDim.new(0, 18),
+		Visible = false,
+	})
+	local ribbonHolder, ribbonBody = chunk({
+		Name = "Ribbon",
+		Parent = holder,
+		Size = UDim2.fromOffset(190, 32),
+		Position = UDim2.fromOffset(14, -18),
+		Colors = BLUE,
+		Radius = UDim.new(0, 10),
+		ShadowDepth = 3,
+		Stroke = 2.5,
+	})
+	ribbonHolder.ZIndex = 2
+	self.tutorialTitle = label({ Parent = ribbonBody, Size = UDim2.fromScale(1, 1), TextSize = 18, Text = "TUTORIAL" })
+	self.tutorialText = label({
+		Parent = body,
+		Size = UDim2.new(1, -28, 1, -70),
+		Position = UDim2.fromOffset(14, 22),
+		TextSize = 19,
+		TextColor3 = TEXT_DARK,
+		Stroke = 0,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		Text = "",
+	})
+	self.tutorialNext = chunkyButton(
+		body,
+		"Next",
+		UDim2.fromOffset(110, 38),
+		UDim2.new(1, -124, 1, -48),
+		GREEN,
+		"NEXT",
+		function()
+			if self.onTutorialNext then
+				self.onTutorialNext()
+			end
+		end
+	)
+	self.tutorialNext.label.TextSize = 20
+	local skip = chunkyButton(body, "Skip", UDim2.fromOffset(90, 38), UDim2.new(0, 14, 1, -48), GREY, "SKIP", function()
+		if self.onTutorialSkip then
+			self.onTutorialSkip()
+		end
+	end)
+	skip.label.TextSize = 18
+	self.tutorialCard = holder
+end
+
+-- info = { title, text, showNext } or nil to hide.
+function Hud:setTutorial(info)
+	if not info then
+		self.tutorialCard.Visible = false
+		return
+	end
+	self.tutorialCard.Visible = true
+	self.tutorialTitle.Text = info.title
+	self.tutorialText.Text = info.text
+	self.tutorialNext.holder.Visible = info.showNext == true
 end
 
 function Hud:buildPicker()

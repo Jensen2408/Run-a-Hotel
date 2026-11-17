@@ -10,6 +10,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
+local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
 
 local player = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild(Constants.Remotes.Folder)
@@ -32,6 +33,9 @@ local hud = Hud.new(player:WaitForChild("PlayerGui"), Config, {
 	end,
 })
 
+-- First-night tutorial with arrows (client only).
+local tutorial = Tutorial.new(hud)
+
 local lastPhase = nil
 stateRemote.OnClientEvent:Connect(function(snapshot)
 	if typeof(snapshot) ~= "table" then
@@ -51,6 +55,7 @@ stateRemote.OnClientEvent:Connect(function(snapshot)
 		lastPhase = snapshot.phase
 	end
 	hud:setState(snapshot)
+	tutorial:update(snapshot)
 end)
 
 feedbackRemote.OnClientEvent:Connect(function(payload)
@@ -65,6 +70,7 @@ end)
 
 RunService.RenderStepped:Connect(function()
 	hud:tick()
+	tutorial:tick()
 end)
 
 actionRemote:FireServer({ kind = RA.RequestState })
