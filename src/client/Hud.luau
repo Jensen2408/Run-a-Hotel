@@ -331,26 +331,18 @@ local function pressable(holder: GuiObject, body: GuiButton, onActivate)
 	end)
 end
 
--- A circular icon "medallion" that overlaps the left edge of a pill.
-local function medallion(parent, size: number, colors, iconName: string)
-	local holder, body = chunk({
-		Name = "Medallion",
-		Parent = parent,
-		Size = UDim2.fromOffset(size, size),
-		Position = UDim2.new(0, -size * 0.35, 0.5, 0),
+-- A plain icon (no circle behind it) overlapping the left edge of a pill.
+local function edgeIcon(parent, iconName: string)
+	local holder = make("Frame", {
+		Name = "EdgeIcon",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(64, 64),
+		Position = UDim2.new(0, -26, 0.5, 0),
 		AnchorPoint = Vector2.new(0, 0.5),
-		Colors = colors,
-		Radius = UDim.new(1, 0),
-		ShadowDepth = 4,
+		ZIndex = 3,
+		Parent = parent,
 	})
-	holder.ZIndex = 3
-	local icon = Icons.create(iconName, {
-		Parent = body,
-		Size = UDim2.fromScale(0.86, 0.86),
-		Position = UDim2.fromScale(0.5, 0.5),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		ZIndex = 2,
-	})
+	local icon = Icons.create(iconName, { Parent = holder, ZIndex = 3 })
 	return holder, icon
 end
 
@@ -516,17 +508,8 @@ function Hud:buildTopBar()
 	})
 	self.cashHolder = cashHolder
 	self.cashGrad = cashGrad
-	-- Plain coin icon on the left edge (no circle behind it).
-	local coinHolder = make("Frame", {
-		Name = "Coin",
-		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(64, 64),
-		Position = UDim2.new(0, -26, 0.5, 0),
-		AnchorPoint = Vector2.new(0, 0.5),
-		ZIndex = 3,
-		Parent = cashHolder,
-	})
-	local coinIcon = Icons.create("coin", { Parent = coinHolder, ZIndex = 3 })
+	local coinHolder, coinIcon = edgeIcon(cashHolder, "coin")
+	coinHolder.Name = "Coin"
 	self.coinHolder = coinHolder
 	self.coinIcon = coinIcon
 	self.cashText = label({
@@ -632,7 +615,7 @@ function Hud:buildTopBar()
 		Radius = UDim.new(1, 0),
 	})
 	self.guestHolder = guestHolder
-	medallion(guestHolder, 58, ORANGE, "guests")
+	edgeIcon(guestHolder, "guests")
 	self.guestText = label({
 		Parent = guestBody,
 		Size = UDim2.new(1, -30, 1, 0),
