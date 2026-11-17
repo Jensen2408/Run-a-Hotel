@@ -830,6 +830,7 @@ function MotelCore:snapshot(pid)
 	return {
 		runId = self.runId,
 		phase = self.phase,
+		phaseStartedAt = self.phaseStartedAt,
 		phaseEndsAt = self.phaseEndsAt,
 		night = self.night,
 		totalNights = #self.config.nights,

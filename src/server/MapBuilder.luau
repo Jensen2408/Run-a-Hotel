@@ -9,13 +9,25 @@
 	    Interactables parts that hold ProximityPrompts (Action / RoomId attributes)
 	    Runtime       cars and guests (cleared on restart)
 
+	Map/Decor holds the low-poly scenery (see MapDecor).
+
 	Final art can replace the Map folder later; keep the Waypoints and
 	Interactables names so the server code keeps working.
+
+	Edit-mode preview: run MapBuilder.build(Config) from the Studio command
+	bar (or via MCP). The server reuses that map when its MapVersion
+	attribute matches, so you can see the motel before pressing Play.
 ]]
 
 local Workspace = game:GetService("Workspace")
 
+local MapDecor = require(script.Parent:WaitForChild("MapDecor"))
+local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
+
 local MapBuilder = {}
+
+-- Bump when the layout changes so stale saved maps are rebuilt.
+MapBuilder.VERSION = 5
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -32,31 +44,31 @@ local function part(props)
 	return p
 end
 
-local function label(parent: Instance, text: string, offsetY: number, size: UDim2?)
+-- World label in the HUD style: small outlined Fredoka text, no background.
+-- Sized in studs so it shrinks with distance, and not AlwaysOnTop so walls
+-- and roofs hide it instead of it covering the scene.
+local function label(parent: Instance, text: string, offsetY: number, widthStuds: number?)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Label"
-	gui.Size = size or UDim2.fromOffset(200, 50)
+	gui.Size = UDim2.fromScale(widthStuds or 4.5, 1)
 	gui.StudsOffset = Vector3.new(0, offsetY, 0)
-	gui.AlwaysOnTop = true
-	gui.MaxDistance = 90
+	gui.AlwaysOnTop = false
+	gui.MaxDistance = 60
 	gui.LightInfluence = 0
 	local tl = Instance.new("TextLabel")
 	tl.Name = "Text"
 	tl.Size = UDim2.fromScale(1, 1)
-	tl.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
-	tl.BackgroundTransparency = 0.25
+	tl.BackgroundTransparency = 1
 	tl.TextColor3 = Color3.new(1, 1, 1)
 	tl.TextScaled = true
-	tl.Font = Enum.Font.GothamBold
+	tl.Font = Enum.Font.FredokaOne
 	tl.Text = text
 	tl.Parent = gui
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
-	corner.Parent = tl
-	local pad = Instance.new("UIPadding")
-	pad.PaddingLeft = UDim.new(0, 6)
-	pad.PaddingRight = UDim.new(0, 6)
-	pad.Parent = tl
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(46, 32, 22)
+	stroke.LineJoinMode = Enum.LineJoinMode.Round
+	stroke.Parent = tl
 	gui.Parent = parent
 	return tl
 end
@@ -100,7 +112,9 @@ local function waypoint(folder: Instance, name: string, pos: Vector3)
 	})
 end
 
+-- Lights with the PowerLight attribute go dark during a power outage.
 local function light(parent: Instance, range: number, brightness: number)
+	parent:SetAttribute("PowerLight", true)
 	local l = Instance.new("PointLight")
 	l.Range = range
 	l.Brightness = brightness
@@ -139,27 +153,11 @@ function MapBuilder.build(config)
 		parkingSlots = {},
 	}
 
-	-- Ground, road, parking -------------------------------------------------
-	part({
-		Name = "Ground",
-		Size = Vector3.new(240, 1, 200),
-		Position = Vector3.new(10, -0.5, -10),
-		Color = Color3.fromRGB(92, 140, 76),
-		Material = Enum.Material.Grass,
-		Parent = map,
-	})
-	part({
-		Name = "Road",
-		Size = Vector3.new(240, 0.2, 14),
-		Position = Vector3.new(10, 0.1, -64),
-		Color = Color3.fromRGB(50, 50, 55),
-		Material = Enum.Material.Asphalt,
-		Parent = map,
-	})
+	-- Parking (ground, road and scenery are built by MapDecor) ------------------
 	part({
 		Name = "ParkingLot",
-		Size = Vector3.new(52, 0.2, 16),
-		Position = Vector3.new(-6, 0.1, -48),
+		Size = Vector3.new(52, 0.24, 15),
+		Position = Vector3.new(-6, 0.12, -47.5),
 		Color = Color3.fromRGB(70, 70, 76),
 		Material = Enum.Material.Asphalt,
 		Parent = map,
@@ -176,8 +174,8 @@ function MapBuilder.build(config)
 	for i, x in ipairs(slotXs) do
 		part({
 			Name = "SlotLine" .. i,
-			Size = Vector3.new(0.4, 0.22, 10),
-			Position = Vector3.new(x + 4, 0.12, -48),
+			Size = Vector3.new(0.4, 0.04, 10),
+			Position = Vector3.new(x + 4, 0.25, -48),
 			Color = Color3.new(1, 1, 1),
 			Parent = map,
 		})
@@ -197,23 +195,6 @@ function MapBuilder.build(config)
 		Material = Enum.Material.WoodPlanks,
 		Parent = map,
 	})
-	part({
-		Name = "LobbyBackWall",
-		Size = Vector3.new(1, 10, 26),
-		Position = Vector3.new(4, 5, -19),
-		Color = Color3.fromRGB(230, 220, 200),
-		Parent = map,
-	})
-	part({
-		Name = "LobbySign",
-		Size = Vector3.new(20, 4, 1),
-		Position = Vector3.new(26, 13, -32),
-		Color = Color3.fromRGB(200, 40, 60),
-		Material = Enum.Material.Neon,
-		Parent = map,
-	})
-	label(map:FindFirstChild("LobbySign"), "RUN A MOTEL", 3, UDim2.fromOffset(260, 50))
-
 	local desk = part({
 		Name = "Desk",
 		Size = Vector3.new(10, 4, 2),
@@ -229,7 +210,7 @@ function MapBuilder.build(config)
 		objectText = "Front Desk",
 		offset = Vector3.new(0, 1.5, -1.2),
 	})
-	label(desk, "FRONT DESK", 4, UDim2.fromOffset(160, 36))
+	label(desk, "FRONT DESK", 3.2, 4)
 	local deskLamp = part({
 		Name = "DeskLamp",
 		Size = Vector3.new(1, 1, 1),
@@ -239,16 +220,16 @@ function MapBuilder.build(config)
 		Material = Enum.Material.Neon,
 		Parent = map,
 	})
-	table.insert(layout.powerLights, { part = deskLamp, light = light(deskLamp, 18, 1.5) })
+	light(deskLamp, 14, 1)
 	local ceiling = part({
 		Name = "LobbyLamp",
 		Size = Vector3.new(2, 0.5, 2),
-		Position = Vector3.new(22, 11, -20),
+		Position = Vector3.new(22, 13.4, -20),
 		Color = Color3.fromRGB(255, 240, 200),
 		Material = Enum.Material.Neon,
 		Parent = map,
 	})
-	table.insert(layout.powerLights, { part = ceiling, light = light(ceiling, 30, 2) })
+	light(ceiling, 26, 0.9)
 
 	-- Queue: slot 1 is in front of the desk, the line grows toward the entrance.
 	layout.queueSlots = {}
@@ -276,7 +257,7 @@ function MapBuilder.build(config)
 		hold = config.interaction.breakerHoldDuration,
 		offset = Vector3.new(1, 0, 0),
 	})
-	layout.breakerLabel = label(breaker, "BREAKER", 3, UDim2.fromOffset(140, 32))
+	layout.breakerLabel = label(breaker, "BREAKER", 3, 3.5)
 
 	-- Supply shop kiosk.
 	local shop = part({
@@ -305,7 +286,7 @@ function MapBuilder.build(config)
 		gamepadKey = Enum.KeyCode.ButtonY,
 		offset = Vector3.new(-2.2, -0.8, 0),
 	})
-	label(shop, "SUPPLY SHOP", 4, UDim2.fromOffset(160, 36))
+	label(shop, "SUPPLY SHOP", 3.6, 4.5)
 
 	-- Hallway ---------------------------------------------------------------
 	part({
@@ -335,36 +316,44 @@ function MapBuilder.build(config)
 		})
 		part({
 			Name = "BackWall",
-			Size = Vector3.new(14, 9, 1),
-			Position = Vector3.new(cx, 4.5, 20),
+			Size = Vector3.new(14, 12, 1),
+			Position = Vector3.new(cx, 6, 20),
 			Color = wallColor,
 			Parent = roomFolder,
 		})
 		part({
 			Name = "LeftWall",
-			Size = Vector3.new(1, 9, 16),
-			Position = Vector3.new(cx - 7, 4.5, 12),
+			Size = Vector3.new(1, 12, 16),
+			Position = Vector3.new(cx - 7, 6, 12),
 			Color = wallColor,
 			Parent = roomFolder,
 		})
 		part({
 			Name = "RightWall",
-			Size = Vector3.new(1, 9, 16),
-			Position = Vector3.new(cx + 7, 4.5, 12),
+			Size = Vector3.new(1, 12, 16),
+			Position = Vector3.new(cx + 7, 6, 12),
 			Color = wallColor,
 			Parent = roomFolder,
 		})
 		part({
 			Name = "FrontWallL",
-			Size = Vector3.new(5, 9, 1),
-			Position = Vector3.new(cx - 4.5, 4.5, 4),
+			Size = Vector3.new(5, 12, 1),
+			Position = Vector3.new(cx - 4.5, 6, 4),
 			Color = wallColor,
 			Parent = roomFolder,
 		})
 		part({
 			Name = "FrontWallR",
-			Size = Vector3.new(5, 9, 1),
-			Position = Vector3.new(cx + 4.5, 4.5, 4),
+			Size = Vector3.new(5, 12, 1),
+			Position = Vector3.new(cx + 4.5, 6, 4),
+			Color = wallColor,
+			Parent = roomFolder,
+		})
+		-- Lintel above the doorway (door opening stays 7.6 studs tall).
+		part({
+			Name = "DoorLintel",
+			Size = Vector3.new(4, 4.4, 1),
+			Position = Vector3.new(cx, 9.8, 4),
 			Color = wallColor,
 			Parent = roomFolder,
 		})
@@ -386,8 +375,8 @@ function MapBuilder.build(config)
 		})
 		local bin = part({
 			Name = "Room" .. i .. "TrashBin",
-			Size = Vector3.new(2, 1.6, 1.6), -- cylinder axis is X, rotated upright
-			Position = Vector3.new(cx - 5, 1.4, 7),
+			Size = Vector3.new(3, 2.2, 2.2), -- cylinder axis is X, rotated upright (3 studs tall)
+			Position = Vector3.new(cx - 5, 1.9, 7),
 			Color = Color3.fromRGB(60, 60, 60),
 			Shape = Enum.PartType.Cylinder,
 			Orientation = Vector3.new(0, 0, 90),
@@ -395,9 +384,9 @@ function MapBuilder.build(config)
 		})
 		local trashBag = part({
 			Name = "TrashBag",
-			Size = Vector3.new(1.6, 1.6, 1.6),
+			Size = Vector3.new(1.8, 1.8, 1.8),
 			Shape = Enum.PartType.Ball,
-			Position = Vector3.new(cx - 5, 3, 7),
+			Position = Vector3.new(cx - 5, 4, 7),
 			Color = Color3.fromRGB(20, 20, 20),
 			CanCollide = false,
 			Transparency = 1,
@@ -414,17 +403,17 @@ function MapBuilder.build(config)
 		local lamp = part({
 			Name = "Lamp",
 			Size = Vector3.new(1.5, 0.4, 1.5),
-			Position = Vector3.new(cx, 8.6, 12),
+			Position = Vector3.new(cx, 11.4, 12),
 			Color = Color3.fromRGB(255, 240, 200),
 			Material = Enum.Material.Neon,
 			Parent = roomFolder,
 		})
-		table.insert(layout.powerLights, { part = lamp, light = light(lamp, 16, 1) })
+		light(lamp, 14, 0.8)
 
 		local signPost = part({
 			Name = "Room" .. i .. "Sign",
 			Size = Vector3.new(0.5, 0.5, 0.5),
-			Position = Vector3.new(cx, 10.5, 4),
+			Position = Vector3.new(cx, 9.4, 2.9),
 			Transparency = 1,
 			CanCollide = false,
 			Parent = roomFolder,
@@ -438,7 +427,7 @@ function MapBuilder.build(config)
 			bin = bin,
 			trashBag = trashBag,
 			ac = ac,
-			sign = label(signPost, "Room " .. i, 0, UDim2.fromOffset(220, 46)),
+			sign = label(signPost, "Room " .. i, 0, 7),
 			hall = waypoint(wpFolder, "Room" .. i .. "Hall", Vector3.new(cx, 1, -3)).Position,
 			doorPoint = waypoint(wpFolder, "Room" .. i .. "DoorPoint", Vector3.new(cx, 1, 2)).Position,
 			inside = waypoint(wpFolder, "Room" .. i .. "Inside", Vector3.new(cx - 1.5, 1, 11)).Position,
@@ -454,6 +443,8 @@ function MapBuilder.build(config)
 					actionText = "Collect Trash",
 					objectText = "Room " .. i,
 					roomId = i,
+					-- Bin is rotated 90deg on Z, so local +X is world up: raise the prompt to eye level.
+					offset = Vector3.new(2.5, 0, 0),
 				}),
 				deliverTowel = prompt(door, config, {
 					action = "DeliverTowel",
@@ -514,7 +505,7 @@ function MapBuilder.build(config)
 		gamepadKey = Enum.KeyCode.ButtonB,
 		offset = Vector3.new(2.5, 0, 1.2),
 	})
-	layout.linenLabel = label(shelf, "LINEN", 4.5, UDim2.fromOffset(200, 40))
+	layout.linenLabel = label(shelf, "LINEN", 4, 7)
 
 	-- Dumpster ---------------------------------------------------------------
 	local dumpster = part({
@@ -530,7 +521,7 @@ function MapBuilder.build(config)
 		actionText = "Dump Trash",
 		objectText = "Dumpster",
 	})
-	label(dumpster, "DUMPSTER", 3.5, UDim2.fromOffset(150, 34))
+	label(dumpster, "DUMPSTER", 3.2, 4)
 
 	-- Rain emitter (enabled by the server on rainy nights) ----------------------
 	local rainPart = part({
@@ -568,8 +559,161 @@ function MapBuilder.build(config)
 	spawn.TopSurface = Enum.SurfaceType.Smooth
 	spawn.Parent = map
 
+	-- Parent the small gameplay tree first, then add scenery incrementally
+	-- (MapDecor yields between batches so Studio stays responsive).
+	root:SetAttribute("MapVersion", MapBuilder.VERSION)
+	root:SetAttribute("RoomCount", config.roomCount)
 	root.Parent = Workspace
+	LightingFX.apply()
+	MapDecor.build(map)
+	return MapBuilder.collect(root, config)
+end
+
+------------------------------------------------------------------------
+-- Collect: rebuild the layout table from an existing Workspace.Motel by
+-- instance names, so a map built in Edit mode (or saved in the place) is
+-- reused at runtime instead of being rebuilt.
+------------------------------------------------------------------------
+
+local function must(parent: Instance, name: string): Instance
+	local child = parent:FindFirstChild(name)
+	assert(child, ("Motel map is missing %s.%s"):format(parent:GetFullName(), name))
+	return child
+end
+
+local function promptIn(holder: Instance, name: string): ProximityPrompt
+	local pp = holder:FindFirstChild(name, true)
+	assert(pp and pp:IsA("ProximityPrompt"), ("Missing prompt %s under %s"):format(name, holder:GetFullName()))
+	return pp
+end
+
+local function labelText(holder: Instance): TextLabel
+	return must(must(holder, "Label"), "Text") :: TextLabel
+end
+
+function MapBuilder.collect(root: Instance, config)
+	local map = must(root, "Map")
+	local wp = must(root, "Waypoints")
+	local interact = must(root, "Interactables")
+	local runtime = root:FindFirstChild("Runtime")
+	if not runtime then
+		runtime = Instance.new("Folder")
+		runtime.Name = "Runtime"
+		runtime.Parent = root
+	end
+	runtime:ClearAllChildren()
+
+	local function point(name: string): Vector3
+		return (must(wp, name) :: BasePart).Position
+	end
+
+	local layout = {
+		root = root,
+		runtime = runtime,
+		rooms = {},
+		prompts = {},
+		parkingSlots = {},
+		queueSlots = {},
+		powerLights = {},
+	}
+
+	local i = 1
+	while wp:FindFirstChild("ParkingSlot" .. i) do
+		layout.parkingSlots[i] = point("ParkingSlot" .. i)
+		i += 1
+	end
+	i = 1
+	while wp:FindFirstChild("QueueSlot" .. i) do
+		layout.queueSlots[i] = point("QueueSlot" .. i)
+		i += 1
+	end
+	layout.roadIn = point("RoadIn")
+	layout.roadOut = point("RoadOut")
+	layout.roadInZ = layout.roadIn.Z
+	layout.roadOutZ = layout.roadOut.Z
+	layout.entrance = point("LobbyEntrance")
+	layout.deskSide = point("DeskSide")
+	layout.hallMain = point("HallMain")
+
+	local desk = must(interact, "Desk") :: BasePart
+	layout.deskPosition = desk.Position
+	layout.prompts.desk = promptIn(desk, "OpenCheckIn")
+
+	local breaker = must(interact, "BreakerPanel")
+	layout.breakerPart = breaker
+	layout.prompts.breaker = promptIn(breaker, "ResetBreaker")
+	layout.breakerLabel = labelText(breaker)
+
+	local shop = must(interact, "SupplyShop")
+	layout.prompts.refill = promptIn(shop, "BuyRefill")
+	layout.prompts.trolley = promptIn(shop, "BuyTrolley")
+
+	local shelf = must(interact, "LinenShelf")
+	layout.prompts.takeSheet = promptIn(shelf, "TakeSheet")
+	layout.prompts.takeTowel = promptIn(shelf, "TakeTowel")
+	layout.prompts.returnSupplies = promptIn(shelf, "ReturnSupplies")
+	layout.linenLabel = labelText(shelf)
+
+	layout.prompts.dumpTrash = promptIn(must(interact, "Dumpster"), "DumpTrash")
+
+	for r = 1, config.roomCount do
+		local prefix = "Room" .. r
+		local roomFolder = must(map, prefix)
+		local door = must(interact, prefix .. "Door")
+		local bed = must(interact, prefix .. "Bed")
+		local bin = must(interact, prefix .. "TrashBin")
+		local ac = must(interact, prefix .. "AC")
+		layout.rooms[r] = {
+			id = r,
+			door = door,
+			bed = bed,
+			bin = bin,
+			trashBag = must(roomFolder, "TrashBag"),
+			ac = ac,
+			sign = labelText(must(roomFolder, prefix .. "Sign")),
+			hall = point(prefix .. "Hall"),
+			doorPoint = point(prefix .. "DoorPoint"),
+			inside = point(prefix .. "Inside"),
+			prompts = {
+				changeSheets = promptIn(bed, "ChangeSheets"),
+				collectTrash = promptIn(bin, "CollectTrash"),
+				deliverTowel = promptIn(door, "DeliverTowel"),
+				repairAC = promptIn(ac, "RepairAC"),
+			},
+		}
+	end
+
+	for _, d in ipairs(root:GetDescendants()) do
+		if d:IsA("BasePart") and d:GetAttribute("PowerLight") then
+			local l = d:FindFirstChildWhichIsA("Light")
+			if l then
+				table.insert(layout.powerLights, { part = d, light = l })
+			end
+		end
+	end
+
+	layout.rain = must(must(map, "RainEmitter"), "Rain")
+	-- Optional scenery hooks.
+	layout.vacancyLabel = map:FindFirstChild("VacancyText", true)
 	return layout
+end
+
+-- Reuses Workspace.Motel when it was built by this MapBuilder version,
+-- otherwise builds it from scratch.
+function MapBuilder.ensure(config)
+	local existing = Workspace:FindFirstChild("Motel")
+	if
+		existing
+		and existing:GetAttribute("MapVersion") == MapBuilder.VERSION
+		and existing:GetAttribute("RoomCount") == config.roomCount
+	then
+		local ok, layoutOrErr = pcall(MapBuilder.collect, existing, config)
+		if ok then
+			return layoutOrErr
+		end
+		warn("[Motel] Existing map is incomplete, rebuilding: " .. tostring(layoutOrErr))
+	end
+	return MapBuilder.build(config)
 end
 
 return MapBuilder

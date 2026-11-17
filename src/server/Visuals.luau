@@ -13,23 +13,48 @@ local Lighting = game:GetService("Lighting")
 local Visuals = {}
 Visuals.__index = Visuals
 
-local GUEST_COLORS = {
+local SKIN = {
+	Color3.fromRGB(255, 220, 185),
+	Color3.fromRGB(234, 184, 146),
+	Color3.fromRGB(196, 140, 100),
+	Color3.fromRGB(140, 96, 66),
+	Color3.fromRGB(98, 66, 48),
+}
+local SHIRTS = {
 	Color3.fromRGB(220, 90, 80),
 	Color3.fromRGB(80, 140, 220),
 	Color3.fromRGB(240, 190, 70),
 	Color3.fromRGB(120, 200, 120),
 	Color3.fromRGB(180, 110, 200),
 	Color3.fromRGB(240, 140, 60),
+	Color3.fromRGB(70, 170, 170),
+	Color3.fromRGB(245, 245, 240),
+}
+local PANTS = {
+	Color3.fromRGB(50, 64, 110),
+	Color3.fromRGB(60, 60, 66),
+	Color3.fromRGB(150, 120, 90),
+	Color3.fromRGB(90, 110, 70),
+}
+local HAIR = {
+	Color3.fromRGB(50, 34, 24),
+	Color3.fromRGB(110, 70, 40),
+	Color3.fromRGB(230, 200, 120),
+	Color3.fromRGB(30, 30, 34),
+	Color3.fromRGB(180, 80, 50),
 }
 local CAR_COLORS = {
-	Color3.fromRGB(200, 40, 40),
-	Color3.fromRGB(40, 90, 180),
-	Color3.fromRGB(230, 230, 230),
-	Color3.fromRGB(30, 30, 30),
-	Color3.fromRGB(60, 150, 90),
+	Color3.fromRGB(236, 120, 110),
+	Color3.fromRGB(120, 190, 220),
+	Color3.fromRGB(240, 210, 120),
+	Color3.fromRGB(150, 200, 140),
+	Color3.fromRGB(200, 150, 220),
+	Color3.fromRGB(240, 240, 235),
+	Color3.fromRGB(90, 110, 150),
+	Color3.fromRGB(230, 150, 90),
 }
 
-local GUEST_Y = 2.2
+local GUEST_Y = 2.2 -- root pivot height (hips at y = 2.2)
 local CAR_Y = 1.2
 
 local function newPart(props)
@@ -50,86 +75,225 @@ local function newPart(props)
 	return p
 end
 
+-- Deterministic pick from a palette by guest id and a salt.
+local function pick(list, id: number, salt: number)
+	return list[(id * 7 + salt * 13) % #list + 1]
+end
+
+--[[
+	Blocky guest rig. Returns:
+	  { model, root, label, statics = { {part, offset} }, limbs = { {joint, swing, parts} }, phase }
+	All parts are anchored; poseGuest() places them every frame from a root CFrame.
+]]
 local function makeGuest(id: number, parent: Instance)
 	local model = Instance.new("Model")
 	model.Name = "Guest" .. id
-	local color = GUEST_COLORS[(id - 1) % #GUEST_COLORS + 1]
-	local body = newPart({
-		Name = "Body",
-		Size = Vector3.new(2, 3, 1.2),
-		CFrame = CFrame.new(0, GUEST_Y, 0),
-		Color = color,
-		Parent = model,
+	local skin = pick(SKIN, id, 1)
+	local shirt = pick(SHIRTS, id, 2)
+	local pants = pick(PANTS, id, 3)
+	local hair = pick(HAIR, id, 4)
+
+	local root = newPart({ Name = "Body", Size = Vector3.new(2, 4.4, 1), Transparency = 1, Parent = model })
+	model.PrimaryPart = root
+	local statics = {}
+	local function static(name, size, offset, color, extra)
+		local props = { Name = name, Size = size, Color = color, Parent = model }
+		for k, v in pairs(extra or {}) do
+			props[k] = v
+		end
+		table.insert(statics, { part = newPart(props), offset = offset })
+	end
+	static("Torso", Vector3.new(2, 1.9, 1), CFrame.new(0, 0.95, 0), shirt)
+	static("Belt", Vector3.new(2.05, 0.25, 1.05), CFrame.new(0, 0.1, 0), pants:Lerp(Color3.new(0, 0, 0), 0.4))
+	static("Head", Vector3.new(1.3, 1.3, 1.3), CFrame.new(0, 2.6, 0), skin)
+	for _, x in ipairs({ -0.3, 0.3 }) do
+		static("Eye", Vector3.new(0.18, 0.26, 0.05), CFrame.new(x, 2.7, -0.66), Color3.fromRGB(30, 26, 26))
+	end
+	static("Smile", Vector3.new(0.5, 0.08, 0.05), CFrame.new(0, 2.32, -0.66), Color3.fromRGB(120, 60, 60))
+	local style = id % 3
+	if style == 0 then
+		local capColor = pick(SHIRTS, id, 5)
+		static("Cap", Vector3.new(1.4, 0.45, 1.4), CFrame.new(0, 3.38, 0), capColor)
+		static("Brim", Vector3.new(1.2, 0.15, 0.8), CFrame.new(0, 3.2, -0.95), capColor)
+	elseif style == 1 then
+		static("Hair", Vector3.new(1.42, 0.4, 1.42), CFrame.new(0, 3.35, 0.02), hair)
+		static("HairBack", Vector3.new(1.42, 1, 0.3), CFrame.new(0, 2.85, 0.6), hair)
+	else
+		static("Beanie", Vector3.new(1.42, 0.65, 1.42), CFrame.new(0, 3.4, 0), pick(SHIRTS, id, 6))
+		static("Pom", Vector3.new(0.5, 0.5, 0.5), CFrame.new(0, 3.85, 0), Color3.fromRGB(250, 250, 250), {
+			Shape = Enum.PartType.Ball,
+		})
+	end
+
+	local limbs = {}
+	local function limb(joint: CFrame, swing: number, parts)
+		local entry = { joint = joint, swing = swing, parts = {} }
+		for _, p in ipairs(parts) do
+			table.insert(entry.parts, {
+				part = newPart({ Name = p[1], Size = p[2], Color = p[4], Parent = model }),
+				offset = p[3],
+			})
+		end
+		table.insert(limbs, entry)
+	end
+	local shoe = Color3.fromRGB(40, 36, 34)
+	limb(CFrame.new(-0.5, 0, 0), 1, {
+		{ "LeftLeg", Vector3.new(0.9, 1.8, 0.9), CFrame.new(0, -0.9, 0), pants },
+		{ "LeftShoe", Vector3.new(0.95, 0.35, 1.15), CFrame.new(0, -1.95, -0.1), shoe },
 	})
-	newPart({
-		Name = "Head",
-		Shape = Enum.PartType.Ball,
-		Size = Vector3.new(1.5, 1.5, 1.5),
-		CFrame = CFrame.new(0, GUEST_Y + 2.2, 0),
-		Color = Color3.fromRGB(255, 220, 185),
-		Parent = model,
+	limb(CFrame.new(0.5, 0, 0), -1, {
+		{ "RightLeg", Vector3.new(0.9, 1.8, 0.9), CFrame.new(0, -0.9, 0), pants },
+		{ "RightShoe", Vector3.new(0.95, 0.35, 1.15), CFrame.new(0, -1.95, -0.1), shoe },
 	})
-	newPart({
-		Name = "Suitcase",
-		Size = Vector3.new(0.6, 1.2, 1.6),
-		CFrame = CFrame.new(1.4, GUEST_Y - 0.8, 0),
-		Color = Color3.fromRGB(90, 60, 40),
-		Parent = model,
+	limb(CFrame.new(-1.35, 1.8, 0), -1, {
+		{ "LeftArm", Vector3.new(0.7, 1.4, 0.8), CFrame.new(0, -0.6, 0), shirt },
+		{ "LeftHand", Vector3.new(0.65, 0.5, 0.75), CFrame.new(0, -1.5, 0), skin },
 	})
-	model.PrimaryPart = body
+	local caseColor = pick(SHIRTS, id, 7):Lerp(Color3.fromRGB(90, 60, 40), 0.5)
+	limb(CFrame.new(1.35, 1.8, 0), 0.25, {
+		{ "RightArm", Vector3.new(0.7, 1.4, 0.8), CFrame.new(0, -0.6, 0), shirt },
+		{ "RightHand", Vector3.new(0.65, 0.5, 0.75), CFrame.new(0, -1.5, 0), skin },
+		{ "Suitcase", Vector3.new(0.5, 1.3, 1.8), CFrame.new(0.3, -2.3, 0), caseColor },
+		{ "Handle", Vector3.new(0.2, 0.3, 0.6), CFrame.new(0.3, -1.55, 0), Color3.fromRGB(40, 36, 34) },
+	})
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Mood"
-	gui.Size = UDim2.fromOffset(110, 30)
-	gui.StudsOffset = Vector3.new(0, 4.4, 0)
-	gui.AlwaysOnTop = true
-	gui.MaxDistance = 70
+	gui.Size = UDim2.fromScale(3.6, 0.8) -- studs: shrinks with distance
+	gui.StudsOffset = Vector3.new(0, 4, 0)
+	gui.AlwaysOnTop = false
+	gui.MaxDistance = 55
 	gui.LightInfluence = 0
 	local tl = Instance.new("TextLabel")
 	tl.Size = UDim2.fromScale(1, 1)
-	tl.BackgroundTransparency = 0.3
-	tl.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+	tl.BackgroundTransparency = 1
 	tl.TextColor3 = Color3.new(1, 1, 1)
 	tl.TextScaled = true
-	tl.Font = Enum.Font.GothamBold
+	tl.Font = Enum.Font.FredokaOne
 	tl.Text = ""
 	tl.Parent = gui
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
-	corner.Parent = tl
-	gui.Parent = body
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(46, 32, 22)
+	stroke.LineJoinMode = Enum.LineJoinMode.Round
+	stroke.Parent = tl
+	gui.Parent = root
 	model.Parent = parent
-	return model, tl
+	return { model = model, root = root, label = tl, statics = statics, limbs = limbs, phase = 0 }
+end
+
+-- Places every rig part from the root CFrame; limbs swing while walking.
+local function poseGuest(rig, rootCF: CFrame, moving: boolean, dt: number)
+	if moving then
+		rig.phase += dt * 9
+	else
+		rig.phase = 0
+	end
+	local swing = if moving then math.sin(rig.phase) * 0.7 else 0
+	local bob = if moving then math.abs(math.sin(rig.phase)) * 0.15 else 0
+	local base = rootCF * CFrame.new(0, bob, 0)
+	rig.root.CFrame = rootCF
+	for _, s in ipairs(rig.statics) do
+		s.part.CFrame = base * s.offset
+	end
+	for _, l in ipairs(rig.limbs) do
+		local j = base * l.joint * CFrame.Angles(swing * l.swing, 0, 0)
+		for _, p in ipairs(l.parts) do
+			p.part.CFrame = j * p.offset
+		end
+	end
 end
 
 local function makeCar(id: number, parent: Instance)
 	local model = Instance.new("Model")
 	model.Name = "Car" .. id
-	local color = CAR_COLORS[(id - 1) % #CAR_COLORS + 1]
-	local body = newPart({
-		Name = "Body",
-		Size = Vector3.new(4.4, 1.6, 8),
-		CFrame = CFrame.new(0, CAR_Y, 0),
-		Color = color,
-		Parent = model,
-	})
-	newPart({
-		Name = "Cabin",
-		Size = Vector3.new(4, 1.4, 4),
-		CFrame = CFrame.new(0, CAR_Y + 1.5, 0.5),
-		Color = Color3.fromRGB(170, 210, 230),
-		Transparency = 0.2,
-		Parent = model,
-	})
+	local color = CAR_COLORS[(id * 5) % #CAR_COLORS + 1]
+	local wagon = id % 3 == 1
+	local function part(name, size, offset, c, extra)
+		local props = { Name = name, Size = size, CFrame = CFrame.new(0, CAR_Y, 0) * offset, Color = c, Parent = model }
+		for k, v in pairs(extra or {}) do
+			props[k] = v
+		end
+		return newPart(props)
+	end
+	local body = part("Body", Vector3.new(4.6, 1.3, 9), CFrame.new(), color)
 	model.PrimaryPart = body
+	local cabinLen = if wagon then 6 else 4.8
+	local cabinZ = if wagon then 1.4 else 0.8
+	part("Cabin", Vector3.new(4.2, 1.5, cabinLen), CFrame.new(0, 1.35, cabinZ), color)
+	part(
+		"Roof",
+		Vector3.new(4.3, 0.25, cabinLen + 0.2),
+		CFrame.new(0, 2.2, cabinZ),
+		color:Lerp(Color3.new(1, 1, 1), 0.25)
+	)
+	local glass = { Material = Enum.Material.Glass, Transparency = 0.15 }
+	local glassColor = Color3.fromRGB(40, 54, 76)
+	part(
+		"Windshield",
+		Vector3.new(3.8, 1.1, 0.15),
+		CFrame.new(0, 1.35, cabinZ - cabinLen / 2 - 0.05),
+		glassColor,
+		glass
+	)
+	part(
+		"RearWindow",
+		Vector3.new(3.8, 1.1, 0.15),
+		CFrame.new(0, 1.35, cabinZ + cabinLen / 2 + 0.05),
+		glassColor,
+		glass
+	)
+	for _, x in ipairs({ -2.13, 2.13 }) do
+		part("SideWindow", Vector3.new(0.12, 1, cabinLen - 0.6), CFrame.new(x, 1.35, cabinZ), glassColor, glass)
+		part("Stripe", Vector3.new(0.1, 0.3, 8.6), CFrame.new(x * 1.08, 0.1, 0), color:Lerp(Color3.new(1, 1, 1), 0.6))
+	end
+	local cyl = { Shape = Enum.PartType.Cylinder }
+	for _, x in ipairs({ -2.2, 2.2 }) do
+		for _, z in ipairs({ -2.9, 2.9 }) do
+			part("Wheel", Vector3.new(0.8, 1.9, 1.9), CFrame.new(x, -0.25, z), Color3.fromRGB(28, 28, 30), cyl)
+			part("Hub", Vector3.new(0.85, 0.9, 0.9), CFrame.new(x, -0.25, z), Color3.fromRGB(200, 200, 206), cyl)
+		end
+	end
+	for _, z in ipairs({ -4.6, 4.6 }) do
+		part("Bumper", Vector3.new(4.8, 0.35, 0.4), CFrame.new(0, -0.45, z), Color3.fromRGB(180, 180, 186))
+	end
+	local neon = { Material = Enum.Material.Neon }
+	for _, x in ipairs({ -1.5, 1.5 }) do
+		local head = part(
+			"Headlight",
+			Vector3.new(0.9, 0.5, 0.15),
+			CFrame.new(x, 0.15, -4.55),
+			Color3.fromRGB(255, 244, 210),
+			neon
+		)
+		if x < 0 then
+			local spot = Instance.new("SpotLight")
+			spot.Face = Enum.NormalId.Front
+			spot.Range = 26
+			spot.Angle = 70
+			spot.Brightness = 2
+			spot.Color = Color3.fromRGB(255, 240, 210)
+			spot.Parent = head
+		end
+		part(
+			"Taillight",
+			Vector3.new(0.9, 0.4, 0.15),
+			CFrame.new(x * 1.05, 0.2, 4.55),
+			Color3.fromRGB(255, 60, 60),
+			neon
+		)
+	end
+	part("Grille", Vector3.new(1.8, 0.4, 0.12), CFrame.new(0, 0.1, -4.55), Color3.fromRGB(60, 60, 66))
 	model.Parent = parent
 	return model
 end
 
--- Moves a model toward path[1] at `speed`, popping reached waypoints.
-local function step(model: Model, path, speed: number, dt: number, y: number)
+-- Advances a CFrame toward path[1] at `speed`, popping reached waypoints.
+-- Returns the new CFrame and whether it moved.
+local function advance(cf: CFrame, path, speed: number, dt: number, y: number): (CFrame, boolean)
 	local remaining = speed * dt
-	local pos = model:GetPivot().Position
+	local pos = cf.Position
+	local start = pos
 	while remaining > 0 and #path > 0 do
 		local target = Vector3.new(path[1].X, y, path[1].Z)
 		local delta = target - pos
@@ -139,17 +303,16 @@ local function step(model: Model, path, speed: number, dt: number, y: number)
 			remaining -= dist
 			table.remove(path, 1)
 		else
-			local dir = delta.Unit
-			pos += dir * remaining
+			pos += delta.Unit * remaining
 			remaining = 0
 		end
 	end
+	local moved = (pos - start).Magnitude > 1e-3
 	local look = if #path > 0 then Vector3.new(path[1].X, y, path[1].Z) - pos else nil
 	if look and look.Magnitude > 0.05 then
-		model:PivotTo(CFrame.lookAt(pos, pos + look))
-	else
-		model:PivotTo(CFrame.new(pos) * model:GetPivot().Rotation)
+		return CFrame.lookAt(pos, pos + look), moved
 	end
+	return CFrame.new(pos) * cf.Rotation, moved
 end
 
 function Visuals.new(layout, config, constants, timeScale: number)
@@ -252,8 +415,12 @@ function Visuals:updateTargets(core, g, e)
 			self:sendCarAway(e)
 			return
 		end
-		e.guest, e.label = makeGuest(g.id, layout.runtime)
-		e.guest:PivotTo(CFrame.new(e.slotPos.X + 3, GUEST_Y, e.slotPos.Z))
+		local rig = makeGuest(g.id, layout.runtime)
+		e.rig = rig
+		e.guest = rig.model
+		e.label = rig.label
+		e.guestCF = CFrame.new(e.slotPos.X + 3, GUEST_Y, e.slotPos.Z)
+		poseGuest(rig, e.guestCF, false, 0)
 	end
 
 	local qi = core:queuePosition(g.id)
@@ -294,6 +461,7 @@ function Visuals:updateTargets(core, g, e)
 	if e.leaving and #e.guestPath == 0 and not e.carLeaving then
 		e.guest:Destroy()
 		e.guest = nil
+		e.rig = nil
 		e.label = nil
 		self:sendCarAway(e)
 	end
@@ -304,7 +472,7 @@ function Visuals:updateLabel(core, g, e, now: number)
 		return
 	end
 	local GS = self.C.GuestState
-	local text, color = "", Color3.fromRGB(20, 20, 28)
+	local text, color = "", Color3.new(1, 1, 1)
 	if g.state == GS.Queued then
 		local total = self.config.guests.patience * self.timeScale
 		local left = math.max(0, g.patienceEndsAt - now)
@@ -312,31 +480,31 @@ function Visuals:updateLabel(core, g, e, now: number)
 		local prefix = if e.queueIndex == 1 then "NEXT " else ""
 		text = ("%s%ds"):format(prefix, math.ceil(left))
 		if frac > 0.5 then
-			color = Color3.fromRGB(40, 140, 70)
+			color = Color3.fromRGB(120, 240, 140)
 		elseif frac > 0.25 then
-			color = Color3.fromRGB(200, 150, 30)
+			color = Color3.fromRGB(255, 210, 80)
 		else
-			color = Color3.fromRGB(200, 50, 50)
+			color = Color3.fromRGB(255, 110, 100)
 		end
 	elseif g.state == GS.Staying then
 		local room = core.rooms[g.roomId]
 		if room and room.towelRequest then
-			text, color = "Towel please!", Color3.fromRGB(200, 150, 30)
+			text, color = "Towel please!", Color3.fromRGB(255, 210, 80)
 		else
 			text = "Room " .. tostring(g.roomId)
 		end
 	elseif g.state == GS.Departed then
 		local reason = g.departReason
 		if reason == "Walkout" then
-			text, color = "Too slow!", Color3.fromRGB(200, 50, 50)
+			text, color = "Too slow!", Color3.fromRGB(255, 110, 100)
 		elseif reason == "Unserved" then
-			text, color = "Closed?!", Color3.fromRGB(200, 90, 50)
+			text, color = "Closed?!", Color3.fromRGB(255, 160, 90)
 		else
-			text, color = "Thanks!", Color3.fromRGB(40, 140, 70)
+			text, color = "Thanks!", Color3.fromRGB(120, 240, 140)
 		end
 	end
 	e.label.Text = text
-	e.label.BackgroundColor3 = color
+	e.label.TextColor3 = color
 	e.label.Visible = text ~= ""
 end
 
@@ -361,10 +529,18 @@ function Visuals:sync(core, now: number, dt: number)
 	local drive = self.config.npc.carSpeed / self.timeScale
 	for _, e in pairs(self.entries) do
 		if e.car and #e.carPath > 0 then
-			step(e.car, e.carPath, drive, dt, CAR_Y)
+			e.car:PivotTo((advance(e.car:GetPivot(), e.carPath, drive, dt, CAR_Y)))
 		end
-		if e.guest and #e.guestPath > 0 then
-			step(e.guest, e.guestPath, walk, dt, GUEST_Y)
+		if e.rig then
+			local moving = false
+			if #e.guestPath > 0 then
+				e.guestCF, moving = advance(e.guestCF, e.guestPath, walk, dt, GUEST_Y)
+			end
+			-- Pose while walking, plus one frame to settle back to idle.
+			if moving or e.wasMoving then
+				poseGuest(e.rig, e.guestCF, moving, dt)
+			end
+			e.wasMoving = moving
 		end
 	end
 
@@ -384,10 +560,11 @@ end
 -- World state (signs, prompts, lights, weather)
 ------------------------------------------------------------------------
 
-local GREEN = Color3.fromRGB(40, 140, 70)
-local BLUE = Color3.fromRGB(50, 90, 170)
-local AMBER = Color3.fromRGB(200, 140, 30)
-local RED = Color3.fromRGB(190, 50, 50)
+-- Text colours for world labels (outlined text, no background).
+local GREEN = Color3.fromRGB(120, 240, 140)
+local BLUE = Color3.fromRGB(140, 200, 255)
+local AMBER = Color3.fromRGB(255, 210, 80)
+local RED = Color3.fromRGB(255, 110, 100)
 
 function Visuals:refreshWorld(core)
 	local P = self.C.Phase
@@ -399,14 +576,14 @@ function Visuals:refreshWorld(core)
 		local blockers = core:roomBlockers(room)
 		if core:isRoomReady(room) then
 			v.sign.Text = ("Room %d  READY"):format(i)
-			v.sign.BackgroundColor3 = GREEN
+			v.sign.TextColor3 = GREEN
 		elseif room.occupant then
 			local extra = if room.towelRequest then "  TOWEL!" else ""
 			v.sign.Text = ("Room %d  OCCUPIED%s"):format(i, extra)
-			v.sign.BackgroundColor3 = if room.towelRequest then AMBER else BLUE
+			v.sign.TextColor3 = if room.towelRequest then AMBER else BLUE
 		else
 			v.sign.Text = ("Room %d: %s"):format(i, table.concat(blockers, ", "))
-			v.sign.BackgroundColor3 = if room.acBroken then RED else AMBER
+			v.sign.TextColor3 = if room.acBroken then RED else AMBER
 		end
 		v.bed.Color = if room.sheetsDirty then Color3.fromRGB(150, 120, 80) else Color3.fromRGB(245, 245, 245)
 		v.trashBag.Transparency = if room.trash then 0 else 1
@@ -441,7 +618,7 @@ function Visuals:refreshWorld(core)
 	layout.prompts.dumpTrash.Enabled = active
 
 	layout.breakerLabel.Text = if core.power then "BREAKER: OK" else "BREAKER: RESET!"
-	layout.breakerLabel.BackgroundColor3 = if core.power then Color3.fromRGB(20, 20, 28) else RED
+	layout.breakerLabel.TextColor3 = if core.power then Color3.new(1, 1, 1) else RED
 	layout.linenLabel.Text = ("LINEN  Sheets %d | Towels %d"):format(core.stock.Sheet, core.stock.Towel)
 
 	for _, l in ipairs(layout.powerLights) do
@@ -449,6 +626,23 @@ function Visuals:refreshWorld(core)
 		l.part.Material = if core.power then Enum.Material.Neon else Enum.Material.SmoothPlastic
 	end
 	layout.rain.Rate = if core.rain then 700 else 0
+	-- Client Ambience reads this to dim neon bulbs during an outage.
+	layout.root:SetAttribute("Powered", core.power)
+
+	-- Retro sign: VACANCY while any room is ready, NO VACANCY otherwise.
+	local vacancy = layout.vacancyLabel
+	if vacancy then
+		local anyReady = false
+		for _, room in ipairs(core.rooms) do
+			if core:isRoomReady(room) then
+				anyReady = true
+				break
+			end
+		end
+		vacancy.Text = if anyReady then "VACANCY" else "NO VACANCY"
+		vacancy.TextColor3 = if anyReady then Color3.fromRGB(110, 255, 150) else Color3.fromRGB(255, 90, 90)
+		vacancy.TextTransparency = if core.power then 0 else 0.85
+	end
 
 	self:applyLighting(core)
 end

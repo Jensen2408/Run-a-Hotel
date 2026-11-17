@@ -19,6 +19,7 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local MotelCore = require(script.Parent:WaitForChild("MotelCore"))
 local MapBuilder = require(script.Parent:WaitForChild("MapBuilder"))
 local Visuals = require(script.Parent:WaitForChild("Visuals"))
+local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
 
 local PA = Constants.PromptAction
 local RA = Constants.RemoteAction
@@ -54,7 +55,8 @@ if RunService:IsStudio() and Config.allowStudioTimeScaleOverride then
 	end
 end
 
-local layout = MapBuilder.build(Config)
+local layout = MapBuilder.ensure(Config)
+LightingFX.apply()
 local rng = Random.new()
 local function now()
 	return Workspace:GetServerTimeNow()
@@ -80,8 +82,15 @@ local function feedback(player: Player, text: string, kind: string?)
 	feedbackRemote:FireClient(player, { text = text, kind = kind or "info" })
 end
 
-local function broadcast(text: string, kind: string?)
-	feedbackRemote:FireAllClients({ text = text, kind = kind or "info" })
+-- Sends to everyone, optionally skipping the player who caused the event
+-- (they already got a personal message).
+local function broadcast(text: string, kind: string?, exceptUserId: number?)
+	local payload = { text = text, kind = kind or "info" }
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player.UserId ~= exceptUserId then
+			feedbackRemote:FireClient(player, payload)
+		end
+	end
 end
 
 local function sendState(player: Player)
@@ -342,7 +351,8 @@ RunService.Heartbeat:Connect(function(dt)
 		local fn = eventMessages[e.kind]
 		if fn then
 			local text, kind = fn(e)
-			broadcast(text, kind)
+			-- e.by is set for player-caused events (e.g. PowerRestored); skip that player.
+			broadcast(text, kind, if typeof(e.by) == "number" then e.by else nil)
 		end
 	end
 

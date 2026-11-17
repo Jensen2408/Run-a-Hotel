@@ -21,6 +21,16 @@ rojo serve                           # lalu hubungkan plugin Rojo di place TESTE
 
 Map placeholder dibuat oleh kode (`MapBuilder`) saat server start di `Workspace.Motel`, jadi hasil build bisa langsung dimainkan. Jangan sambungkan Rojo ke place live / jangan publish.
 
+**Lihat map di Edit mode (sebelum Play):** jalankan di Command Bar Studio (atau lewat MCP):
+
+```lua
+local folder = game.ServerScriptService.Server:Clone() -- salinan supaya versi modul terbaru dipakai
+require(folder.MapBuilder).build(require(game.ReplicatedStorage.Shared.Config))
+folder:Destroy()
+```
+
+Ini membangun `Workspace.Motel` (gameplay + scenery `MapDecor`) di place. Saat Play, server memakai map itu bila atribut `MapVersion` cocok dengan `MapBuilder.VERSION`; kalau tidak ada atau versinya beda, server membangun ulang. Naikkan `MapBuilder.VERSION` setiap kali layout berubah. Simpan place secara manual bila ingin map tetap ada.
+
 **Mode cepat untuk tester:** di Studio, set atribut `TimeScale` (number, mis. `0.25`) pada `Workspace` sebelum menekan Play. Semua durasi (fase, menginap, kesabaran, gerak NPC) ikut dikali. Diabaikan di server live.
 
 ## Pemeriksaan CLI
