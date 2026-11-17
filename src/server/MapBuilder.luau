@@ -30,7 +30,7 @@ local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 7
+MapBuilder.VERSION = 8
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -584,10 +584,59 @@ function MapBuilder.build(config)
 	root.Parent = Workspace
 	LightingFX.apply()
 	MapDecor.build(map)
+	MapBuilder.shiftRoomArea(root, MapDecor.ROOM_SHIFT)
 	-- Everything above is authored at scale 1; enlarge it as a whole.
 	MapBuilder.scale(root, config.mapScale or 1)
 	root:SetAttribute("MapScale", config.mapScale or 1)
 	return MapBuilder.collect(root, config)
+end
+
+--[[
+	Moves everything that belongs to the room side of the motel north (+Z)
+	by `dz` studs (scale 1): room geometry, room/dumpster interactables,
+	room waypoints, the walkway, and the decor groups RoomBlockShell, Pool
+	and RoomYard. Leaves a courtyard between the office and the rooms.
+]]
+function MapBuilder.shiftRoomArea(root: Instance, dz: number)
+	if not dz or dz == 0 then
+		return
+	end
+	local offset = Vector3.new(0, 0, dz)
+	local function move(inst: Instance)
+		if inst:IsA("BasePart") then
+			inst.CFrame += offset
+		end
+		for _, d in ipairs(inst:GetDescendants()) do
+			if d:IsA("BasePart") then
+				d.CFrame += offset
+			end
+		end
+	end
+	local map = root:FindFirstChild("Map")
+	local decor = map and map:FindFirstChild("Decor")
+	for _, child in ipairs(map:GetChildren()) do
+		if child.Name:match("^Room%d+$") or child.Name == "Hallway" then
+			move(child)
+		end
+	end
+	for _, child in ipairs((root:FindFirstChild("Interactables") :: Instance):GetChildren()) do
+		if child.Name:match("^Room%d") or child.Name == "Dumpster" then
+			move(child)
+		end
+	end
+	for _, child in ipairs((root:FindFirstChild("Waypoints") :: Instance):GetChildren()) do
+		if child.Name:match("^Room%d") or child.Name == "HallMain" then
+			move(child)
+		end
+	end
+	if decor then
+		for _, name in ipairs({ "RoomBlockShell", "Pool", "RoomYard" }) do
+			local group = decor:FindFirstChild(name)
+			if group then
+				move(group)
+			end
+		end
+	end
 end
 
 --[[

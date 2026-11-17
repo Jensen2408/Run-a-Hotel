@@ -22,6 +22,12 @@
 
 local MapDecor = {}
 
+-- The room block, pool, dumpster yard and the garden behind the rooms are
+-- authored next to the office and then moved this far north (+Z) by
+-- MapBuilder.shiftRoomArea. The courtyard in between is built here.
+MapDecor.ROOM_SHIFT = 18
+local SHIFT = MapDecor.ROOM_SHIFT
+
 ------------------------------------------------------------------------
 -- Palette
 ------------------------------------------------------------------------
@@ -661,12 +667,19 @@ local function buildGroundAndRoad(decor)
 	local ground = folder(decor, "Ground")
 	-- Top at y = 0.12 so a default Baseplate texture (top at 0) cannot show through.
 	block(ground, "Grass", Vector3.new(1200, 1, 1200), Vector3.new(10, -0.38, -10), GRASS)
-	block(ground, "MotelLot", Vector3.new(120, 0.18, 70), Vector3.new(20, 0.09, -6), Color3.fromRGB(176, 164, 140), {
-		Material = Enum.Material.Concrete,
-	})
-	detail(ground, "LotKerbW", Vector3.new(0.6, 0.35, 70), Vector3.new(-40, 0.2, -6), CONCRETE)
-	detail(ground, "LotKerbE", Vector3.new(0.6, 0.35, 70), Vector3.new(80, 0.2, -6), CONCRETE)
-	detail(ground, "LotKerbN", Vector3.new(120, 0.35, 0.6), Vector3.new(20, 0.2, 29), CONCRETE)
+	block(
+		ground,
+		"MotelLot",
+		Vector3.new(120, 0.18, 70 + SHIFT),
+		Vector3.new(20, 0.09, -6 + SHIFT / 2),
+		Color3.fromRGB(176, 164, 140),
+		{
+			Material = Enum.Material.Concrete,
+		}
+	)
+	detail(ground, "LotKerbW", Vector3.new(0.6, 0.35, 70 + SHIFT), Vector3.new(-40, 0.2, -6 + SHIFT / 2), CONCRETE)
+	detail(ground, "LotKerbE", Vector3.new(0.6, 0.35, 70 + SHIFT), Vector3.new(80, 0.2, -6 + SHIFT / 2), CONCRETE)
+	detail(ground, "LotKerbN", Vector3.new(120, 0.35, 0.6), Vector3.new(20, 0.2, 29 + SHIFT), CONCRETE)
 
 	local road = folder(decor, "Road")
 	block(road, "Asphalt", Vector3.new(1200, 0.2, 18), Vector3.new(10, 0.1, -64), Color3.fromRGB(70, 68, 76))
@@ -1067,11 +1080,12 @@ local function buildShedAndYard(decor)
 	block(shed, "Path", Vector3.new(14, 0.25, 8), Vector3.new(46.5, 0.15, -16), Color3.fromRGB(176, 166, 146))
 	lampPost(shed, Vector3.new(50, 0, -26), 10)
 
-	block(decor, "DumpsterPad", Vector3.new(12, 0.3, 9), Vector3.new(64, 0.15, 6), Color3.fromRGB(150, 150, 150))
-	fenceLine(decor, Vector3.new(58, 0, 10.5), Vector3.new(70, 0, 10.5), 4)
-	fenceLine(decor, Vector3.new(70, 0, 10.5), Vector3.new(70, 0, 1.5), 4)
+	local yard = decor:FindFirstChild("RoomYard") or folder(decor, "RoomYard")
+	block(yard, "DumpsterPad", Vector3.new(12, 0.3, 9), Vector3.new(64, 0.15, 6), Color3.fromRGB(150, 150, 150))
+	fenceLine(yard, Vector3.new(58, 0, 10.5), Vector3.new(70, 0, 10.5), 4)
+	fenceLine(yard, Vector3.new(70, 0, 10.5), Vector3.new(70, 0, 1.5), 4)
 	for k = 0, 1 do
-		cylY(decor, "RecycleBin", 2.6, 1.8, Vector3.new(60 + k * 2.2, 1.6, 9.2), Color3.fromRGB(60, 120, 200))
+		cylY(yard, "RecycleBin", 2.6, 1.8, Vector3.new(60 + k * 2.2, 1.6, 9.2), Color3.fromRGB(60, 120, 200))
 	end
 end
 
@@ -1178,11 +1192,12 @@ end
 
 local function buildGreenery(decor, rng)
 	local fence = folder(decor, "Fence")
-	fenceLine(fence, Vector3.new(-40, 0, -42), Vector3.new(-40, 0, 28))
-	fenceLine(fence, Vector3.new(-40, 0, 28), Vector3.new(76, 0, 28))
-	fenceLine(fence, Vector3.new(76, 0, 28), Vector3.new(76, 0, -42))
+	fenceLine(fence, Vector3.new(-40, 0, -42), Vector3.new(-40, 0, 28 + SHIFT))
+	fenceLine(fence, Vector3.new(-40, 0, 28 + SHIFT), Vector3.new(76, 0, 28 + SHIFT))
+	fenceLine(fence, Vector3.new(76, 0, 28 + SHIFT), Vector3.new(76, 0, -42))
 
 	local green = folder(decor, "Greenery")
+	local yard = decor:FindFirstChild("RoomYard") or folder(decor, "RoomYard")
 	for _, p in ipairs({
 		Vector3.new(6, 0, -35),
 		Vector3.new(38, 0, -35.5),
@@ -1195,15 +1210,89 @@ local function buildGreenery(decor, rng)
 		Vector3.new(44, 0, -36),
 		Vector3.new(-37, 0, 2),
 	}) do
-		bush(green, p, rng, rng:NextNumber() > 0.4)
+		-- Bushes behind the rooms belong to the room yard (moved with it).
+		bush(if p.Z >= 20 then yard else green, p, rng, rng:NextNumber() > 0.4)
 	end
 	for _, p in ipairs({ { -34, -38 }, { 70, -37 }, { 71, 24 }, { -35, 25 }, { 50, 24 }, { 2, 25 } }) do
-		roundTree(green, p[1], p[2], rng)
+		roundTree(if p[2] >= 20 then yard else green, p[1], p[2], rng)
 	end
 end
 
+-- Courtyard between the office (north wall z = -6) and the moved room
+-- walkway (south edge z = -6 + SHIFT): a path from the office's back door,
+-- lawns, flower beds, benches, lamps and a fountain.
+local function buildCourtyard(decor, rng)
+	local yard = folder(decor, "Courtyard")
+	local z1, z2 = -6, -6 + SHIFT
+	local zc = (z1 + z2) / 2
+	local depth = z2 - z1
+	-- Path from the office back door (x 10..22) to the walkway.
+	block(yard, "Path", Vector3.new(12, 0.26, depth), Vector3.new(16, 0.14, zc), Color3.fromRGB(196, 186, 166), {
+		Material = Enum.Material.Concrete,
+	})
+	for k = 0, math.floor(depth / 3) - 1 do
+		detail(
+			yard,
+			"PathJoint",
+			Vector3.new(12, 0.04, 0.2),
+			Vector3.new(16, 0.28, z1 + 1.5 + k * 3),
+			Color3.fromRGB(170, 160, 140)
+		)
+	end
+	-- Lawns either side of the path.
+	block(yard, "LawnWest", Vector3.new(19, 0.22, depth - 2), Vector3.new(0.5, 0.12, zc), Color3.fromRGB(120, 168, 86))
+	block(yard, "LawnEast", Vector3.new(34, 0.22, depth - 2), Vector3.new(39, 0.12, zc), Color3.fromRGB(120, 168, 86))
+	-- Flower beds along the path.
+	for _, x in ipairs({ 9, 23 }) do
+		block(yard, "FlowerBed", Vector3.new(2, 0.6, depth - 6), Vector3.new(x, 0.35, zc), WOOD_DARK)
+		for k = 0, math.floor((depth - 7) / 1.6) do
+			ball(
+				yard,
+				"Blossom",
+				0.9,
+				Vector3.new(x + rng:NextNumber(-0.4, 0.4), 1.0, z1 + 3.5 + k * 1.6),
+				BULB_COLORS[rng:NextInteger(1, #BULB_COLORS)],
+				DETAIL
+			)
+		end
+	end
+	-- Benches facing the path and lamps.
+	bench(yard, Vector3.new(4, 0.2, zc - 3), math.pi / 2)
+	bench(yard, Vector3.new(28, 0.2, zc + 3), -math.pi / 2)
+	lampPost(yard, Vector3.new(7, 0, z1 + 4), 10)
+	lampPost(yard, Vector3.new(25, 0, z2 - 4), 10)
+	-- Fountain on the east lawn.
+	local fx, fz = 42, zc
+	cylY(yard, "FountainBasin", 1.2, 10, Vector3.new(fx, 0.6, fz), Color3.fromRGB(214, 206, 192))
+	cylY(yard, "FountainWater", 0.25, 8.6, Vector3.new(fx, 1.15, fz), Color3.fromRGB(80, 190, 236), {
+		Material = Enum.Material.Glass,
+		Transparency = 0.15,
+		CanCollide = false,
+	})
+	cylY(yard, "FountainColumn", 3.4, 1.2, Vector3.new(fx, 2.3, fz), Color3.fromRGB(214, 206, 192))
+	local top = cylY(yard, "FountainTop", 0.5, 3.2, Vector3.new(fx, 4, fz), Color3.fromRGB(214, 206, 192))
+	new("ParticleEmitter", {
+		Rate = 40,
+		Lifetime = NumberRange.new(0.8, 1.1),
+		Speed = NumberRange.new(5, 7),
+		SpreadAngle = Vector2.new(18, 18),
+		Acceleration = Vector3.new(0, -18, 0),
+		Size = NumberSequence.new(0.35, 0.15),
+		Transparency = NumberSequence.new(0.2, 1),
+		Color = ColorSequence.new(Color3.fromRGB(200, 235, 255)),
+		LightEmission = 0.3,
+		EmissionDirection = Enum.NormalId.Right, -- cylinder axis (local X) points up
+		Parent = top,
+	})
+	-- A couple of autumn trees and bushes on the lawns.
+	roundTree(yard, -4, zc + 2, rng, 0.9)
+	roundTree(yard, 52, zc - 2, rng, 0.9)
+	bush(yard, Vector3.new(-6, 0, zc - 4), rng, true)
+	bush(yard, Vector3.new(32, 0, zc - 5), rng, true)
+end
+
 local function inLot(x, z)
-	return x > -44 and x < 82 and z > -46 and z < 31
+	return x > -44 and x < 82 and z > -46 and z < 31 + SHIFT
 end
 local function onRoad(z)
 	return z > -80 and z < -50
@@ -1271,7 +1360,7 @@ end
 local function buildForest(decor, rng)
 	local forest = folder(decor, "Forest")
 	local function blocked(x, z)
-		if x > -62 and x < 96 and z > -50 and z < 44 then
+		if x > -62 and x < 96 and z > -50 and z < 44 + SHIFT then
 			return true
 		end
 		return z > -86 and z < -44
@@ -1358,6 +1447,7 @@ function MapDecor.build(mapFolder: Instance)
 	buildPool(decor)
 	buildCampfire(decor, rng)
 	buildGreenery(decor, rng)
+	buildCourtyard(decor, rng)
 	task.wait()
 	buildWild(decor, rng)
 	task.wait()
