@@ -1,0 +1,10 @@
+# Build output
+*.rbxlx
+*.rbxl
+*.rbxlx.lock
+*.rbxl.lock
+sourcemap.json
+# Wally (not used yet)
+Packages/
+ServerPackages/
+DevPackages/
