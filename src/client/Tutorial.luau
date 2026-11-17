@@ -17,6 +17,7 @@
 ]]
 
 local Players = game:GetService("Players")
+local Icons = require(script.Parent:WaitForChild("Icons"))
 local Workspace = game:GetService("Workspace")
 
 local Tutorial = {}
@@ -337,18 +338,14 @@ function Tutorial.new(hud)
 	billboard.LightInfluence = 0
 	billboard.ResetOnSpawn = false
 	billboard.Enabled = false
-	local arrow = Instance.new("TextLabel")
-	arrow.Size = UDim2.new(1, 0, 0, 64)
-	arrow.BackgroundTransparency = 1
-	arrow.Font = Enum.Font.FredokaOne
-	arrow.Text = "▼"
-	arrow.TextScaled = true
-	arrow.TextColor3 = YELLOW
-	arrow.Parent = billboard
+	Icons.create("arrowDown", {
+		Parent = billboard,
+		Size = UDim2.new(1, 0, 0, 64),
+		FallbackColor = YELLOW,
+	})
 	local stroke = Instance.new("UIStroke")
 	stroke.Thickness = 3
 	stroke.Color = OUTLINE
-	stroke.Parent = arrow
 	local dist = Instance.new("TextLabel")
 	dist.Size = UDim2.new(1, 0, 0, 26)
 	dist.Position = UDim2.fromOffset(0, 66)
@@ -384,18 +381,13 @@ function Tutorial.new(hud)
 	edgeGui.ResetOnSpawn = false
 	edgeGui.DisplayOrder = 5
 	edgeGui.Parent = playerGui
-	local edge = Instance.new("TextLabel")
-	edge.AnchorPoint = Vector2.new(0.5, 0.5)
-	edge.Size = UDim2.fromOffset(64, 64)
-	edge.BackgroundTransparency = 1
-	edge.Font = Enum.Font.FredokaOne
-	edge.Text = "▶"
-	edge.TextScaled = true
-	edge.TextColor3 = YELLOW
+	local edge = Icons.create("arrowRight", {
+		Parent = edgeGui,
+		Size = UDim2.fromOffset(64, 64),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		FallbackColor = YELLOW,
+	}).frame
 	edge.Visible = false
-	edge.Parent = edgeGui
-	local stroke3 = stroke:Clone()
-	stroke3.Parent = edge
 	local edgeDist = dist:Clone()
 	edgeDist.AnchorPoint = Vector2.new(0.5, 0)
 	edgeDist.Position = UDim2.new(0.5, 0, 1, -4)
@@ -407,14 +399,16 @@ function Tutorial.new(hud)
 	-- Bouncing arrow for the READY tile.
 	local readyHolder = hud.readyTile and hud.readyTile.holder
 	if readyHolder then
-		local readyArrow = arrow:Clone()
-		readyArrow.Name = "TutorialReadyArrow"
-		readyArrow.AnchorPoint = Vector2.new(0.5, 1)
-		readyArrow.Size = UDim2.fromOffset(56, 56)
-		readyArrow.Position = UDim2.new(0.5, 0, 0, -6)
+		local readyArrow = Icons.create("arrowDown", {
+			Name = "TutorialReadyArrow",
+			Parent = readyHolder,
+			Size = UDim2.fromOffset(56, 56),
+			Position = UDim2.new(0.5, 0, 0, -6),
+			AnchorPoint = Vector2.new(0.5, 1),
+			ZIndex = 5,
+			FallbackColor = YELLOW,
+		}).frame
 		readyArrow.Visible = false
-		readyArrow.ZIndex = 5
-		readyArrow.Parent = readyHolder
 		self.readyArrow = readyArrow
 	end
 	return self
@@ -544,6 +538,7 @@ function Tutorial:show(cur)
 		title = title,
 		text = evalText(step, s, self.ctx),
 		showNext = step.info == true,
+		icon = if cur.kind == "core" then "star" else "bell",
 	})
 	self.target = if step.target then step.target(s, self.ctx) else nil
 end

@@ -19,7 +19,10 @@
 	attribute matches, so you can see the motel before pressing Play.
 ]]
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+
+local UiAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiAssets"))
 
 local MapDecor = require(script.Parent:WaitForChild("MapDecor"))
 local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
@@ -27,7 +30,7 @@ local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 5
+MapBuilder.VERSION = 6
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -44,23 +47,38 @@ local function part(props)
 	return p
 end
 
--- World label in the HUD style: small outlined Fredoka text, no background.
--- Sized in studs so it shrinks with distance, and not AlwaysOnTop so walls
--- and roofs hide it instead of it covering the scene.
-local function label(parent: Instance, text: string, offsetY: number, widthStuds: number?)
+-- World label in the HUD style: an icon from the UI icon sheet followed by
+-- small outlined Fredoka text, no background. Sized in studs so it shrinks
+-- with distance, and not AlwaysOnTop so walls and roofs hide it instead of
+-- it covering the scene. Only sheet-1 icons are used here: the server
+-- cannot show the client-side emoji fallback.
+local function label(parent: Instance, text: string, offsetY: number, widthStuds: number?, iconName: string?)
+	local width = widthStuds or 4.5
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Label"
-	gui.Size = UDim2.fromScale(widthStuds or 4.5, 1)
+	gui.Size = UDim2.fromScale(width, 1)
 	gui.StudsOffset = Vector3.new(0, offsetY, 0)
 	gui.AlwaysOnTop = false
 	gui.MaxDistance = 60
 	gui.LightInfluence = 0
+	local iconFrac = 1.2 / width
+	local icon = Instance.new("ImageLabel")
+	icon.Name = "Icon"
+	icon.BackgroundTransparency = 1
+	icon.ScaleType = Enum.ScaleType.Fit
+	icon.Size = UDim2.fromScale(iconFrac, 1.2)
+	icon.Position = UDim2.fromScale(0, 0.5)
+	icon.AnchorPoint = Vector2.new(0, 0.5)
+	UiAssets.applyTo(icon, iconName or "star")
+	icon.Parent = gui
 	local tl = Instance.new("TextLabel")
 	tl.Name = "Text"
-	tl.Size = UDim2.fromScale(1, 1)
+	tl.Size = UDim2.fromScale(1 - iconFrac - 0.03, 1)
+	tl.Position = UDim2.fromScale(iconFrac + 0.03, 0)
 	tl.BackgroundTransparency = 1
 	tl.TextColor3 = Color3.new(1, 1, 1)
 	tl.TextScaled = true
+	tl.TextXAlignment = Enum.TextXAlignment.Left
 	tl.Font = Enum.Font.FredokaOne
 	tl.Text = text
 	tl.Parent = gui
@@ -210,7 +228,7 @@ function MapBuilder.build(config)
 		objectText = "Front Desk",
 		offset = Vector3.new(0, 1.5, -1.2),
 	})
-	label(desk, "FRONT DESK", 3.2, 4)
+	label(desk, "FRONT DESK", 3.2, 5.2, "guests")
 	local deskLamp = part({
 		Name = "DeskLamp",
 		Size = Vector3.new(1, 1, 1),
@@ -257,7 +275,7 @@ function MapBuilder.build(config)
 		hold = config.interaction.breakerHoldDuration,
 		offset = Vector3.new(1, 0, 0),
 	})
-	layout.breakerLabel = label(breaker, "BREAKER", 3, 3.5)
+	layout.breakerLabel = label(breaker, "BREAKER", 3, 4.6, "lightning")
 
 	-- Supply shop kiosk.
 	local shop = part({
@@ -286,7 +304,7 @@ function MapBuilder.build(config)
 		gamepadKey = Enum.KeyCode.ButtonY,
 		offset = Vector3.new(-2.2, -0.8, 0),
 	})
-	label(shop, "SUPPLY SHOP", 3.6, 4.5)
+	label(shop, "SUPPLY SHOP", 3.6, 5.8, "trolley")
 
 	-- Hallway ---------------------------------------------------------------
 	part({
@@ -427,7 +445,7 @@ function MapBuilder.build(config)
 			bin = bin,
 			trashBag = trashBag,
 			ac = ac,
-			sign = label(signPost, "Room " .. i, 0, 7),
+			sign = label(signPost, "Room " .. i, 0, 8, "check"),
 			hall = waypoint(wpFolder, "Room" .. i .. "Hall", Vector3.new(cx, 1, -3)).Position,
 			doorPoint = waypoint(wpFolder, "Room" .. i .. "DoorPoint", Vector3.new(cx, 1, 2)).Position,
 			inside = waypoint(wpFolder, "Room" .. i .. "Inside", Vector3.new(cx - 1.5, 1, 11)).Position,
@@ -505,7 +523,7 @@ function MapBuilder.build(config)
 		gamepadKey = Enum.KeyCode.ButtonB,
 		offset = Vector3.new(2.5, 0, 1.2),
 	})
-	layout.linenLabel = label(shelf, "LINEN", 4, 7)
+	layout.linenLabel = label(shelf, "LINEN", 4, 8.2, "sheet")
 
 	-- Dumpster ---------------------------------------------------------------
 	local dumpster = part({
@@ -521,7 +539,7 @@ function MapBuilder.build(config)
 		actionText = "Dump Trash",
 		objectText = "Dumpster",
 	})
-	label(dumpster, "DUMPSTER", 3.2, 4)
+	label(dumpster, "DUMPSTER", 3.2, 5.2, "trash")
 
 	-- Rain emitter (enabled by the server on rainy nights) ----------------------
 	local rainPart = part({

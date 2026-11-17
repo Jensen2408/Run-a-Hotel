@@ -1,11 +1,14 @@
 --!nonstrict
--- Icons from the UI icon sheet (UiAssets.iconSheet), with an emoji/text
--- fallback. Each icon always points at the sheet and keeps its fallback
--- visible until its own ImageLabel reports IsLoaded, so a sheet that is
--- still in moderation (or failed to load) never leaves an empty icon.
+-- Icons from the UI icon sheets (UiAssets.iconSheets), with an emoji/text
+-- fallback. Each icon points at its sheet and keeps the fallback visible
+-- until its ImageLabel reports IsLoaded, so a sheet that is not uploaded
+-- yet, still in moderation, or failed to load never leaves an empty icon.
 --
--- Note: ContentProvider:PreloadAsync with a string asset ID reports Failure
--- for this sheet even when ImageLabels load it fine, so it is not used here.
+-- Notes:
+--   ContentProvider:PreloadAsync with a string asset ID reports Failure for
+--   these sheets even when ImageLabels load them, so it is not used.
+--   The ImageLabel stays opaque: Roblox skips loading fully transparent
+--   images, and an unloaded image draws nothing anyway.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -22,18 +25,14 @@ export type Icon = {
 	set: (Icon, string) -> (),
 }
 
--- Icons whose sheet image has not reported IsLoaded yet. The IsLoaded
--- property-changed signal does not fire reliably, so these are polled.
+-- Icons waiting for IsLoaded (its property-changed signal is unreliable).
 local pending = {}
 
 local function refreshFallback(self)
-	local cell = UiAssets.icons[self.name]
-	local wantsSheet = UiAssets.iconSheet ~= "" and cell ~= nil
-	local useSheet = wantsSheet and self.frame.IsLoaded
-	-- The ImageLabel stays fully opaque: Roblox skips loading images that are
-	-- completely transparent, and an unloaded image draws nothing anyway.
+	local hasSheet = self.frame.Image ~= ""
+	local useSheet = hasSheet and self.frame.IsLoaded
 	self.fallback.Visible = not useSheet
-	pending[self] = if wantsSheet and not useSheet then true else nil
+	pending[self] = if hasSheet and not useSheet then true else nil
 end
 
 task.spawn(function()
@@ -54,26 +53,15 @@ local function setIcon(self, name: string)
 		return
 	end
 	self.name = name
-	local cell = UiAssets.icons[name]
-	if UiAssets.iconSheet ~= "" and cell then
-		local size = UiAssets.cellSize - UiAssets.cellInset * 2
-		self.frame.Image = UiAssets.iconSheet
-		self.frame.ImageRectSize = Vector2.new(size, size)
-		self.frame.ImageRectOffset = Vector2.new(
-			(cell[1] - 1) * UiAssets.cellSize + UiAssets.cellInset,
-			(cell[2] - 1) * UiAssets.cellSize + UiAssets.cellInset
-		)
-	else
-		self.frame.Image = ""
-	end
+	UiAssets.applyTo(self.frame, name)
 	local text = UiAssets.fallback[name] or "?"
 	self.fallback.Text = text
-	-- Outline plain glyphs ($, ★); emoji look better without one.
-	self.fallback.UIStroke.Enabled = text == "$" or text == "★"
+	-- Outline plain glyph fallbacks; emoji look better without one.
+	self.fallback.UIStroke.Enabled = utf8.len(text) == 1 and text:byte() < 0xF0
 	refreshFallback(self)
 end
 
--- props: Name, Size, Position, AnchorPoint, ZIndex, Parent, FallbackColor
+-- props: Name, Size, Position, AnchorPoint, ZIndex, Rotation, Parent, FallbackColor
 function Icons.create(name: string, props): Icon
 	local img = Instance.new("ImageLabel")
 	img.Name = props.Name or "Icon"
@@ -83,6 +71,7 @@ function Icons.create(name: string, props): Icon
 	img.Position = props.Position or UDim2.new()
 	img.AnchorPoint = props.AnchorPoint or Vector2.zero
 	img.ZIndex = props.ZIndex or 1
+	img.Rotation = props.Rotation or 0
 	local fb = Instance.new("TextLabel")
 	fb.Name = "Fallback"
 	fb.BackgroundTransparency = 1
@@ -98,9 +87,6 @@ function Icons.create(name: string, props): Icon
 	stroke.Parent = fb
 	img.Parent = props.Parent
 	local icon = { frame = img, fallback = fb, name = nil, set = setIcon }
-	img:GetPropertyChangedSignal("IsLoaded"):Connect(function()
-		refreshFallback(icon)
-	end)
 	icon:set(name)
 	return icon :: any
 end

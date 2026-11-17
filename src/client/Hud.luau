@@ -590,12 +590,18 @@ function Hud:buildTopBar()
 	})
 	self.trolleyText = label({
 		Parent = trolleyBody,
-		Size = UDim2.new(1, -44, 1, 0),
+		Size = UDim2.new(1, -70, 1, 0),
 		Position = UDim2.fromOffset(38, 0),
 		TextSize = 16,
 		TextColor3 = TEXT_DARK,
 		Stroke = 0,
 		Text = "",
+	})
+	self.trolleyCheck = Icons.create("check", {
+		Parent = trolleyBody,
+		Size = UDim2.fromOffset(24, 24),
+		Position = UDim2.new(1, -10, 0.5, 0),
+		AnchorPoint = Vector2.new(1, 0.5),
 	})
 
 	-- Guests pill (blue) + status sub-pill (OPEN / CLOSING / POWER OUT).
@@ -628,9 +634,16 @@ function Hud:buildTopBar()
 		Shine = false,
 	})
 	self.statusHolder = statusHolder
+	self.statusIcon = Icons.create("bell", {
+		Parent = statusBody,
+		Size = UDim2.fromOffset(22, 22),
+		Position = UDim2.new(0, 10, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+	})
 	self.statusText = label({
 		Parent = statusBody,
-		Size = UDim2.fromScale(1, 1),
+		Size = UDim2.new(1, -36, 1, 0),
+		Position = UDim2.fromOffset(32, 0),
 		TextSize = 17,
 		TextColor3 = Color3.fromRGB(56, 160, 50),
 		Stroke = 0,
@@ -675,7 +688,13 @@ function Hud:buildRoomsCard()
 		corner(circle, UDim.new(1, 0))
 		outline(circle, 2.5)
 		local circleGrad = gradient(circle, GREEN)
-		local mark = label({ Parent = circle, Size = UDim2.fromScale(1, 1), TextSize = 18, Text = "✓", Stroke = 1.5 })
+		local mark = Icons.create("check", {
+			Parent = circle,
+			Size = UDim2.fromScale(1.15, 1.15),
+			Position = UDim2.fromScale(0.5, 0.5),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			ZIndex = 2,
+		})
 		local text = label({
 			Name = "Room" .. i,
 			Parent = body,
@@ -868,9 +887,17 @@ function Hud:buildBanner()
 	})
 	corner(inner, UDim.new(0, 10))
 	outline(inner, 2, Color3.fromRGB(200, 150, 40))
+	self.bannerIcon = Icons.create("moon", {
+		Parent = holder,
+		Size = UDim2.fromOffset(78, 78),
+		Position = UDim2.new(0, -30, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		ZIndex = 3,
+	})
 	self.bannerTitle = label({
 		Parent = inner,
-		Size = UDim2.fromScale(1, 1),
+		Size = UDim2.new(1, -40, 1, 0),
+		Position = UDim2.fromOffset(34, 0),
 		TextSize = 36,
 		TextColor3 = Color3.fromRGB(74, 52, 30),
 		Stroke = 0,
@@ -993,7 +1020,16 @@ local function modal(parent, name: string, size: Vector2, title: string)
 	return holder, body, titleLabel
 end
 
-local function chunkyButton(parent, name: string, size: UDim2, pos: UDim2, colors, text: string, onClick)
+local function chunkyButton(
+	parent,
+	name: string,
+	size: UDim2,
+	pos: UDim2,
+	colors,
+	text: string,
+	onClick,
+	iconName: string?
+)
 	local holder, body, grad = chunk({
 		Name = name,
 		Parent = parent,
@@ -1003,9 +1039,28 @@ local function chunkyButton(parent, name: string, size: UDim2, pos: UDim2, color
 		Radius = UDim.new(0, 14),
 		Button = true,
 	})
-	local l = label({ Parent = body, Size = UDim2.fromScale(1, 1), TextSize = 24, Text = text })
+	local icon = nil
+	local l
+	if iconName then
+		icon = Icons.create(iconName, {
+			Parent = body,
+			Size = UDim2.fromOffset(34, 34),
+			Position = UDim2.new(0, 10, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			ZIndex = 2,
+		})
+		l = label({
+			Parent = body,
+			Size = UDim2.new(1, -56, 1, 0),
+			Position = UDim2.fromOffset(46, 0),
+			TextSize = 24,
+			Text = text,
+		})
+	else
+		l = label({ Parent = body, Size = UDim2.fromScale(1, 1), TextSize = 24, Text = text })
+	end
 	pressable(holder, body, onClick)
-	return { holder = holder, body = body, grad = grad, label = l }
+	return { holder = holder, body = body, grad = grad, label = l, icon = icon }
 end
 
 function Hud:openModal(holder: GuiObject)
@@ -1065,7 +1120,20 @@ function Hud:buildTutorial()
 		Stroke = 2.5,
 	})
 	ribbonHolder.ZIndex = 2
-	self.tutorialTitle = label({ Parent = ribbonBody, Size = UDim2.fromScale(1, 1), TextSize = 18, Text = "TUTORIAL" })
+	self.tutorialIcon = Icons.create("star", {
+		Parent = ribbonBody,
+		Size = UDim2.fromOffset(26, 26),
+		Position = UDim2.new(0, 8, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		ZIndex = 2,
+	})
+	self.tutorialTitle = label({
+		Parent = ribbonBody,
+		Size = UDim2.new(1, -40, 1, 0),
+		Position = UDim2.fromOffset(34, 0),
+		TextSize = 18,
+		Text = "TUTORIAL",
+	})
 	self.tutorialText = label({
 		Parent = body,
 		Size = UDim2.new(1, -28, 1, -70),
@@ -1088,14 +1156,24 @@ function Hud:buildTutorial()
 			if self.onTutorialNext then
 				self.onTutorialNext()
 			end
-		end
+		end,
+		"next"
 	)
 	self.tutorialNext.label.TextSize = 20
-	local skip = chunkyButton(body, "Skip", UDim2.fromOffset(90, 38), UDim2.new(0, 14, 1, -48), GREY, "SKIP", function()
-		if self.onTutorialSkip then
-			self.onTutorialSkip()
-		end
-	end)
+	local skip = chunkyButton(
+		body,
+		"Skip",
+		UDim2.fromOffset(100, 38),
+		UDim2.new(0, 14, 1, -48),
+		GREY,
+		"SKIP",
+		function()
+			if self.onTutorialSkip then
+				self.onTutorialSkip()
+			end
+		end,
+		"skip"
+	)
 	skip.label.TextSize = 18
 	self.tutorialCard = holder
 	self.tutorialBody = body
@@ -1125,6 +1203,7 @@ function Hud:setTutorial(info)
 	local changed = not self.tutorialInfo or self.tutorialInfo.text ~= info.text
 	self.tutorialInfo = info
 	self.tutorialTitle.Text = info.title
+	self.tutorialIcon:set(info.icon or "star")
 	self.tutorialText.Text = info.text
 	self.tutorialNext.holder.Visible = info.showNext == true
 	if not card.Visible then
@@ -1180,7 +1259,8 @@ function Hud:buildPicker()
 					play("error")
 					wiggle(self.pickerButtons[i].holder, 4, 0.3)
 				end
-			end
+			end,
+			"bed"
 		)
 		self.pickerButtons[i] = b
 	end
@@ -1193,7 +1273,8 @@ function Hud:buildPicker()
 		"CANCEL",
 		function()
 			self:closePicker()
-		end
+		end,
+		"cross"
 	)
 end
 
@@ -1204,6 +1285,15 @@ function Hud:buildReport()
 	self.reportRows = {}
 	self.reportRowLabels = {}
 	local names = { "Rent", "Tips", "Purchases", "Bill", "Cash", "Guests", "Lost" }
+	local rowIcons = {
+		Rent = "key",
+		Tips = "hand",
+		Purchases = "trolley",
+		Bill = "warning",
+		Cash = "coin",
+		Guests = "guests",
+		Lost = "hourglass",
+	}
 	for i, n in ipairs(names) do
 		local y = 40 + 34 * (i - 1)
 		local row = make("Frame", {
@@ -1215,10 +1305,16 @@ function Hud:buildReport()
 			Parent = body,
 		})
 		corner(row, UDim.new(0, 8))
+		Icons.create(rowIcons[n], {
+			Parent = row,
+			Size = UDim2.fromOffset(26, 26),
+			Position = UDim2.new(0, 6, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+		})
 		local name = label({
 			Parent = row,
-			Size = UDim2.fromScale(0.45, 1),
-			Position = UDim2.fromOffset(10, 0),
+			Size = UDim2.fromScale(0.4, 1),
+			Position = UDim2.fromOffset(38, 0),
 			TextSize = 19,
 			TextColor3 = TEXT_DARK,
 			Stroke = 0,
@@ -1237,6 +1333,29 @@ function Hud:buildReport()
 		})
 		self.reportRows[n] = value
 		table.insert(self.reportRowLabels, { name, value })
+		if n == "Cash" then
+			-- "$before [arrow] $after": the arrow is an icon, not a glyph.
+			value.Size = UDim2.new(0, 80, 1, 0)
+			value.Position = UDim2.new(1, -90, 0, 0)
+			local before = label({
+				Parent = row,
+				Size = UDim2.new(0, 80, 1, 0),
+				Position = UDim2.new(1, -206, 0, 0),
+				TextSize = 19,
+				TextColor3 = TEXT_DARK,
+				Stroke = 0,
+				TextXAlignment = Enum.TextXAlignment.Right,
+				Text = "",
+			})
+			Icons.create("arrowRight", {
+				Parent = row,
+				Size = UDim2.fromOffset(24, 24),
+				Position = UDim2.new(1, -110, 0.5, 0),
+				AnchorPoint = Vector2.new(0, 0.5),
+			})
+			self.reportCashBefore = before
+			table.insert(self.reportRowLabels, { before })
+		end
 	end
 	local resultHolder, resultBody, resultGrad = chunk({
 		Name = "Result",
@@ -1249,7 +1368,20 @@ function Hud:buildReport()
 	self.resultHolder = resultHolder
 	self.resultBody = resultBody
 	self.resultGrad = resultGrad
-	self.resultText = label({ Parent = resultBody, Size = UDim2.fromScale(1, 1), TextSize = 21, Text = "" })
+	self.resultIcon = Icons.create("check", {
+		Parent = resultBody,
+		Size = UDim2.fromOffset(36, 36),
+		Position = UDim2.new(0, 10, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		ZIndex = 2,
+	})
+	self.resultText = label({
+		Parent = resultBody,
+		Size = UDim2.new(1, -60, 1, 0),
+		Position = UDim2.fromOffset(50, 0),
+		TextSize = 21,
+		Text = "",
+	})
 	self.restartButton = chunkyButton(
 		body,
 		"Restart",
@@ -1331,6 +1463,7 @@ end
 ------------------------------------------------------------------------
 
 local TOAST_SOUND = { ok = "pop", error = "error", alert = "alert" }
+local TOAST_ICON = { ok = "check", error = "cross", alert = "warning" }
 
 function Hud:toast(message: string, kind: string?)
 	local colors = CARD
@@ -1354,10 +1487,17 @@ function Hud:toast(message: string, kind: string?)
 		ShadowDepth = 4,
 		Shine = false,
 	})
+	Icons.create(TOAST_ICON[kind or ""] or "bell", {
+		Parent = body,
+		Size = UDim2.fromOffset(30, 30),
+		Position = UDim2.new(0, 8, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		ZIndex = 2,
+	})
 	local text = label({
 		Parent = body,
-		Size = UDim2.new(1, -24, 1, 0),
-		Position = UDim2.fromOffset(12, 0),
+		Size = UDim2.new(1, -60, 1, 0),
+		Position = UDim2.fromOffset(42, 0),
 		TextSize = 19,
 		TextColor3 = textColor,
 		Stroke = strokeWidth,
@@ -1408,7 +1548,8 @@ function Hud:toast(message: string, kind: string?)
 end
 
 -- Big centred announcement (phase changes).
-function Hud:banner(title: string, subtitle: string?)
+function Hud:banner(title: string, subtitle: string?, iconName: string?)
+	self.bannerIcon:set(iconName or "star")
 	self.bannerToken += 1
 	local token = self.bannerToken
 	self.bannerTitle.Text = title
@@ -1466,6 +1607,20 @@ local function blockers(r): { string }
 	return why
 end
 
+local function roomStatus(r): (string, any, any, string)
+	if r.ready then
+		return "READY", GREEN, GREEN, "check"
+	elseif r.occupied then
+		if r.towelRequest then
+			return "TOWEL!", ORANGE, ORANGE, "towel"
+		end
+		return "BUSY", BLUE, BLUE, "sleep"
+	elseif r.acBroken then
+		return "FIX AC", RED, RED, "wrench"
+	end
+	return "CLEAN", ORANGE, ORANGE, "broom"
+end
+
 function Hud:renderPicker()
 	local s = self.state
 	if not s or not self.picker.Visible then
@@ -1482,9 +1637,12 @@ function Hud:renderPicker()
 			if r.ready then
 				anyReady = true
 				b.label.Text = ("ROOM %d  ·  +$%d"):format(i, self.rent)
+				b.icon:set("bed")
 				setColors(b.grad, GREEN)
 			else
 				b.label.Text = ("Room %d  (%s)"):format(i, table.concat(blockers(r), ", "))
+				local _, _, _, why = roomStatus(r)
+				b.icon:set(why)
 				setColors(b.grad, GREY)
 			end
 		end
@@ -1533,20 +1691,6 @@ end
 -- State rendering
 ------------------------------------------------------------------------
 
-local function roomStatus(r): (string, any, any, string)
-	if r.ready then
-		return "READY", GREEN, GREEN, "✓"
-	elseif r.occupied then
-		if r.towelRequest then
-			return "TOWEL!", ORANGE, ORANGE, "!"
-		end
-		return "BUSY", BLUE, BLUE, "z"
-	elseif r.acBroken then
-		return "FIX AC", RED, RED, "!"
-	end
-	return "CLEAN", ORANGE, ORANGE, "!"
-end
-
 function Hud:setState(s)
 	local prev = self.prev
 	self.state = s
@@ -1591,7 +1735,8 @@ function Hud:setState(s)
 			play("pop")
 		end
 	end
-	self.trolleyText.Text = if s.trolley then "TROLLEY  ✓" else "NO TROLLEY"
+	self.trolleyText.Text = if s.trolley then "TROLLEY" else "NO TROLLEY"
+	self.trolleyCheck.frame.Visible = s.trolley
 	if prev and s.trolley and not prev.trolley then
 		pop(self.trolleyHolder, 0.25)
 		play("success")
@@ -1603,18 +1748,19 @@ function Hud:setState(s)
 	if prev and prev.nightStats.arrivals ~= ns.arrivals then
 		pop(self.guestHolder, 0.12)
 	end
-	local status, statusColor
+	local status, statusColor, statusIcon
 	if not s.power and active then
-		status, statusColor = "POWER OUT", Color3.fromRGB(214, 52, 52)
+		status, statusColor, statusIcon = "POWER OUT", Color3.fromRGB(214, 52, 52), "lightning"
 	elseif P == "Night" then
-		status, statusColor = "OPEN", Color3.fromRGB(56, 160, 50)
+		status, statusColor, statusIcon = "OPEN", Color3.fromRGB(56, 160, 50), "bell"
 	elseif P == "Closing" then
-		status, statusColor = "CLOSING", Color3.fromRGB(226, 122, 30)
+		status, statusColor, statusIcon = "CLOSING", Color3.fromRGB(226, 122, 30), "alarm"
 	elseif P == "Preparation" then
-		status, statusColor = "PREP", Color3.fromRGB(52, 128, 230)
+		status, statusColor, statusIcon = "PREP", Color3.fromRGB(52, 128, 230), "sun"
 	else
-		status, statusColor = "CLOSED", Color3.fromRGB(120, 110, 100)
+		status, statusColor, statusIcon = "CLOSED", Color3.fromRGB(120, 110, 100), "moon"
 	end
+	self.statusIcon:set(statusIcon)
 	if self.statusText.Text ~= status then
 		pop(self.statusHolder, 0.15)
 	end
@@ -1645,7 +1791,7 @@ function Hud:setState(s)
 			row.chipText.Text = chipText
 			setColors(row.chipGrad, chipColors)
 			setColors(row.circleGrad, circleColors)
-			row.mark.Text = mark
+			row.mark:set(mark)
 		end
 	end
 	local roomsTitle = ("ROOMS %d/%d"):format(readyCount, #self.roomRows)
@@ -1749,7 +1895,8 @@ function Hud:setState(s)
 		self.reportRows.Tips.Text = ("+$%d"):format(r.tips)
 		self.reportRows.Purchases.Text = ("-$%d"):format(r.purchases)
 		self.reportRows.Bill.Text = ("-$%d"):format(r.bill)
-		self.reportRows.Cash.Text = ("$%d  →  $%d"):format(r.cashBefore, r.cashAfter)
+		self.reportCashBefore.Text = ("$%d"):format(r.cashBefore)
+		self.reportRows.Cash.Text = ("$%d"):format(r.cashAfter)
 		self.reportRows.Guests.Text = ("%d served / %d planned"):format(r.served, r.guestsPlanned)
 		self.reportRows.Lost.Text = ("%d walkout · %d unserved · %d towel"):format(
 			r.walkouts,
@@ -1758,9 +1905,11 @@ function Hud:setState(s)
 		)
 		if r.passed then
 			self.resultText.Text = ("BILL PAID! Nights survived: %d"):format(r.nightsSurvived)
+			self.resultIcon:set(if P == "RunEnded" and s.complete then "trophy" else "check")
 			setColors(self.resultGrad, GREEN)
 		else
 			self.resultText.Text = ("SHORT BY $%d. THE MOTEL CLOSES"):format(r.shortfall)
+			self.resultIcon:set("cross")
 			setColors(self.resultGrad, RED)
 		end
 		if P == "RunEnded" then

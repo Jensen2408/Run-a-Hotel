@@ -1,13 +1,14 @@
 --!strict
 --[[
-	UI assets: icon sheet and sound IDs.
+	UI assets: icon sheets and sound IDs.
 
-	ICON SHEET
-	  1024x1024 PNG, transparent, 4 columns x 4 rows of 256px cells.
-	  Prompt to generate it: assets/ui/ICON_SHEET_PROMPT.md
-	  After uploading it to Roblox, paste the image ID below, e.g.
-	    UiAssets.iconSheet = "rbxassetid://1234567890"
-	  While it is empty the HUD falls back to emoji/text icons.
+	ICON SHEETS
+	  Each sheet is a 1024x1024 transparent PNG, 4 columns x 4 rows of 256px
+	  cells. Every symbol in the UI comes from these sheets (no emoji/glyphs);
+	  emoji in `fallback` only show while a sheet is empty or still loading.
+	    Sheet 1: assets/ui/icon-sheet.png    prompt: assets/ui/ICON_SHEET_PROMPT.md
+	    Sheet 2: assets/ui/icon-sheet-2.png  prompt: assets/ui/ICON_SHEET_2_PROMPT.md
+	  After uploading a sheet to Roblox, paste its image ID in `iconSheets`.
 
 	SOUNDS
 	  Free Creator Store audio from Roblox's own UI pack, ProSoundEffects
@@ -17,31 +18,52 @@
 
 local UiAssets = {}
 
-UiAssets.iconSheet = "rbxassetid://85647358432325" -- assets/ui/icon-sheet.png (1024x1024)
-UiAssets.cellSize = 256 -- pixels per icon cell in the sheet
+UiAssets.iconSheets = {
+	"rbxassetid://85647358432325", -- sheet 1: assets/ui/icon-sheet.png
+	"", -- sheet 2: assets/ui/icon-sheet-2.png (paste "rbxassetid://..." after upload)
+}
+UiAssets.cellSize = 256 -- pixels per icon cell in a sheet
 UiAssets.cellInset = 0 -- shave pixels off each cell edge if neighbours bleed in
 
--- { column, row } in the 4x4 sheet (1-based, left-to-right, top-to-bottom).
+-- { sheet, column, row } (1-based, left-to-right, top-to-bottom).
 UiAssets.icons = {
-	coin = { 1, 1 },
-	sheet = { 2, 1 },
-	towel = { 3, 1 },
-	trolley = { 4, 1 },
-	guests = { 1, 2 },
-	hourglass = { 2, 2 },
-	hand = { 3, 2 },
-	trophy = { 4, 2 },
-	sun = { 1, 3 },
-	moon = { 2, 3 },
-	rain = { 3, 3 },
-	lightning = { 4, 3 },
-	check = { 1, 4 },
-	trash = { 2, 4 },
-	wrench = { 3, 4 },
-	star = { 4, 4 },
+	-- Sheet 1
+	coin = { 1, 1, 1 },
+	sheet = { 1, 2, 1 },
+	towel = { 1, 3, 1 },
+	trolley = { 1, 4, 1 },
+	guests = { 1, 1, 2 },
+	hourglass = { 1, 2, 2 },
+	hand = { 1, 3, 2 },
+	trophy = { 1, 4, 2 },
+	sun = { 1, 1, 3 },
+	moon = { 1, 2, 3 },
+	rain = { 1, 3, 3 },
+	lightning = { 1, 4, 3 },
+	check = { 1, 1, 4 },
+	trash = { 1, 2, 4 },
+	wrench = { 1, 3, 4 },
+	star = { 1, 4, 4 },
+	-- Sheet 2
+	arrowDown = { 2, 1, 1 },
+	arrowRight = { 2, 2, 1 },
+	cross = { 2, 3, 1 },
+	warning = { 2, 4, 1 },
+	sleep = { 2, 1, 2 },
+	broom = { 2, 2, 2 },
+	bell = { 2, 3, 2 },
+	key = { 2, 4, 2 },
+	bed = { 2, 1, 3 },
+	door = { 2, 2, 3 },
+	snowflake = { 2, 3, 3 },
+	plug = { 2, 4, 3 },
+	next = { 2, 1, 4 },
+	skip = { 2, 2, 4 },
+	sparkle = { 2, 3, 4 },
+	alarm = { 2, 4, 4 },
 }
 
--- Used until iconSheet is set.
+-- Temporary stand-ins while a sheet is empty or loading.
 UiAssets.fallback = {
 	coin = "$",
 	sheet = "🛏",
@@ -59,7 +81,52 @@ UiAssets.fallback = {
 	trash = "🗑",
 	wrench = "🔧",
 	star = "★",
+	arrowDown = "▼",
+	arrowRight = "▶",
+	cross = "❌",
+	warning = "⚠",
+	sleep = "💤",
+	broom = "🧹",
+	bell = "🛎",
+	key = "🔑",
+	bed = "🛏",
+	door = "🚪",
+	snowflake = "❄",
+	plug = "🔌",
+	next = "▶",
+	skip = "⏭",
+	sparkle = "✨",
+	alarm = "⏰",
 }
+
+-- Sheet image + rect for an icon, or nil when its sheet is not uploaded.
+-- Pure lookup: safe on the server (world labels) and the client.
+function UiAssets.cell(name: string): (string?, Vector2?, Vector2?)
+	local def = UiAssets.icons[name]
+	if not def then
+		return nil, nil, nil
+	end
+	local image = UiAssets.iconSheets[def[1]]
+	if not image or image == "" then
+		return nil, nil, nil
+	end
+	local inset = UiAssets.cellInset
+	local size = UiAssets.cellSize - inset * 2
+	local offset = Vector2.new((def[2] - 1) * UiAssets.cellSize + inset, (def[3] - 1) * UiAssets.cellSize + inset)
+	return image, offset, Vector2.new(size, size)
+end
+
+-- Points an ImageLabel at an icon (no fallback; used for world labels).
+function UiAssets.applyTo(label: ImageLabel, name: string)
+	local image, offset, size = UiAssets.cell(name)
+	if image and offset and size then
+		label.Image = image
+		label.ImageRectOffset = offset
+		label.ImageRectSize = size
+	else
+		label.Image = ""
+	end
+end
 
 export type SoundDef = { id: string, volume: number }
 

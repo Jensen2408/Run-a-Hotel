@@ -51,9 +51,9 @@ Output only the finished icon sheet image.
    - Alternatif: Creator Hub → Creations → Development Items → **Images** → Upload. Pakai ID **Image**, bukan ID Decal.
 4. **Pasang ID-nya** di `src/shared/UiAssets.luau`:
    ```lua
-   UiAssets.iconSheet = "rbxassetid://ID_ANDA"
+   UiAssets.iconSheets = { "rbxassetid://ID_ANDA", ... } -- baris pertama = sheet 1
    ```
-   Rojo akan menyinkronkan otomatis. Saat Play, semua ikon HUD (koin, seprai, handuk, troli, tamu, jam pasir, tangan, piala, cuaca, centang, sampah, bintang) langsung memakai gambar ini. Selama `iconSheet` masih kosong, HUD memakai emoji cadangan.
+   Rojo akan menyinkronkan otomatis. Saat Play, semua ikon HUD (koin, seprai, handuk, troli, tamu, jam pasir, tangan, piala, cuaca, centang, sampah, bintang) langsung memakai gambar ini. Selama baris sheet 1 di `iconSheets` masih kosong, HUD memakai emoji cadangan.
 5. **Kalau ikon terpotong atau ikon tetangga ikut terlihat:** naikkan `UiAssets.cellInset` (misalnya `8`). Kalau urutannya beda dari daftar di atas, ubah koordinat `{ kolom, baris }` di `UiAssets.icons`.
 
 Catatan: gambar yang baru di-upload kadang perlu beberapa menit lolos moderasi Roblox sebelum tampil.

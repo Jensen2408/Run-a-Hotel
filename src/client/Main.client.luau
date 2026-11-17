@@ -45,14 +45,18 @@ stateRemote.OnClientEvent:Connect(function(snapshot)
 	end
 	if snapshot.phase ~= lastPhase then
 		local banners = {
-			Preparation = { ("GET READY: NIGHT %d"):format(snapshot.night), "Clean rooms, restock, buy supplies." },
-			Night = { "NIGHT FALLS!", "Guests are on their way." },
-			Closing = { "CLOSING TIME", "No more check-ins. Finish up!" },
-			Report = { "NIGHT OVER", "Counting the money..." },
+			Preparation = {
+				("GET READY: NIGHT %d"):format(snapshot.night),
+				"Clean rooms, restock, buy supplies.",
+				"sun",
+			},
+			Night = { "NIGHT FALLS!", "Guests are on their way.", "moon" },
+			Closing = { "CLOSING TIME", "No more check-ins. Finish up!", "alarm" },
+			Report = { "NIGHT OVER", "Counting the money...", "coin" },
 		}
 		local b = banners[snapshot.phase]
 		if b and (lastPhase ~= nil or snapshot.phase == "Preparation") then
-			hud:banner(b[1], b[2])
+			hud:banner(b[1], b[2], b[3])
 		end
 		lastPhase = snapshot.phase
 	end

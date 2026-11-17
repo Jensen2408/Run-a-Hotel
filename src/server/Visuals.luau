@@ -9,6 +9,9 @@
 ]]
 
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local UiAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiAssets"))
 
 local Visuals = {}
 Visuals.__index = Visuals
@@ -159,13 +162,23 @@ local function makeGuest(id: number, parent: Instance)
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Mood"
-	gui.Size = UDim2.fromScale(3.6, 0.8) -- studs: shrinks with distance
+	gui.Size = UDim2.fromScale(4.4, 0.9) -- studs: shrinks with distance
 	gui.StudsOffset = Vector3.new(0, 4, 0)
 	gui.AlwaysOnTop = false
 	gui.MaxDistance = 55
 	gui.LightInfluence = 0
+	local icon = Instance.new("ImageLabel")
+	icon.Name = "Icon"
+	icon.BackgroundTransparency = 1
+	icon.ScaleType = Enum.ScaleType.Fit
+	icon.Size = UDim2.fromScale(0.27, 1.25)
+	icon.Position = UDim2.fromScale(0, 0.5)
+	icon.AnchorPoint = Vector2.new(0, 0.5)
+	icon.Parent = gui
 	local tl = Instance.new("TextLabel")
-	tl.Size = UDim2.fromScale(1, 1)
+	tl.Size = UDim2.fromScale(0.7, 1)
+	tl.Position = UDim2.fromScale(0.3, 0)
+	tl.TextXAlignment = Enum.TextXAlignment.Left
 	tl.BackgroundTransparency = 1
 	tl.TextColor3 = Color3.new(1, 1, 1)
 	tl.TextScaled = true
@@ -179,7 +192,7 @@ local function makeGuest(id: number, parent: Instance)
 	stroke.Parent = tl
 	gui.Parent = root
 	model.Parent = parent
-	return { model = model, root = root, label = tl, statics = statics, limbs = limbs, phase = 0 }
+	return { model = model, root = root, label = tl, icon = icon, statics = statics, limbs = limbs, phase = 0 }
 end
 
 -- Places every rig part from the root CFrame; limbs swing while walking.
@@ -419,6 +432,7 @@ function Visuals:updateTargets(core, g, e)
 		e.rig = rig
 		e.guest = rig.model
 		e.label = rig.label
+		e.labelIcon = rig.icon
 		e.guestCF = CFrame.new(e.slotPos.X + 3, GUEST_Y, e.slotPos.Z)
 		poseGuest(rig, e.guestCF, false, 0)
 	end
@@ -463,6 +477,7 @@ function Visuals:updateTargets(core, g, e)
 		e.guest = nil
 		e.rig = nil
 		e.label = nil
+		e.labelIcon = nil
 		self:sendCarAway(e)
 	end
 end
@@ -472,7 +487,7 @@ function Visuals:updateLabel(core, g, e, now: number)
 		return
 	end
 	local GS = self.C.GuestState
-	local text, color = "", Color3.new(1, 1, 1)
+	local text, color, iconName = "", Color3.new(1, 1, 1), "hourglass"
 	if g.state == GS.Queued then
 		local total = self.config.guests.patience * self.timeScale
 		local left = math.max(0, g.patienceEndsAt - now)
@@ -489,23 +504,30 @@ function Visuals:updateLabel(core, g, e, now: number)
 	elseif g.state == GS.Staying then
 		local room = core.rooms[g.roomId]
 		if room and room.towelRequest then
-			text, color = "Towel please!", Color3.fromRGB(255, 210, 80)
+			text, color, iconName = "Towel please!", Color3.fromRGB(255, 210, 80), "towel"
 		else
-			text = "Room " .. tostring(g.roomId)
+			text, iconName = "Room " .. tostring(g.roomId), "moon"
 		end
 	elseif g.state == GS.Departed then
 		local reason = g.departReason
 		if reason == "Walkout" then
-			text, color = "Too slow!", Color3.fromRGB(255, 110, 100)
+			text, color, iconName = "Too slow!", Color3.fromRGB(255, 110, 100), "lightning"
 		elseif reason == "Unserved" then
-			text, color = "Closed?!", Color3.fromRGB(255, 160, 90)
+			text, color, iconName = "Closed?!", Color3.fromRGB(255, 160, 90), "moon"
 		else
-			text, color = "Thanks!", Color3.fromRGB(120, 240, 140)
+			text, color, iconName = "Thanks!", Color3.fromRGB(120, 240, 140), "check"
 		end
 	end
 	e.label.Text = text
 	e.label.TextColor3 = color
 	e.label.Visible = text ~= ""
+	if e.labelIcon then
+		if e.labelIconName ~= iconName then
+			e.labelIconName = iconName
+			UiAssets.applyTo(e.labelIcon, iconName)
+		end
+		e.labelIcon.Visible = text ~= ""
+	end
 end
 
 function Visuals:sync(core, now: number, dt: number)
@@ -574,16 +596,24 @@ function Visuals:refreshWorld(core)
 	for i, room in ipairs(core.rooms) do
 		local v = layout.rooms[i]
 		local blockers = core:roomBlockers(room)
+		local signIcon
 		if core:isRoomReady(room) then
 			v.sign.Text = ("Room %d  READY"):format(i)
 			v.sign.TextColor3 = GREEN
+			signIcon = "check"
 		elseif room.occupant then
 			local extra = if room.towelRequest then "  TOWEL!" else ""
 			v.sign.Text = ("Room %d  OCCUPIED%s"):format(i, extra)
 			v.sign.TextColor3 = if room.towelRequest then AMBER else BLUE
+			signIcon = if room.towelRequest then "towel" else "moon"
 		else
 			v.sign.Text = ("Room %d: %s"):format(i, table.concat(blockers, ", "))
 			v.sign.TextColor3 = if room.acBroken then RED else AMBER
+			signIcon = if room.acBroken then "wrench" else "trash"
+		end
+		local signIconLabel = v.sign.Parent and v.sign.Parent:FindFirstChild("Icon")
+		if signIconLabel then
+			UiAssets.applyTo(signIconLabel, signIcon)
 		end
 		v.bed.Color = if room.sheetsDirty then Color3.fromRGB(150, 120, 80) else Color3.fromRGB(245, 245, 245)
 		v.trashBag.Transparency = if room.trash then 0 else 1
