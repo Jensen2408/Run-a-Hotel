@@ -7,14 +7,15 @@
 	  Game   reserved servers created by the lobby (TeleportService:
 	         ReserveServer(game.PlaceId)): the motel run
 
-	In Studio there is no reserved server, so the Workspace attribute "Mode"
-	picks the mode ("Game" or "Lobby"; anything else = Lobby).
+	In Studio there is no reserved server, so Config.studioMode picks the
+	mode ("Game" or "Lobby").
 
 	The server publishes the result as Workspace attribute "Mode"; clients
 	wait for it. Scripts call Mode.get() and return early when the mode is
 	not theirs.
 ]]
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
@@ -25,7 +26,8 @@ Mode.Game = "Game"
 
 local function decide(): string
 	if RunService:IsStudio() then
-		return if Workspace:GetAttribute("Mode") == Mode.Game then Mode.Game else Mode.Lobby
+		local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config")) :: any
+		return if Config.studioMode == Mode.Lobby then Mode.Lobby else Mode.Game
 	end
 	-- Reserved servers have a PrivateServerId but no owner.
 	if game.PrivateServerId ~= "" and game.PrivateServerOwnerId == 0 then

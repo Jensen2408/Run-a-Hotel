@@ -31,7 +31,7 @@ folder:Destroy()
 
 Ini membangun `Workspace.Motel` (gameplay + scenery `MapDecor`) di place. Saat Play, server memakai map itu bila atribut `MapVersion` cocok dengan `MapBuilder.VERSION`; kalau tidak ada atau versinya beda, server membangun ulang. Naikkan `MapBuilder.VERSION` setiap kali layout berubah. Simpan place secara manual bila ingin map tetap ada.
 
-**Mode cepat untuk tester:** di Studio, set atribut `TimeScale` (number, mis. `0.25`) pada `Workspace` sebelum menekan Play. Semua durasi (fase, menginap, kesabaran, gerak NPC) ikut dikali. Diabaikan di server live.
+**Mode cepat untuk tester:** ubah `Config.studioTimeScale` di [src/shared/Config.luau](src/shared/Config.luau) (mis. `0.25` lebih cepat, `2` tamu menunggu dua kali lebih lama). Semua durasi (fase, menginap, kesabaran, gerak NPC) ikut dikali. Hanya berlaku di Studio.
 
 ## Lobby + Game (satu place, dua mode)
 
@@ -44,7 +44,7 @@ Satu place menjalankan dua mode ([src/shared/Mode.luau](src/shared/Mode.luau)):
 
 Setiap script memanggil `Mode.get()` lalu berhenti bila modenya bukan miliknya (`Server/Main` dan `Client/Main` + `Ambience` untuk Game, `Lobby/LobbyMain` dan `Client/LobbyClient` untuk Lobby). Server menulis hasilnya ke atribut `Workspace.Mode`.
 
-**Di Studio** tidak ada reserved server, jadi pilih mode dengan atribut `Mode` (string) di `Workspace` sebelum Play: `Game` untuk menguji motel, kosong atau `Lobby` untuk menguji lobby. Map yang tersimpan di place untuk mode lain (`Workspace.Motel` / `Workspace.Lobby`) dihapus otomatis saat server mulai.
+**Di Studio** tidak ada reserved server, jadi mode dipilih di `Config.studioMode` ([src/shared/Config.luau](src/shared/Config.luau)): `"Game"` untuk menguji motel, `"Lobby"` untuk menguji lobby. Server live tidak terpengaruh. Map yang tersimpan di place untuk mode lain (`Workspace.Motel` / `Workspace.Lobby`) dihapus otomatis saat server mulai.
 
 Alur: pemain berdiri di pad N masuk room N (kapasitas N). Pemain pertama memulai hitung mundur `Config.lobby.padCountdown` (20 dtk); room berangkat saat penuh atau waktu habis, lewat `TeleportService:ReserveServer(game.PlaceId)` dengan `TeleportData { partySize }`. Server Game menunggu seluruh party (maks `Config.lobby.partyWait`) sebelum fase pertama. Setelah run selesai, rekor disimpan (`Persistence.recordRun`), rekor baru memunculkan banner NEW RECORD, dan tombol **LOBBY** di laporan mengirim pemain ke server publik place ini (lobby).
 
@@ -102,7 +102,7 @@ Satu sesi per meja, dipegang server (`MotelCore` bagian *Front desk terminal*). 
 
 ## Checklist uji manual di Studio
 
-Tips: set atribut `Mode = "Game"` dan `TimeScale = 2` di Workspace supaya tamu menunggu 80 detik (cukup untuk mencoba terminal).
+Tips: set `Config.studioMode = "Game"` dan `Config.studioTimeScale = 2` supaya tamu menunggu 80 detik (cukup untuk mencoba terminal).
 
 
 Belum dijalankan (MCP Studio tidak tersedia saat implementasi). Pakai `TimeScale = 0.25` untuk mempercepat.

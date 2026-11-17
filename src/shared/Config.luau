@@ -7,8 +7,13 @@
 local Config = {}
 
 Config.timeScale = 1
--- In Studio only, Workspace:GetAttribute("TimeScale") overrides timeScale (e.g. 0.25).
-Config.allowStudioTimeScaleOverride = true
+
+-- Studio testing (ignored on live servers) ---------------------------------
+-- Which mode a Studio Play session runs: "Game" (motel) or "Lobby".
+-- Live servers decide by themselves (see Shared/Mode).
+Config.studioMode = "Game"
+-- Multiplies every duration in Studio only (2 = guests wait twice as long).
+Config.studioTimeScale = 1
 
 Config.phases = {
 	preparation = 45,

@@ -56,11 +56,11 @@ remotes.Parent = ReplicatedStorage
 ------------------------------------------------------------------------
 
 local timeScale = Config.timeScale
-if RunService:IsStudio() and Config.allowStudioTimeScaleOverride then
-	local override = Workspace:GetAttribute("TimeScale")
-	if typeof(override) == "number" and override > 0 and override <= 4 then
+if RunService:IsStudio() then
+	local override = Config.studioTimeScale
+	if typeof(override) == "number" and override > 0 and override <= 4 and override ~= 1 then
 		timeScale = override
-		warn(("[Motel] Studio TimeScale override active: %.2f"):format(timeScale))
+		warn(("[Motel] Studio time scale (Config.studioTimeScale): %.2f"):format(timeScale))
 	end
 end
 
