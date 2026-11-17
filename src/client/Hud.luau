@@ -360,6 +360,7 @@ end
 function Hud.new(playerGui: PlayerGui, config, callbacks)
 	local self = setmetatable({}, Hud)
 	self.rent = config.economy.rent
+	self.shopItems = config.shop or {}
 	self.callbacks = callbacks
 	self.state = nil
 	self.prev = nil
@@ -408,6 +409,7 @@ function Hud.new(playerGui: PlayerGui, config, callbacks)
 	self:buildBackdrop()
 	self:buildPicker()
 	self:buildReport()
+	self:buildShop()
 	self:buildTutorial()
 	self:buildFx()
 	return self
@@ -952,7 +954,9 @@ function Hud:buildToasts()
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -140),
 		Size = UDim2.fromOffset(600, 200),
-		ZIndex = Z_TOP,
+		-- Below the modal backdrop: an open panel (shop, picker, report) is
+		-- never covered by toasts; it already shows the result itself.
+		ZIndex = Z_BACKDROP - 1,
 		Parent = self.root,
 	})
 	make("UIListLayout", {
@@ -1085,9 +1089,9 @@ function Hud:closeModal(holder: GuiObject)
 	t.Completed:Once(function()
 		holder.Visible = false
 		s.Value = 1
-		if not (self.picker.Visible or self.report.Visible) then
+		if not (self.picker.Visible or self.report.Visible or self.shop.Visible) then
 			tween(self.backdrop, 0.2, { BackgroundTransparency = 1 }).Completed:Once(function()
-				if not (self.picker.Visible or self.report.Visible) then
+				if not (self.picker.Visible or self.report.Visible or self.shop.Visible) then
 					self.backdrop.Visible = false
 				end
 			end)
@@ -1581,6 +1585,207 @@ end
 -- Check-in picker
 ------------------------------------------------------------------------
 
+------------------------------------------------------------------------
+-- Supply shop panel
+------------------------------------------------------------------------
+
+function Hud:buildShop()
+	local items = self.shopItems
+	local rows = math.ceil(#items / 2)
+	local holder, body = modal(self.root, "Shop", Vector2.new(580, 120 + rows * 176), "SUPPLY SHOP")
+	self.shop = holder
+
+	-- Wallet + stock strip.
+	local strip = make("Frame", {
+		BackgroundColor3 = WHITE,
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, -40, 0, 44),
+		Position = UDim2.fromOffset(20, 38),
+		Parent = body,
+	})
+	corner(strip, UDim.new(0, 12))
+	local function stat(iconName, x)
+		Icons.create(iconName, {
+			Parent = strip,
+			Size = UDim2.fromOffset(34, 34),
+			Position = UDim2.new(0, x, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+		})
+		return label({
+			Parent = strip,
+			Size = UDim2.fromOffset(110, 40),
+			Position = UDim2.new(0, x + 40, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			TextSize = 26,
+			TextColor3 = TEXT_DARK,
+			Stroke = 0,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Text = "",
+		})
+	end
+	self.shopCash = stat("coin", 12)
+	self.shopSheets = stat("sheet", 190)
+	self.shopTowels = stat("towel", 330)
+
+	self.shopCards = {}
+	for i, item in ipairs(items) do
+		local col = (i - 1) % 2
+		local row = (i - 1) // 2
+		local cardHolder, card = chunk({
+			Name = "Item_" .. item.id,
+			Parent = body,
+			Size = UDim2.fromOffset(255, 160),
+			Position = UDim2.fromOffset(20 + col * 285, 98 + row * 176),
+			Colors = CARD,
+			Radius = UDim.new(0, 16),
+			ShadowDepth = 4,
+		})
+		local medal = make("Frame", {
+			BackgroundColor3 = Color3.fromRGB(255, 240, 200),
+			BorderSizePixel = 0,
+			Size = UDim2.fromOffset(78, 78),
+			Position = UDim2.fromOffset(10, 10),
+			Parent = card,
+		})
+		corner(medal, UDim.new(0, 14))
+		outline(medal, 2.5)
+		local icon = Icons.create(item.icon, {
+			Parent = medal,
+			Size = UDim2.fromScale(0.92, 0.92),
+			Position = UDim2.fromScale(0.5, 0.5),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+		})
+		label({
+			Parent = card,
+			Size = UDim2.new(1, -104, 0, 30),
+			Position = UDim2.fromOffset(96, 10),
+			TextSize = 22,
+			TextColor3 = TEXT_DARK,
+			Stroke = 0,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Text = item.name,
+		})
+		label({
+			Parent = card,
+			Size = UDim2.new(1, -104, 0, 44),
+			Position = UDim2.fromOffset(96, 40),
+			TextSize = 16,
+			Font = Enum.Font.GothamMedium,
+			TextColor3 = Color3.fromRGB(110, 90, 70),
+			Stroke = 0,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			Text = item.desc,
+		})
+		-- Price tag.
+		local _, priceBody = chunk({
+			Name = "Price",
+			Parent = card,
+			Size = UDim2.fromOffset(96, 34),
+			Position = UDim2.fromOffset(10, 112),
+			Colors = GOLD,
+			Radius = UDim.new(1, 0),
+			ShadowDepth = 3,
+			Stroke = 2.5,
+			Shine = false,
+		})
+		Icons.create("coin", {
+			Parent = priceBody,
+			Size = UDim2.fromOffset(28, 28),
+			Position = UDim2.new(0, 4, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			ZIndex = 2,
+		})
+		label({
+			Parent = priceBody,
+			Size = UDim2.new(1, -36, 1, 0),
+			Position = UDim2.fromOffset(32, 0),
+			TextSize = 22,
+			Text = ("$%d"):format(item.cost),
+		})
+		local buy = chunkyButton(
+			card,
+			"Buy",
+			UDim2.fromOffset(128, 42),
+			UDim2.fromOffset(117, 108),
+			GREEN,
+			"BUY",
+			function()
+				self:tryBuy(i)
+			end,
+			"check"
+		)
+		buy.label.TextSize = 22
+		self.shopCards[i] = { item = item, holder = cardHolder, buy = buy, icon = icon }
+	end
+
+	local close = chunkyButton(body, "Close", UDim2.fromOffset(48, 48), UDim2.new(1, -30, 0, -30), RED, "", function()
+		self:closeShop()
+	end, "cross")
+	close.holder.ZIndex = 4
+	close.icon.frame.Position = UDim2.fromScale(0.5, 0.5)
+	close.icon.frame.AnchorPoint = Vector2.new(0.5, 0.5)
+end
+
+function Hud:tryBuy(i: number)
+	local card = self.shopCards[i]
+	local s = self.state
+	if not card or not s then
+		return
+	end
+	local item = card.item
+	if (item.trolley and s.trolley) or s.cash < item.cost then
+		play("error")
+		wiggle(card.holder, 4, 0.3)
+		return
+	end
+	pop(card.holder, 0.08)
+	shineSweep(card.holder:FindFirstChild("Body"))
+	self.callbacks.onBuy(item.id)
+end
+
+function Hud:openShop()
+	self:openModal(self.shop)
+	self:renderShop()
+end
+
+function Hud:closeShop()
+	self:closeModal(self.shop)
+end
+
+function Hud:renderShop()
+	local s = self.state
+	if not s or not self.shop.Visible then
+		return
+	end
+	if not (s.phase == "Preparation" or s.phase == "Night" or s.phase == "Closing") then
+		self:closeShop()
+		return
+	end
+	self.shopCash.Text = ("$%d"):format(s.cash)
+	self.shopSheets.Text = tostring(s.stock.Sheet)
+	self.shopTowels.Text = tostring(s.stock.Towel)
+	for _, c in ipairs(self.shopCards) do
+		local item = c.item
+		local owned = item.trolley and s.trolley
+		local afford = s.cash >= item.cost
+		if owned then
+			c.buy.label.Text = "OWNED"
+			c.buy.icon:set("check")
+			setColors(c.buy.grad, GREY)
+		elseif afford then
+			c.buy.label.Text = "BUY"
+			c.buy.icon:set("coin")
+			setColors(c.buy.grad, GREEN)
+		else
+			c.buy.label.Text = "NEED $" .. (item.cost - s.cash)
+			c.buy.icon:set("cross")
+			setColors(c.buy.grad, GREY)
+		end
+	end
+end
+
 function Hud:openPicker()
 	self:openModal(self.picker)
 	self:renderPicker()
@@ -1935,6 +2140,7 @@ function Hud:setState(s)
 
 	self.prev = s
 	self:renderPicker()
+	self:renderShop()
 end
 
 -- Called every frame: timers, rolling numbers and idle motion.

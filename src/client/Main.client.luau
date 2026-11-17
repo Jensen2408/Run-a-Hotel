@@ -19,6 +19,7 @@ local actionRemote = remotes:WaitForChild(Constants.Remotes.Action)
 local stateRemote = remotes:WaitForChild(Constants.Remotes.State)
 local feedbackRemote = remotes:WaitForChild(Constants.Remotes.Feedback)
 local openCheckInRemote = remotes:WaitForChild(Constants.Remotes.OpenCheckIn)
+local openShopRemote = remotes:WaitForChild(Constants.Remotes.OpenShop)
 
 local RA = Constants.RemoteAction
 
@@ -26,6 +27,9 @@ local hud = Hud.new(player:WaitForChild("PlayerGui"), Config, {
 	sfx = Sfx.new(),
 	onCheckIn = function(roomId: number)
 		actionRemote:FireServer({ kind = RA.CheckIn, roomId = roomId })
+	end,
+	onBuy = function(itemId: string)
+		actionRemote:FireServer({ kind = RA.Buy, itemId = itemId })
 	end,
 	onReady = function()
 		actionRemote:FireServer({ kind = RA.Ready })
@@ -74,9 +78,28 @@ openCheckInRemote.OnClientEvent:Connect(function()
 	hud:openPicker()
 end)
 
+openShopRemote.OnClientEvent:Connect(function()
+	hud:openShop()
+end)
+
+-- Close the shop panel when the player walks away from the counter.
+local SHOP_CLOSE_DISTANCE = Config.interaction.shopRange * (Config.mapScale or 1) + 6
+local function checkShopDistance()
+	if not hud.shop.Visible then
+		return
+	end
+	local motel = workspace:FindFirstChild("Motel")
+	local counter = motel and motel:FindFirstChild("Interactables") and motel.Interactables:FindFirstChild("SupplyShop")
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if counter and hrp and (hrp.Position - counter.Position).Magnitude > SHOP_CLOSE_DISTANCE then
+		hud:closeShop()
+	end
+end
+
 RunService.RenderStepped:Connect(function()
 	hud:tick()
 	tutorial:tick()
+	checkShopDistance()
 end)
 
 actionRemote:FireServer({ kind = RA.RequestState })

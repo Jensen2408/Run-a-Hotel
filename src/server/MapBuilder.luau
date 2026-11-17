@@ -25,12 +25,14 @@ local Workspace = game:GetService("Workspace")
 local UiAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiAssets"))
 
 local MapDecor = require(script.Parent:WaitForChild("MapDecor"))
+-- Supply shop building centre (scale-1 coordinates), shared with MapDecor.
+local SHOP_X, SHOP_Z = MapDecor.SHOP_X, MapDecor.SHOP_Z
 local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
 
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 8
+MapBuilder.VERSION = 9
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -277,34 +279,24 @@ function MapBuilder.build(config)
 	})
 	layout.breakerLabel = label(breaker, "BREAKER", 3, 4.6, "lightning")
 
-	-- Supply shop kiosk.
+	-- Supply shop counter, inside the shop building east of the motel
+	-- (building shell in MapDecor.buildShopBuilding). The prompt opens the
+	-- shop panel on the client; purchases go through the Buy remote.
 	local shop = part({
 		Name = "SupplyShop",
-		Size = Vector3.new(4, 5, 3),
-		Position = Vector3.new(36, 2.9, -26),
-		Color = Color3.fromRGB(40, 110, 170),
+		Size = Vector3.new(3, 3, 9),
+		Position = Vector3.new(SHOP_X + 5, 1.9, SHOP_Z),
+		Color = Color3.fromRGB(150, 96, 56),
+		Material = Enum.Material.Wood,
 		Parent = interact,
 	})
-	layout.prompts.refill = prompt(shop, config, {
-		action = "BuyRefill",
-		actionText = ("Buy Refill ($%d)"):format(config.supplies.refillCost),
-		objectText = ("+%d sheets, +%d towels"):format(config.supplies.refillSheets, config.supplies.refillTowels),
-		key = Enum.KeyCode.E,
-		gamepadKey = Enum.KeyCode.ButtonX,
-		offset = Vector3.new(-2.2, 0.8, 0),
+	layout.prompts.shop = prompt(shop, config, {
+		action = "OpenShop",
+		actionText = "Open Shop",
+		objectText = "Supply Shop",
+		offset = Vector3.new(-1.8, 1, 0),
 	})
-	layout.prompts.trolley = prompt(shop, config, {
-		action = "BuyTrolley",
-		actionText = ("Buy Trolley ($%d)"):format(config.supplies.trolleyCost),
-		objectText = ("Team carry %d -> %d"):format(
-			config.supplies.baseCarryCapacity,
-			config.supplies.trolleyCarryCapacity
-		),
-		key = Enum.KeyCode.F,
-		gamepadKey = Enum.KeyCode.ButtonY,
-		offset = Vector3.new(-2.2, -0.8, 0),
-	})
-	label(shop, "SUPPLY SHOP", 3.6, 5.8, "trolley")
+	label(shop, "SUPPLY SHOP", 3.4, 5.8, "trolley")
 
 	-- Hallway ---------------------------------------------------------------
 	part({
@@ -752,8 +744,8 @@ function MapBuilder.collect(root: Instance, config)
 	layout.breakerLabel = labelText(breaker)
 
 	local shop = must(interact, "SupplyShop")
-	layout.prompts.refill = promptIn(shop, "BuyRefill")
-	layout.prompts.trolley = promptIn(shop, "BuyTrolley")
+	layout.shopPosition = (shop :: BasePart).Position
+	layout.prompts.shop = promptIn(shop, "OpenShop")
 
 	local shelf = must(interact, "LinenShelf")
 	layout.prompts.takeSheet = promptIn(shelf, "TakeSheet")

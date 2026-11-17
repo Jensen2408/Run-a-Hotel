@@ -36,8 +36,7 @@ Constants.PromptAction = {
 	DeliverTowel = "DeliverTowel",
 	RepairAC = "RepairAC",
 	ResetBreaker = "ResetBreaker",
-	BuyRefill = "BuyRefill",
-	BuyTrolley = "BuyTrolley",
+	OpenShop = "OpenShop",
 }
 
 -- Actions a client may send through the Action RemoteEvent.
@@ -46,6 +45,7 @@ Constants.RemoteAction = {
 	Ready = "Ready",
 	Restart = "Restart",
 	RequestState = "RequestState",
+	Buy = "Buy",
 }
 
 Constants.Remotes = {
@@ -54,6 +54,7 @@ Constants.Remotes = {
 	State = "State", -- server -> client snapshot
 	Feedback = "Feedback", -- server -> client toast
 	OpenCheckIn = "OpenCheckIn", -- server -> client: show room picker
+	OpenShop = "OpenShop", -- server -> client: show the supply shop panel
 }
 
 return Constants

@@ -733,40 +733,59 @@ function MotelCore:resetBreaker(pid): (boolean, string)
 	return true, "Breaker reset. Power restored!"
 end
 
-function MotelCore:buyRefill(_pid): (boolean, string)
-	local ok, err = self:requireActive()
-	if not ok then
-		return false, err
+-- Shop catalog lookup (Config.shop).
+function MotelCore:shopItem(itemId: string)
+	for _, item in ipairs(self.config.shop or {}) do
+		if item.id == itemId then
+			return item
+		end
 	end
-	local s = self.config.supplies
-	if self.cash < s.refillCost then
-		return false, ("Need $%d for a refill."):format(s.refillCost)
-	end
-	self.cash -= s.refillCost
-	self.nightStats.purchases += s.refillCost
-	self.stock.Sheet += s.refillSheets
-	self.stock.Towel += s.refillTowels
-	self:bump()
-	return true, ("Bought refill: +%d sheets, +%d towels. -$%d"):format(s.refillSheets, s.refillTowels, s.refillCost)
+	return nil
 end
 
-function MotelCore:buyTrolley(_pid): (boolean, string)
+-- Buys one catalog item for the whole team. Validates phase, ownership and
+-- cash, then applies everything in one step (no yields).
+function MotelCore:buyItem(_pid, itemId: string): (boolean, string)
 	local ok, err = self:requireActive()
 	if not ok then
 		return false, err
 	end
-	local s = self.config.supplies
-	if self.trolley then
+	local item = self:shopItem(itemId)
+	if not item then
+		return false, "That item is not sold here."
+	end
+	if item.trolley and self.trolley then
 		return false, "The team already owns a trolley."
 	end
-	if self.cash < s.trolleyCost then
-		return false, ("Need $%d for a trolley."):format(s.trolleyCost)
+	if self.cash < item.cost then
+		return false, ("Need $%d for %s."):format(item.cost, item.name)
 	end
-	self.cash -= s.trolleyCost
-	self.nightStats.purchases += s.trolleyCost
-	self.trolley = true
+	self.cash -= item.cost
+	self.nightStats.purchases += item.cost
+	local parts = {}
+	if item.sheets and item.sheets > 0 then
+		self.stock.Sheet += item.sheets
+		table.insert(parts, ("+%d sheets"):format(item.sheets))
+	end
+	if item.towels and item.towels > 0 then
+		self.stock.Towel += item.towels
+		table.insert(parts, ("+%d towels"):format(item.towels))
+	end
+	if item.trolley then
+		self.trolley = true
+		table.insert(parts, ("everyone carries %d"):format(self.config.supplies.trolleyCarryCapacity))
+	end
+	self:emit("Purchase", { itemId = item.id })
 	self:bump()
-	return true, ("Bought a trolley! Everyone can carry %d items. -$%d"):format(s.trolleyCarryCapacity, s.trolleyCost)
+	return true, ("Bought %s: %s. -$%d"):format(item.name, table.concat(parts, ", "), item.cost)
+end
+
+function MotelCore:buyRefill(pid): (boolean, string)
+	return self:buyItem(pid, "refill")
+end
+
+function MotelCore:buyTrolley(pid): (boolean, string)
+	return self:buyItem(pid, "trolley")
 end
 
 function MotelCore:setReady(pid): (boolean, string)

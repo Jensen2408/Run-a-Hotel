@@ -34,6 +34,42 @@ Config.supplies = {
 	trolleyCarryCapacity = 2,
 }
 
+-- Supply shop catalog (the shop building next to the motel). Order = display
+-- order. Each entry adds stock and/or unlocks the trolley; `icon` is an icon
+-- name from UiAssets.icons.
+export type ShopItem = {
+	id: string,
+	name: string,
+	desc: string,
+	icon: string,
+	cost: number,
+	sheets: number?,
+	towels: number?,
+	trolley: boolean?,
+}
+local shop: { ShopItem } = {
+	{ id = "sheets", name = "Sheet Pack", desc = "+4 clean sheets", icon = "sheet", cost = 12, sheets = 4 },
+	{ id = "towels", name = "Towel Pack", desc = "+4 fresh towels", icon = "towel", cost = 8, towels = 4 },
+	{
+		id = "refill",
+		name = "Linen Refill",
+		desc = "+3 sheets & +3 towels",
+		icon = "sparkle",
+		cost = Config.supplies.refillCost,
+		sheets = Config.supplies.refillSheets,
+		towels = Config.supplies.refillTowels,
+	},
+	{
+		id = "trolley",
+		name = "Trolley",
+		desc = "Whole team carries 2 items",
+		icon = "trolley",
+		cost = Config.supplies.trolleyCost,
+		trolley = true,
+	},
+}
+Config.shop = shop
+
 Config.guests = {
 	stayMin = 30,
 	stayMax = 40,
@@ -119,6 +155,7 @@ Config.interaction = {
 	promptRange = 9, -- ProximityPrompt MaxActivationDistance
 	rangeSlack = 4, -- extra studs the server tolerates for latency
 	deskRange = 14, -- max distance from the desk anchor for a check-in request
+	shopRange = 16, -- max distance from the shop counter for a purchase
 	remoteCooldown = 0.2,
 	repairHoldDuration = 1.5,
 	breakerHoldDuration = 1,

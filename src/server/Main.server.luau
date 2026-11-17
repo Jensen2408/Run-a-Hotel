@@ -40,6 +40,7 @@ local actionRemote = remote(Constants.Remotes.Action)
 local stateRemote = remote(Constants.Remotes.State)
 local feedbackRemote = remote(Constants.Remotes.Feedback)
 local openCheckInRemote = remote(Constants.Remotes.OpenCheckIn)
+local openShopRemote = remote(Constants.Remotes.OpenShop)
 remotes.Parent = ReplicatedStorage
 
 ------------------------------------------------------------------------
@@ -180,11 +181,13 @@ local promptHandlers = {
 	[PA.ResetBreaker] = function(player)
 		return core:resetBreaker(player.UserId)
 	end,
-	[PA.BuyRefill] = function(player)
-		return core:buyRefill(player.UserId)
-	end,
-	[PA.BuyTrolley] = function(player)
-		return core:buyTrolley(player.UserId)
+	[PA.OpenShop] = function(player)
+		local ok, err = core:requireActive()
+		if not ok then
+			return false, err
+		end
+		openShopRemote:FireClient(player)
+		return nil, nil -- no toast; the client opens the shop panel
 	end,
 	[PA.CollectTrash] = function(player, roomId)
 		return core:collectTrash(player.UserId, roomId)
@@ -260,6 +263,17 @@ actionRemote.OnServerEvent:Connect(function(player: Player, payload)
 			return
 		end
 		ok, msg = core:checkIn(player.UserId, roomId, now())
+	elseif kind == RA.Buy then
+		local itemId = payload.itemId
+		if typeof(itemId) ~= "string" or not core:shopItem(itemId) then
+			return
+		end
+		local range = Config.interaction.shopRange * (Config.mapScale or 1)
+		if not withinRange(player, layout.shopPosition, range) then
+			feedback(player, "Walk to the shop counter to buy supplies.", "error")
+			return
+		end
+		ok, msg = core:buyItem(player.UserId, itemId)
 	elseif kind == RA.Ready then
 		ok, msg = core:setReady(player.UserId)
 	elseif kind == RA.Restart then

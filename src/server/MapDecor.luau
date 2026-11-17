@@ -28,6 +28,12 @@ local MapDecor = {}
 MapDecor.ROOM_SHIFT = 18
 local SHIFT = MapDecor.ROOM_SHIFT
 
+-- Supply shop building: east of the motel, outside the property fence.
+-- MapBuilder places the gameplay counter relative to this centre.
+MapDecor.SHOP_X = 100
+MapDecor.SHOP_Z = -36
+local SHOP_X, SHOP_Z = MapDecor.SHOP_X, MapDecor.SHOP_Z
+
 ------------------------------------------------------------------------
 -- Palette
 ------------------------------------------------------------------------
@@ -1089,6 +1095,179 @@ local function buildShedAndYard(decor)
 	end
 end
 
+-- Shopkeeper: static blocky figure facing west (-X) behind the counter.
+local function shopkeeper(parent, pos: Vector3)
+	local m = Instance.new("Model")
+	m.Name = "Shopkeeper"
+	local skin = Color3.fromRGB(234, 184, 146)
+	for _, dz in ipairs({ -0.5, 0.5 }) do
+		detail(m, "Leg", Vector3.new(0.9, 2, 0.9), pos + Vector3.new(0, 1, dz), Color3.fromRGB(60, 64, 90))
+	end
+	detail(m, "Torso", Vector3.new(1, 1.9, 2), pos + Vector3.new(0, 2.95, 0), Color3.fromRGB(240, 120, 90))
+	detail(m, "Apron", Vector3.new(0.12, 1.6, 1.6), pos + Vector3.new(-0.56, 2.8, 0), Color3.fromRGB(70, 150, 140))
+	for _, dz in ipairs({ -1.35, 1.35 }) do
+		detail(m, "Arm", Vector3.new(0.8, 1.8, 0.7), pos + Vector3.new(0, 3, dz), Color3.fromRGB(240, 120, 90))
+	end
+	detail(m, "Head", Vector3.new(1.3, 1.3, 1.3), pos + Vector3.new(0, 4.6, 0), skin)
+	for _, dz in ipairs({ -0.3, 0.3 }) do
+		detail(m, "Eye", Vector3.new(0.05, 0.26, 0.18), pos + Vector3.new(-0.66, 4.7, dz), Color3.fromRGB(30, 26, 26))
+	end
+	detail(m, "Smile", Vector3.new(0.05, 0.08, 0.5), pos + Vector3.new(-0.66, 4.32, 0), Color3.fromRGB(120, 60, 60))
+	detail(m, "Cap", Vector3.new(1.4, 0.45, 1.4), pos + Vector3.new(0, 5.38, 0), Color3.fromRGB(70, 150, 140))
+	detail(m, "Brim", Vector3.new(0.8, 0.15, 1.2), pos + Vector3.new(-0.95, 5.2, 0), Color3.fromRGB(70, 150, 140))
+	m.Parent = parent
+end
+
+-- A shelf unit along X with three boards and goods on it.
+local function shelfUnit(parent, x1: number, x2: number, z: number, rng: Random)
+	local len = x2 - x1
+	local cx = (x1 + x2) / 2
+	for _, x in ipairs({ x1, x2 }) do
+		block(parent, "ShelfPost", Vector3.new(0.3, 6.4, 1.8), Vector3.new(x, 3.4, z), WOOD_DARK)
+	end
+	local goods = {
+		{ Color3.fromRGB(250, 250, 250), Vector3.new(1.4, 0.9, 1.2) }, -- folded sheets
+		{ Color3.fromRGB(110, 210, 200), Vector3.new(1.3, 0.9, 1.1) }, -- towels
+		{ Color3.fromRGB(240, 200, 80), Vector3.new(0.6, 1.2, 0.6) }, -- soap bottles
+		{ Color3.fromRGB(230, 90, 90), Vector3.new(0.9, 1.1, 0.9) }, -- boxes
+	}
+	for level, y in ipairs({ 1.2, 3.4, 5.6 }) do
+		block(parent, "ShelfBoard", Vector3.new(len, 0.25, 1.8), Vector3.new(cx, y, z), WOOD)
+		local x = x1 + 0.9
+		local kind = level
+		while x < x2 - 0.8 do
+			local g = goods[(kind - 1) % #goods + 1]
+			detail(parent, "Goods", g[2], Vector3.new(x, y + 0.13 + g[2].Y / 2, z + rng:NextNumber(-0.15, 0.15)), g[1])
+			x += g[2].X + 0.35
+			kind += 1
+		end
+	end
+end
+
+-- The supply shop: a small mint-green store east of the motel, door facing
+-- the motel (west). The counter with the "Open Shop" prompt is a gameplay
+-- part built by MapBuilder.
+local function buildShopBuilding(decor, rng)
+	local f = folder(decor, "SupplyShopBuilding")
+	local x1, x2 = SHOP_X - 10, SHOP_X + 10
+	local z1, z2 = SHOP_Z - 8, SHOP_Z + 8
+	local H = 12
+	local mint = Color3.fromRGB(150, 210, 192)
+	block(f, "Floor", Vector3.new(20, 0.4, 16), Vector3.new(SHOP_X, 0.2, SHOP_Z), Color3.fromRGB(214, 196, 160), {
+		Material = Enum.Material.WoodPlanks,
+	})
+	wallX(f, "SouthWall", x1, x2, z1, H, nil, mint)
+	wallX(f, "NorthWall", x1, x2, z2, H, nil, mint)
+	wallZ(f, "EastWall", z1, z2, x2, H, nil, mint)
+	wallZ(f, "WestWall", z1, z2, x1, H, { { SHOP_Z - 4, SHOP_Z + 4 } }, mint)
+	block(f, "Ceiling", Vector3.new(20, 0.3, 16), Vector3.new(SHOP_X, H + 0.05, SHOP_Z), Color3.fromRGB(246, 240, 226))
+	gableRoof(f, "Roof", x1 - 1.5, x2 + 1.5, z1 - 1.5, z2 + 1.5, H, 5)
+	-- Shop windows either side of the door, with sills.
+	for _, zc in ipairs({ SHOP_Z - 6.2, SHOP_Z + 6.2 }) do
+		block(f, "ShopWindow", Vector3.new(0.3, 4.4, 3), Vector3.new(x1 - 0.6, 4.6, zc), GLASS, {
+			Material = Enum.Material.Glass,
+			Transparency = 0.3,
+			CanCollide = false,
+		})
+		detail(f, "Sill", Vector3.new(0.8, 0.4, 3.6), Vector3.new(x1 - 0.8, 2.3, zc), TRIM)
+	end
+	for _, zc in ipairs({ SHOP_Z - 4.3, SHOP_Z + 4.3 }) do
+		detail(f, "DoorFrame", Vector3.new(0.8, DOOR_TOP, 0.8), Vector3.new(x1 - 0.6, DOOR_TOP / 2, zc), TRIM)
+	end
+	-- Big sign over the door, facing the motel (-X).
+	local sign =
+		block(f, "ShopSign", Vector3.new(0.5, 2.6, 12), Vector3.new(x1 - 0.8, 10.5, SHOP_Z), Color3.fromRGB(46, 90, 84))
+	surfaceText(sign, Enum.NormalId.Left, {
+		{ text = "SUPPLY SHOP", color = Color3.fromRGB(255, 232, 140), scale = 0.85 },
+	})
+	for k = 0, 11 do
+		neonBulb(
+			f,
+			Vector3.new(x1 - 1.15, 12, SHOP_Z - 5.5 + k),
+			Color3.fromRGB(255, 236, 150),
+			0.45,
+			{ Chase = 300 + k }
+		)
+	end
+	-- Striped canopy over the door.
+	for k = 0, 9 do
+		local zc = SHOP_Z - 4.5 + k
+		detail(
+			f,
+			"Canopy",
+			Vector3.new(3.2, 0.35, 1),
+			CFrame.new(x1 - 2.1, 9.2, zc) * CFrame.Angles(0, 0, math.rad(14)),
+			if k % 2 == 0 then ACCENT else CREAM
+		)
+	end
+	-- Blinking OPEN sign in the window.
+	local open = detail(
+		f,
+		"OpenSign",
+		Vector3.new(0.2, 1.3, 2.6),
+		Vector3.new(x1 - 0.85, 5.2, SHOP_Z + 6.2),
+		Color3.fromRGB(255, 70, 90),
+		{
+			Material = Enum.Material.Neon,
+		}
+	)
+	open:SetAttribute("Blink", 1.4)
+	surfaceText(open, Enum.NormalId.Left, { { text = "OPEN", color = Color3.new(1, 1, 1), scale = 0.9, stroke = 0 } })
+
+	-- Interior: shelves along both long walls, register, shopkeeper, lamp.
+	shelfUnit(f, x1 + 1.5, x1 + 12, z2 - 1.6, rng)
+	shelfUnit(f, x1 + 1.5, x1 + 12, z1 + 1.6, rng)
+	detail(
+		f,
+		"Register",
+		Vector3.new(1.2, 0.8, 1.4),
+		Vector3.new(SHOP_X + 5, 3.8, SHOP_Z - 2.8),
+		Color3.fromRGB(50, 50, 56)
+	)
+	detail(
+		f,
+		"RegisterScreen",
+		Vector3.new(0.1, 0.5, 0.9),
+		Vector3.new(SHOP_X + 4.4, 4.2, SHOP_Z - 2.8),
+		Color3.fromRGB(110, 255, 150),
+		{
+			Material = Enum.Material.Neon,
+		}
+	):SetAttribute("Bulb", true)
+	shopkeeper(f, Vector3.new(SHOP_X + 7.5, 0.4, SHOP_Z))
+	detail(f, "BackShelf", Vector3.new(1.2, 6, 10), Vector3.new(x2 - 1.2, 3.4, SHOP_Z), WOOD)
+	for k = -2, 2 do
+		detail(
+			f,
+			"BackGoods",
+			Vector3.new(0.8, 1, 1.4),
+			Vector3.new(x2 - 1.4, 4.9, SHOP_Z + k * 1.8),
+			BULB_COLORS[(k + 3) % #BULB_COLORS + 1]
+		)
+	end
+	local lamp = detail(f, "ShopLamp", Vector3.new(3, 0.4, 3), Vector3.new(SHOP_X, H - 0.4, SHOP_Z), LAMP_WARM, {
+		Material = Enum.Material.Neon,
+	})
+	pointLight(lamp, 26, 1)
+
+	-- Outside: path from the fence gap, front pad, crates, barrel, plants, lamp.
+	block(f, "Path", Vector3.new(22, 0.26, 7), Vector3.new(x1 - 11, 0.14, SHOP_Z), Color3.fromRGB(196, 186, 166), {
+		Material = Enum.Material.Concrete,
+	})
+	block(f, "FrontPad", Vector3.new(6, 0.24, 18), Vector3.new(x1 - 3, 0.13, SHOP_Z), CONCRETE)
+	for i, p in ipairs({
+		Vector3.new(x1 - 2.5, 0, z1 + 1),
+		Vector3.new(x1 - 2.5, 0, z1 + 3.2),
+		Vector3.new(x1 - 2.5, 2.2, z1 + 2.1),
+	}) do
+		block(f, "Crate", Vector3.new(2, 2, 2), p + Vector3.new(0, 1.1, 0), if i == 3 then WOOD else WOOD_DARK)
+	end
+	cylY(f, "Barrel", 2.6, 2, Vector3.new(x1 - 2.6, 1.5, z2 - 1.2), Color3.fromRGB(120, 80, 50))
+	pottedPlant(f, Vector3.new(x1 - 1.5, 0.2, SHOP_Z - 5.2), rng)
+	pottedPlant(f, Vector3.new(x1 - 1.5, 0.2, SHOP_Z + 5.2), rng)
+	lampPost(f, Vector3.new(x1 - 8, 0, SHOP_Z - 5), 11)
+end
+
 local function buildPool(decor)
 	local pool = folder(decor, "Pool")
 	block(pool, "Deck", Vector3.new(22, 0.4, 22), Vector3.new(-20, 0.2, 10), Color3.fromRGB(232, 222, 202))
@@ -1194,7 +1373,8 @@ local function buildGreenery(decor, rng)
 	local fence = folder(decor, "Fence")
 	fenceLine(fence, Vector3.new(-40, 0, -42), Vector3.new(-40, 0, 28 + SHIFT))
 	fenceLine(fence, Vector3.new(-40, 0, 28 + SHIFT), Vector3.new(76, 0, 28 + SHIFT))
-	fenceLine(fence, Vector3.new(76, 0, 28 + SHIFT), Vector3.new(76, 0, -42))
+	-- Gap at z -42..-30 leads to the supply shop.
+	fenceLine(fence, Vector3.new(76, 0, 28 + SHIFT), Vector3.new(76, 0, -30))
 
 	local green = folder(decor, "Greenery")
 	local yard = decor:FindFirstChild("RoomYard") or folder(decor, "RoomYard")
@@ -1292,7 +1472,8 @@ local function buildCourtyard(decor, rng)
 end
 
 local function inLot(x, z)
-	return x > -44 and x < 82 and z > -46 and z < 31 + SHIFT
+	return (x > -44 and x < 82 and z > -46 and z < 31 + SHIFT)
+		or (x > 74 and x < SHOP_X + 22 and z > SHOP_Z - 18 and z < SHOP_Z + 16)
 end
 local function onRoad(z)
 	return z > -80 and z < -50
@@ -1360,6 +1541,9 @@ end
 local function buildForest(decor, rng)
 	local forest = folder(decor, "Forest")
 	local function blocked(x, z)
+		if x > 74 and x < SHOP_X + 26 and z > SHOP_Z - 20 and z < SHOP_Z + 20 then
+			return true -- supply shop clearing
+		end
 		if x > -62 and x < 96 and z > -50 and z < 44 + SHIFT then
 			return true
 		end
@@ -1443,6 +1627,7 @@ function MapDecor.build(mapFolder: Instance)
 	buildLobby(decor, rng)
 	buildRoomBlock(decor)
 	buildShedAndYard(decor)
+	buildShopBuilding(decor, rng)
 	task.wait()
 	buildPool(decor)
 	buildCampfire(decor, rng)

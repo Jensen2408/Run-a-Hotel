@@ -92,7 +92,7 @@ local CORE = {
 		id = "shop",
 		info = true,
 		near = 10,
-		text = "SUPPLY SHOP: buy refills (+3 sheets, +3 towels) and the trolley here.",
+		text = "The SUPPLY SHOP is the store next to the motel. Press E at the counter to buy sheets, towels and the trolley.",
 		target = function()
 			return interactable("SupplyShop")
 		end,
@@ -271,7 +271,7 @@ local HINTS = {
 		when = function(s)
 			return s.stock and s.stock.Sheet == 0 and (s.phase == "Night" or s.phase == "Preparation")
 		end,
-		text = "Out of clean sheets! Buy a refill at the SUPPLY SHOP (E).",
+		text = "Out of clean sheets! Buy more at the SUPPLY SHOP next to the motel.",
 		target = function()
 			return interactable("SupplyShop")
 		end,
