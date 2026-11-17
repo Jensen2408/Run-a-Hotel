@@ -359,7 +359,7 @@ end
 
 function Hud.new(playerGui: PlayerGui, config, callbacks)
 	local self = setmetatable({}, Hud)
-	self.rent = config.economy.rent
+	self.roomDefs = config.rooms
 	self.shopItems = config.shop or {}
 	self.callbacks = callbacks
 	self.state = nil
@@ -407,7 +407,6 @@ function Hud.new(playerGui: PlayerGui, config, callbacks)
 	self:buildAlert()
 	self:buildToasts()
 	self:buildBackdrop()
-	self:buildPicker()
 	self:buildReport()
 	self:buildShop()
 	self:buildLinen()
@@ -709,7 +708,7 @@ function Hud:buildRoomsCard()
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextWrapped = false,
 			TextTruncate = Enum.TextTruncate.AtEnd,
-			Text = "Room " .. i,
+			Text = "Room " .. (self.roomDefs[i] and self.roomDefs[i].number or i),
 		})
 		local chipHolder, chipBody, chipGrad = chunk({
 			Name = "Chip" .. i,
@@ -955,7 +954,7 @@ function Hud:buildToasts()
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -140),
 		Size = UDim2.fromOffset(600, 200),
-		-- Below the modal backdrop: an open panel (shop, picker, report) is
+		-- Below the modal backdrop: an open panel (shop, linen, report) is
 		-- never covered by toasts; it already shows the result itself.
 		ZIndex = Z_BACKDROP - 1,
 		Parent = self.root,
@@ -996,7 +995,7 @@ function Hud:buildFx()
 	})
 end
 
--- Modal panel shared by the picker and the report ---------------------------
+-- Modal panel shared by the station panels and the report ---------------------------
 local function modal(parent, name: string, size: Vector2, title: string)
 	local holder, body = chunk({
 		Name = name,
@@ -1090,9 +1089,9 @@ function Hud:closeModal(holder: GuiObject)
 	t.Completed:Once(function()
 		holder.Visible = false
 		s.Value = 1
-		if not (self.picker.Visible or self.report.Visible or self.shop.Visible or self.linen.Visible) then
+		if not (self.report.Visible or self.shop.Visible or self.linen.Visible) then
 			tween(self.backdrop, 0.2, { BackgroundTransparency = 1 }).Completed:Once(function()
-				if not (self.picker.Visible or self.report.Visible or self.shop.Visible or self.linen.Visible) then
+				if not (self.report.Visible or self.shop.Visible or self.linen.Visible) then
 					self.backdrop.Visible = false
 				end
 			end)
@@ -1223,75 +1222,16 @@ function Hud:setTutorial(info)
 	end
 end
 
-function Hud:buildPicker()
-	local h = 110 + 66 * self.roomCount + 64
-	local holder, body, title = modal(self.root, "CheckInPicker", Vector2.new(440, h), "ASSIGN A ROOM")
-	self.picker = holder
-	self.pickerTitle = title
-	self.pickerSub = label({
-		Parent = body,
-		Size = UDim2.new(1, -30, 0, 26),
-		Position = UDim2.fromOffset(15, 36),
-		TextSize = 19,
-		TextColor3 = TEXT_DARK,
-		Stroke = 0,
-		Text = "",
-	})
-	self.pickerPatience = label({
-		Parent = body,
-		Size = UDim2.new(1, -30, 0, 24),
-		Position = UDim2.fromOffset(15, 62),
-		TextSize = 18,
-		TextColor3 = Color3.fromRGB(200, 90, 40),
-		Stroke = 0,
-		Text = "",
-	})
-	self.pickerButtons = {}
-	for i = 1, self.roomCount do
-		local b = chunkyButton(
-			body,
-			"Room" .. i,
-			UDim2.new(1, -40, 0, 54),
-			UDim2.fromOffset(20, 96 + 66 * (i - 1)),
-			GREEN,
-			"Room " .. i,
-			function()
-				local s = self.state
-				if s and s.rooms[i] and s.rooms[i].ready then
-					self.callbacks.onCheckIn(i)
-					self:closePicker()
-				else
-					play("error")
-					wiggle(self.pickerButtons[i].holder, 4, 0.3)
-				end
-			end,
-			"bed"
-		)
-		self.pickerButtons[i] = b
-	end
-	chunkyButton(
-		body,
-		"Cancel",
-		UDim2.new(1, -40, 0, 46),
-		UDim2.fromOffset(20, 96 + 66 * self.roomCount + 4),
-		RED,
-		"CANCEL",
-		function()
-			self:closePicker()
-		end,
-		"cross"
-	)
-end
-
 function Hud:buildReport()
-	local holder, body, title = modal(self.root, "Report", Vector2.new(480, 460), "NIGHT REPORT")
+	local holder, body, title = modal(self.root, "Report", Vector2.new(480, 494), "NIGHT REPORT")
 	self.report = holder
 	self.reportTitle = title
 	self.reportRows = {}
 	self.reportRowLabels = {}
-	local names = { "Rent", "Tips", "Purchases", "Bill", "Cash", "Guests", "Lost" }
+	local names = { "Rent", "Deposits", "Tips", "Purchases", "Bill", "Cash", "Guests", "Lost" }
 	local rowIcons = {
 		Rent = "key",
+		Deposits = "calendar",
 		Tips = "hand",
 		Purchases = "trolley",
 		Bill = "warning",
@@ -1594,10 +1534,6 @@ function Hud:banner(title: string, subtitle: string?, iconName: string?)
 		end
 	end)
 end
-
-------------------------------------------------------------------------
--- Check-in picker
-------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 -- Supply shop panel
@@ -2029,15 +1965,6 @@ function Hud:renderLinen()
 	end
 end
 
-function Hud:openPicker()
-	self:openModal(self.picker)
-	self:renderPicker()
-end
-
-function Hud:closePicker()
-	self:closeModal(self.picker)
-end
-
 local function blockers(r): { string }
 	local why = {}
 	if r.occupied then
@@ -2067,37 +1994,6 @@ local function roomStatus(r): (string, any, any, string)
 		return "FIX AC", RED, RED, "wrench"
 	end
 	return "CLEAN", ORANGE, ORANGE, "broom"
-end
-
-function Hud:renderPicker()
-	local s = self.state
-	if not s or not self.picker.Visible then
-		return
-	end
-	if s.phase ~= "Night" then
-		self:closePicker()
-		return
-	end
-	local anyReady = false
-	for i, b in ipairs(self.pickerButtons) do
-		local r = s.rooms[i]
-		if r then
-			if r.ready then
-				anyReady = true
-				b.label.Text = ("ROOM %d  ·  +$%d"):format(i, self.rent)
-				b.icon:set("bed")
-				setColors(b.grad, GREEN)
-			else
-				b.label.Text = ("Room %d  (%s)"):format(i, table.concat(blockers(r), ", "))
-				local _, _, _, why = roomStatus(r)
-				b.icon:set(why)
-				setColors(b.grad, GREY)
-			end
-		end
-	end
-	self.pickerSub.Text = if anyReady
-		then "Pick a ready room for the next guest."
-		else "No room is ready. Clean one first!"
 end
 
 ------------------------------------------------------------------------
@@ -2223,11 +2119,11 @@ function Hud:setState(s)
 			local chipText, chipColors, circleColors, mark = roomStatus(r)
 			if r.ready then
 				readyCount += 1
-				row.text.Text = ("Room %d"):format(i)
+				row.text.Text = ("Room %d"):format(r.number or i)
 			elseif r.occupied then
-				row.text.Text = ("Room %d  · guest"):format(i)
+				row.text.Text = ("Room %d  · guest"):format(r.number or i)
 			else
-				row.text.Text = ("Room %d  · %s"):format(i, table.concat(blockers(r), ", "))
+				row.text.Text = ("Room %d  · %s"):format(r.number or i, table.concat(blockers(r), ", "))
 			end
 			if prev and row.chipText.Text ~= chipText then
 				pop(row.chip, 0.2)
@@ -2340,6 +2236,7 @@ function Hud:setState(s)
 	if (P == "Report" or P == "RunEnded") and s.report then
 		local r = s.report
 		self.reportRows.Rent.Text = ("+$%d"):format(r.rent)
+		self.reportRows.Deposits.Text = ("+$%d"):format(r.deposits or 0)
 		self.reportRows.Tips.Text = ("+$%d"):format(r.tips)
 		self.reportRows.Purchases.Text = ("-$%d"):format(r.purchases)
 		self.reportRows.Bill.Text = ("-$%d"):format(r.bill)
@@ -2384,7 +2281,6 @@ function Hud:setState(s)
 	end
 
 	self.prev = s
-	self:renderPicker()
 	self:renderShop()
 	self:renderLinen()
 end
@@ -2457,15 +2353,11 @@ function Hud:tick()
 	if s.frontPatienceEndsAt and s.queueLength > 0 then
 		local left = math.max(0, math.ceil(s.frontPatienceEndsAt - now))
 		self.tileQueue.title.Text = ("QUEUE · %ds"):format(left)
-		if self.picker.Visible then
-			self.pickerPatience.Text = ("Next guest leaves in %ds"):format(left)
-		end
 		if left <= 10 then
 			shake = math.sin(clock * 30) * 3
 		end
 	else
 		self.tileQueue.title.Text = "QUEUE"
-		self.pickerPatience.Text = ""
 	end
 	self.tileQueue.holder.Rotation = shake
 

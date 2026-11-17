@@ -19,9 +19,25 @@ Config.phases = {
 
 Config.economy = {
 	startingCash = 50,
-	rent = 25, -- paid at check-in
 	towelTip = 5, -- paid once per towel delivery
 }
+
+-- Room types and their nightly rates (shown on the front desk terminal).
+export type RoomType = { label: string, rate: number }
+local roomTypes: { [string]: RoomType } = {
+	Single = { label = "Single", rate = 25 },
+	Double = { label = "Double", rate = 30 },
+}
+Config.roomTypes = roomTypes
+
+-- Rooms in map order (index = room id). number is what players see.
+export type RoomDef = { number: number, type: string }
+local rooms: { RoomDef } = {
+	{ number = 101, type = "Single" },
+	{ number = 102, type = "Double" },
+	{ number = 103, type = "Single" },
+}
+Config.rooms = rooms
 
 Config.supplies = {
 	startingSheets = 6,
@@ -85,7 +101,41 @@ Config.guests = {
 	towelRequestDelayMax = 14,
 }
 
-Config.roomCount = 3
+Config.roomCount = #rooms
+
+-- Front desk terminal: guests, reservations and the cash register.
+Config.desk = {
+	sessionTimeout = 40, -- seconds without input before the desk is released
+	bookingChance = 0.5, -- share of guests with a reservation
+	prepaidChance = 0.34, -- of reservations: fully paid online
+	partialChance = 0.33, -- of reservations: deposit paid (the rest pay at the motel)
+	partialDeposit = 10,
+	cardChance = 0.45, -- guest can also pay by card
+	shortCashChance = 0.3, -- of card holders: not enough cash on hand
+	shortCashAmount = 20,
+	denominations = { 1, 5, 10, 20 }, -- change buttons
+	maxChangeNotes = 20,
+	-- How guests hand over cash: exact, next $10, next $20, a $50 note.
+	cashStyles = { "exact", "round10", "twenty", "fifty" },
+	names = {
+		"Ava Brooks",
+		"Leo Park",
+		"Mia Lopez",
+		"Noah Kim",
+		"Zoe Carter",
+		"Eli Turner",
+		"Ruby Diaz",
+		"Max Fischer",
+		"Ivy Chen",
+		"Sam Patel",
+		"Nina Rossi",
+		"Owen Hart",
+		"Lily Grant",
+		"Jack Moreno",
+		"Ella Novak",
+		"Finn Walsh",
+	},
+}
 
 -- Uniform scale applied to the whole motel map (buildings, furniture, roads,
 -- waypoints, prompt ranges). Bigger = roomier relative to the player.

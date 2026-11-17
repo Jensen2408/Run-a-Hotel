@@ -14,6 +14,7 @@ end
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
+local DeskHud = require(script.Parent:WaitForChild("DeskHud"))
 local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
 local Sfx = require(script.Parent:WaitForChild("Sfx"))
 local Settings = require(script.Parent:WaitForChild("Settings"))
@@ -33,9 +34,6 @@ local RA = Constants.RemoteAction
 local sfx = Sfx.new()
 local hud = Hud.new(player:WaitForChild("PlayerGui"), Config, {
 	sfx = sfx,
-	onCheckIn = function(roomId: number)
-		actionRemote:FireServer({ kind = RA.CheckIn, roomId = roomId })
-	end,
 	onTakeSupply = function(item: string)
 		actionRemote:FireServer({ kind = RA.TakeSupply, item = item })
 	end,
@@ -56,6 +54,13 @@ local hud = Hud.new(player:WaitForChild("PlayerGui"), Config, {
 	end,
 })
 
+-- Front desk terminal (opened by the desk prompt, driven by state.desk).
+local desk = DeskHud.new(player:WaitForChild("PlayerGui"), {
+	send = function(payload)
+		actionRemote:FireServer(payload)
+	end,
+})
+
 -- Music + volume settings (gear button, top right).
 UiKit.setSfx(sfx)
 Settings.new(player:WaitForChild("PlayerGui"), sfx, "game")
@@ -68,6 +73,7 @@ stateRemote.OnClientEvent:Connect(function(snapshot)
 	if typeof(snapshot) ~= "table" then
 		return
 	end
+	desk:setState(snapshot)
 	if snapshot.phase ~= lastPhase then
 		local banners = {
 			Preparation = {
@@ -103,8 +109,8 @@ feedbackRemote.OnClientEvent:Connect(function(payload)
 	hud:toast(payload.text, payload.kind)
 end)
 
-openCheckInRemote.OnClientEvent:Connect(function()
-	hud:openPicker()
+openCheckInRemote.OnClientEvent:Connect(function(info)
+	desk:open(if typeof(info) == "table" then info else nil)
 end)
 
 openShopRemote.OnClientEvent:Connect(function()
@@ -140,6 +146,7 @@ end
 
 RunService.RenderStepped:Connect(function()
 	hud:tick()
+	desk:tick()
 	tutorial:tick()
 	checkShopDistance()
 end)

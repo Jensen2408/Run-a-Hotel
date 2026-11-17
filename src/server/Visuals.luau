@@ -633,7 +633,7 @@ function Visuals:updateLabel(core, g, e, now: number)
 		if room and room.towelRequest then
 			text, color, iconName = "Towel please!", Color3.fromRGB(255, 210, 80), "towel"
 		else
-			text, iconName = "Room " .. tostring(g.roomId), "moon"
+			text, iconName = "Room " .. tostring(room and room.number or g.roomId), "moon"
 		end
 	elseif g.state == GS.Departed then
 		local reason = g.departReason
@@ -725,16 +725,16 @@ function Visuals:refreshWorld(core)
 		local blockers = core:roomBlockers(room)
 		local signIcon
 		if core:isRoomReady(room) then
-			v.sign.Text = ("Room %d  READY"):format(i)
+			v.sign.Text = ("Room %d  READY"):format(room.number)
 			v.sign.TextColor3 = GREEN
 			signIcon = "check"
 		elseif room.occupant then
 			local extra = if room.towelRequest then "  TOWEL!" else ""
-			v.sign.Text = ("Room %d  OCCUPIED%s"):format(i, extra)
+			v.sign.Text = ("Room %d  OCCUPIED%s"):format(room.number, extra)
 			v.sign.TextColor3 = if room.towelRequest then AMBER else BLUE
 			signIcon = if room.towelRequest then "towel" else "moon"
 		else
-			v.sign.Text = ("Room %d: %s"):format(i, table.concat(blockers, ", "))
+			v.sign.Text = ("Room %d: %s"):format(room.number, table.concat(blockers, ", "))
 			v.sign.TextColor3 = if room.acBroken then RED else AMBER
 			signIcon = if room.acBroken then "wrench" else "trash"
 		end

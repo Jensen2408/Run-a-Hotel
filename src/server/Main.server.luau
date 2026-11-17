@@ -180,6 +180,20 @@ local function rateLimited(player: Player): boolean
 	return false
 end
 
+-- Front desk terminal actions (all need the player at the desk).
+local DESK_ACTIONS = {
+	[RA.DeskMode] = true,
+	[RA.DeskVerify] = true,
+	[RA.DeskRoom] = true,
+	[RA.DeskMethod] = true,
+	[RA.DeskBack] = true,
+	[RA.DeskConfirm] = true,
+}
+
+local function atDesk(player: Player): boolean
+	return withinRange(player, layout.deskPosition, Config.interaction.deskRange * (Config.mapScale or 1))
+end
+
 local function validRoomId(roomId): boolean
 	return typeof(roomId) == "number" and roomId == math.floor(roomId) and roomId >= 1 and roomId <= Config.roomCount
 end
@@ -190,12 +204,17 @@ end
 
 local promptHandlers = {
 	[PA.OpenCheckIn] = function(player: Player)
-		local ok, err = core:checkInPrecheck()
-		if not ok then
-			return false, err
+		local ok, err = core:deskOpen(player.UserId, now())
+		if ok then
+			openCheckInRemote:FireClient(player, { busy = false })
+			sendState(player)
+			return nil, nil -- no toast; the client opens the terminal
+		elseif err == "busy" then
+			local owner = core.desk and Players:GetPlayerByUserId(core.desk.owner)
+			openCheckInRemote:FireClient(player, { busy = true, by = owner and owner.DisplayName or "Someone" })
+			return nil, nil
 		end
-		openCheckInRemote:FireClient(player)
-		return nil, nil -- no toast; the client opens the room picker
+		return false, err
 	end,
 	[PA.OpenLinen] = function(player)
 		local ok, err = core:requireActive()
@@ -283,16 +302,37 @@ actionRemote.OnServerEvent:Connect(function(player: Player, payload)
 	end
 
 	local ok, msg
-	if kind == RA.CheckIn then
-		local roomId = payload.roomId
-		if not validRoomId(roomId) then
-			return
-		end
-		if not withinRange(player, layout.deskPosition, Config.interaction.deskRange * (Config.mapScale or 1)) then
+	if kind == RA.DeskClose then
+		core:deskRelease(player.UserId)
+		return
+	elseif DESK_ACTIONS[kind] then
+		if not atDesk(player) then
+			core:deskRelease(player.UserId)
 			feedback(player, "Go back to the front desk to check guests in.", "error")
 			return
 		end
-		ok, msg = core:checkIn(player.UserId, roomId, now())
+		local pid, t = player.UserId, now()
+		if kind == RA.DeskMode then
+			ok, msg = core:deskChoose(pid, payload.mode, t)
+		elseif kind == RA.DeskVerify then
+			ok, msg = core:deskVerify(pid, payload.code, t)
+		elseif kind == RA.DeskRoom then
+			if not validRoomId(payload.roomId) then
+				return
+			end
+			ok, msg = core:deskSelectRoom(pid, payload.roomId, t)
+		elseif kind == RA.DeskMethod then
+			ok, msg = core:deskSetMethod(pid, payload.method, t)
+		elseif kind == RA.DeskBack then
+			ok, msg = core:deskBack(pid, t)
+		elseif kind == RA.DeskConfirm then
+			ok, msg = core:deskConfirm(pid, { txId = payload.txId, change = payload.change }, t)
+			if ok then
+				feedback(player, msg, "ok")
+			end
+		end
+		-- Errors and progress show inside the terminal (desk view), not as toasts.
+		return
 	elseif kind == RA.TakeSupply or kind == RA.ReturnSupplies then
 		local range = Config.interaction.linenRange * (Config.mapScale or 1)
 		if not withinRange(player, layout.linenPosition, range) then
@@ -403,13 +443,13 @@ local eventMessages = {
 		return "A guest got tired of waiting and left!", "alert"
 	end,
 	Checkout = function(e)
-		return ("Room %d checked out. Clean it up!"):format(e.roomId or 0), "info"
+		return ("Room %d checked out. Clean it up!"):format(core:roomNumber(e.roomId or 0)), "info"
 	end,
 	TowelRequest = function(e)
-		return ("Room %d wants a towel!"):format(e.roomId), "alert"
+		return ("Room %d wants a towel!"):format(core:roomNumber(e.roomId)), "alert"
 	end,
 	ACBroken = function(e)
-		return ("The AC in Room %d broke! Repair it."):format(e.roomId), "alert"
+		return ("The AC in Room %d broke! Repair it."):format(core:roomNumber(e.roomId)), "alert"
 	end,
 	PowerOut = function()
 		return "POWER OUTAGE! Reset the breaker in the lobby.", "alert"
@@ -429,6 +469,24 @@ local eventMessages = {
 -- Main loop
 ------------------------------------------------------------------------
 
+-- Releases the front desk when its owner walks away, dies or is gone.
+local deskCheckTimer = 0
+local function checkDeskOwner(dt: number)
+	deskCheckTimer -= dt
+	if deskCheckTimer > 0 or not core.desk then
+		return
+	end
+	deskCheckTimer = 0.25
+	local owner = Players:GetPlayerByUserId(core.desk.owner)
+	local range = Config.interaction.deskRange * (Config.mapScale or 1) + Config.interaction.rangeSlack
+	if not owner then
+		core:deskRelease(core.desk.owner)
+	elseif not withinRange(owner, layout.deskPosition, range) then
+		core:deskRelease(owner.UserId)
+		feedback(owner, "You left the front desk.", "info")
+	end
+end
+
 local lastVersion = -1
 local savedRunId = nil
 local resendTimer = 0
@@ -436,6 +494,7 @@ local resendTimer = 0
 RunService.Heartbeat:Connect(function(dt)
 	local t = now()
 	core:update(t)
+	checkDeskOwner(dt)
 
 	-- Save every finished run once (profile + leaderboard) and announce records.
 	if core.phase == Constants.Phase.RunEnded and savedRunId ~= core.runId then

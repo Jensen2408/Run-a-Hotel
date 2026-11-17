@@ -89,23 +89,23 @@ export type Outfit = {
 	body: { [string]: number }?, -- body part IDs; nil = default R15 body
 }
 
-local function outfit(hair, face, shirt, pants, skin, body): Outfit
+local function makeOutfit(hair, face, shirt, pants, skin, body): Outfit
 	return { hair = hair, face = face, shirt = shirt, pants = pants, skin = skin, body = body }
 end
 
 -- Guest outfits; guest id picks one (Visuals).
 NpcRigs.OUTFITS = {
-	outfit(HAIR.coolBoy, FACE.bigSmile, SHIRT.redFlannel, PANTS.blackJeansSneakers, SKIN[2]),
-	outfit(HAIR.curlyPonytail, FACE.cuteBlush, SHIRT.tropical, PANTS.denimShorts, SKIN[1], GIRL_BODY),
-	outfit(HAIR.blackAfro, FACE.bored, SHIRT.rainbowHoodie, PANTS.greyCargo, SKIN[5]),
-	outfit(HAIR.wavyBlonde, FACE.kawaiiBlush, SHIRT.beigePlaid, PANTS.rippedJeans, SKIN[1], GIRL_BODY),
-	outfit(HAIR.shortParted, FACE.sideEye, SHIRT.redJacket, PANTS.allBlack, SKIN[3]),
-	outfit(HAIR.braidedPonytail, FACE.simpleBlush, SHIRT.simpleFlannel, PANTS.white, SKIN[4], GIRL_BODY),
-	outfit(HAIR.fluffyMessy, FACE.blushSmile, SHIRT.blueFlannel, PANTS.greyCargo, SKIN[2]),
-	outfit(HAIR.orangeAfro, FACE.grumpy, SHIRT.brownFlannel, PANTS.allBlack, SKIN[3]),
+	makeOutfit(HAIR.coolBoy, FACE.bigSmile, SHIRT.redFlannel, PANTS.blackJeansSneakers, SKIN[2]),
+	makeOutfit(HAIR.curlyPonytail, FACE.cuteBlush, SHIRT.tropical, PANTS.denimShorts, SKIN[1], GIRL_BODY),
+	makeOutfit(HAIR.blackAfro, FACE.bored, SHIRT.rainbowHoodie, PANTS.greyCargo, SKIN[5]),
+	makeOutfit(HAIR.wavyBlonde, FACE.kawaiiBlush, SHIRT.beigePlaid, PANTS.rippedJeans, SKIN[1], GIRL_BODY),
+	makeOutfit(HAIR.shortParted, FACE.sideEye, SHIRT.redJacket, PANTS.allBlack, SKIN[3]),
+	makeOutfit(HAIR.braidedPonytail, FACE.simpleBlush, SHIRT.simpleFlannel, PANTS.white, SKIN[4], GIRL_BODY),
+	makeOutfit(HAIR.fluffyMessy, FACE.blushSmile, SHIRT.blueFlannel, PANTS.greyCargo, SKIN[2]),
+	makeOutfit(HAIR.orangeAfro, FACE.grumpy, SHIRT.brownFlannel, PANTS.allBlack, SKIN[3]),
 }
 
-NpcRigs.SHOPKEEPER = outfit(HAIR.blackSwept, FACE.bigSmile, SHIRT.apron, PANTS.allBlack, SKIN[4])
+NpcRigs.SHOPKEEPER = makeOutfit(HAIR.blackSwept, FACE.bigSmile, SHIRT.apron, PANTS.allBlack, SKIN[4])
 
 -- Default R15 animations (Roblox).
 local WALK_ANIM = "rbxassetid://507777826"

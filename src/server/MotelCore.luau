@@ -4,9 +4,14 @@
 
 	Pure Luau: no Roblox services, no yields. Time is passed in as `now`
 	(the server uses workspace:GetServerTimeNow()). Every public mutation
-	runs to completion without yielding, so a check-in assigns guest, room
-	and payment in one step, and two requests that arrive back to back can
-	never both consume the same stock, room or tip.
+	runs to completion without yielding, so a check-in assigns guest, room,
+	payment and reservation in one step, and two requests that arrive back
+	to back can never both consume the same stock, room or tip.
+
+	Check-in goes through the front desk terminal (one session per desk):
+	Start (Booking / Walk-in) -> Code (reservations) -> Room -> Payment.
+	Nothing changes until deskConfirm commits; a repeated confirm with the
+	same txId returns the first result without a second transaction.
 
 	Config and Constants are injected so the CLI test runner can load this
 	module without the Roblox DataModel.
@@ -88,8 +93,11 @@ function MotelCore:resetRun(now: number)
 	self.rain = false
 	self.rooms = {}
 	for i = 1, cfg.roomCount do
+		local def = cfg.rooms[i]
 		self.rooms[i] = {
 			id = i,
+			number = def.number,
+			type = def.type,
 			occupant = nil,
 			trash = false,
 			sheetsDirty = false,
@@ -106,7 +114,10 @@ function MotelCore:resetRun(now: number)
 	self.complete = false
 	self.lastReport = nil
 	self.billPaidForNight = 0
-	self.totals = { served = 0, walkouts = 0, unserved = 0, rent = 0, tips = 0 }
+	self.totals = { served = 0, walkouts = 0, unserved = 0, rent = 0, tips = 0, deposits = 0 }
+	self.desk = nil -- front desk session (see Front desk section)
+	self.reservations = {}
+	self.cashierTutorialDone = false
 	self:enterPreparation(now)
 	self:emit("RunStarted", { runId = self.runId })
 	self:bump()
@@ -146,12 +157,93 @@ function MotelCore:buildNightPlan(night: number, playerCount: number)
 		night = night,
 		playerCount = n,
 		guestCount = guestCount,
+		guests = self:makeGuestProfiles(night, guestCount),
+		depositsCredited = false,
 		bill = bill,
 		arrivals = arrivals, -- unscaled seconds into the night
 		rain = nightCfg.rain == true,
 		forecast = nightCfg.forecast or "",
 		events = copyEvents(nightCfg.events),
 	}
+end
+
+-- One profile per planned guest: name, walk-in or reservation, how they pay.
+function MotelCore:makeGuestProfiles(night: number, count: number)
+	local cfg = self.config
+	local d = cfg.desk
+	local C = self.C
+	local function chance(p: number): boolean
+		return self.random(0, 1) < p
+	end
+	local function pickIndex(n: number): number
+		return math.clamp(math.floor(self.random(1, n + 1)), 1, n)
+	end
+	local types = {}
+	for _, def in ipairs(cfg.rooms) do
+		if not table.find(types, def.type) then
+			table.insert(types, def.type)
+		end
+	end
+	local names = table.clone(d.names)
+	local usedCodes = {}
+	local profiles = {}
+	for i = 1, count do
+		local name = if #names > 0 then table.remove(names, pickIndex(#names)) else ("Guest %d"):format(i)
+		local p = {
+			index = i,
+			name = name,
+			kind = C.GuestKind.WalkIn,
+			methods = { C.PayMethod.Cash },
+			cashStyle = d.cashStyles[pickIndex(#d.cashStyles)],
+			cashLimit = nil,
+			booking = nil,
+		}
+		if chance(d.cardChance) then
+			table.insert(p.methods, C.PayMethod.Card)
+			if chance(d.shortCashChance) then
+				p.cashLimit = d.shortCashAmount -- must switch to card
+			end
+		end
+		local isBooking = chance(d.bookingChance)
+		if night == 1 and i == 1 then
+			-- First guest of a run: plain walk-in paying cash (cashier tutorial).
+			isBooking = false
+			p.methods = { C.PayMethod.Cash }
+			p.cashLimit = nil
+			p.cashStyle = "round10"
+		end
+		if isBooking then
+			p.kind = C.GuestKind.Booking
+			-- Random 4-digit code; on a clash step to the next free one.
+			local n = math.clamp(math.floor(self.random(1000, 10000)), 1000, 9999)
+			while usedCodes[tostring(n)] do
+				n = if n >= 9999 then 1000 else n + 1
+			end
+			local code = tostring(n)
+			usedCodes[code] = true
+			local roomType = types[pickIndex(#types)]
+			local total = cfg.roomTypes[roomType].rate
+			local roll = self.random(0, 1)
+			local payment, paid
+			if roll < d.prepaidChance then
+				payment, paid = C.Payment.Prepaid, total
+			elseif roll < d.prepaidChance + d.partialChance then
+				payment, paid = C.Payment.Partial, math.min(d.partialDeposit, total - 1)
+			else
+				payment, paid = C.Payment.PayAtMotel, 0
+			end
+			p.booking = {
+				code = code,
+				roomType = roomType,
+				total = total,
+				paid = paid,
+				payment = payment,
+				night = night,
+			}
+		end
+		profiles[i] = p
+	end
+	return profiles
 end
 
 function MotelCore:setPhase(phase: string, now: number, duration: number?)
@@ -168,7 +260,9 @@ function MotelCore:enterPreparation(now: number)
 	-- Player count captured here applies to this coming night only.
 	self.plan = self:buildNightPlan(self.night, self.playerCount)
 	self.nightStats = {
-		rent = 0,
+		rent = 0, -- money taken at the front desk
+		deposits = 0, -- reservation money paid in advance (credited when the night starts)
+		checkIns = 0,
 		tips = 0,
 		purchases = 0,
 		arrivals = 0,
@@ -179,11 +273,40 @@ function MotelCore:enterPreparation(now: number)
 		missedTowels = 0,
 	}
 	self.nextArrival = 1
+	self.reservations = {}
 	self:setPhase(self.C.Phase.Preparation, now, self.config.phases.preparation)
 end
 
 function MotelCore:enterNight(now: number)
 	self.rain = self.plan.rain
+	-- Tonight's reservations go live; money paid in advance is credited once.
+	self.reservations = {}
+	for _, p in ipairs(self.plan.guests) do
+		local b = p.booking
+		if b then
+			self.reservations[b.code] = {
+				code = b.code,
+				night = b.night,
+				guestIndex = p.index,
+				name = p.name,
+				roomType = b.roomType,
+				total = b.total,
+				paid = b.paid,
+				payment = b.payment,
+				used = false,
+			}
+		end
+	end
+	if not self.plan.depositsCredited then
+		self.plan.depositsCredited = true
+		for _, r in pairs(self.reservations) do
+			if r.paid > 0 then
+				self.cash += r.paid
+				self.nightStats.deposits += r.paid
+				self.totals.deposits += r.paid
+			end
+		end
+	end
 	self:setPhase(self.C.Phase.Night, now, self.config.phases.night)
 	if self.rain then
 		self:emit("Rain", {})
@@ -199,6 +322,7 @@ function MotelCore:enterClosing(now: number)
 		end
 	end
 	self.queue = {}
+	self.desk = nil -- check-in is over: release the front desk
 	self:setPhase(self.C.Phase.Closing, now, self.config.phases.closing)
 end
 
@@ -211,11 +335,13 @@ function MotelCore:enterReport(now: number)
 		end
 	end
 	self.rain = false
+	self.desk = nil
 
 	local plan = self.plan
 	local report = {
 		night = self.night,
 		rent = self.nightStats.rent,
+		deposits = self.nightStats.deposits,
 		tips = self.nightStats.tips,
 		purchases = self.nightStats.purchases,
 		bill = plan.bill,
@@ -267,10 +393,21 @@ end
 -- Guests
 ------------------------------------------------------------------------
 
-function MotelCore:spawnGuest(now: number)
+function MotelCore:spawnGuest(now: number, index: number?)
 	self.nextGuestId += 1
+	local profile = index and self.plan.guests[index]
+	if not profile then
+		profile = {
+			index = 0,
+			name = "Guest",
+			kind = self.C.GuestKind.WalkIn,
+			methods = { self.C.PayMethod.Cash },
+			cashStyle = "exact",
+		}
+	end
 	local g = {
 		id = self.nextGuestId,
+		profile = profile,
 		runId = self.runId,
 		state = self.C.GuestState.Arriving,
 		arrivedAt = now,
@@ -435,7 +572,7 @@ function MotelCore:update(now: number)
 		local arrivals = self.plan.arrivals
 		while self.nextArrival <= #arrivals and t >= self:dur(arrivals[self.nextArrival]) do
 			self.nextArrival += 1
-			self:spawnGuest(now)
+			self:spawnGuest(now, self.nextArrival - 1)
 		end
 		self:updateNightEvents(now)
 		self:updateGuests(now)
@@ -462,6 +599,7 @@ function MotelCore:update(now: number)
 	else
 		self:updateGuests(now)
 	end
+	self:deskTick(now)
 end
 
 ------------------------------------------------------------------------
@@ -538,56 +676,554 @@ end
 -- Actions. Each returns (ok: boolean, message: string).
 ------------------------------------------------------------------------
 
--- Checks everything about a check-in except the room choice.
-function MotelCore:checkInPrecheck(): (boolean, string?, any)
-	local P = self.C.Phase
-	if self.phase == P.Closing then
-		return false, "Closing time: no new check-ins.", nil
-	elseif self.phase ~= P.Night then
-		return false, "Check-in opens at Night.", nil
-	end
-	if not self.power then
-		return false, "Power is out! Reset the breaker first.", nil
-	end
-	local frontId = self.queue[1]
-	local guest = frontId and self.guests[frontId]
-	if not guest or guest.state ~= self.C.GuestState.Queued then
-		return false, "No guest is waiting at the desk.", nil
-	end
-	return true, nil, guest
+------------------------------------------------------------------------
+-- Front desk terminal
+------------------------------------------------------------------------
+
+local function newSession(pid, now: number)
+	return {
+		owner = pid,
+		guestId = nil, -- guest this transaction belongs to
+		step = "Start",
+		mode = nil,
+		verified = false,
+		roomId = nil,
+		method = nil,
+		given = nil, -- cash the guest hands over (set when the room is picked)
+		notice = nil, -- "GuestLeft" | "RoomUnavailable"
+		message = nil, -- { text, kind, seq } shown inside the terminal
+		lastActive = now,
+		lastTx = nil, -- { txId, ok, msg } for idempotent confirms
+	}
 end
 
-function MotelCore:checkIn(pid, roomId, now: number): (boolean, string)
-	local ok, err, guest = self:checkInPrecheck()
-	if not ok then
-		return false, err :: string
+function MotelCore:roomNumber(roomId: number): number
+	local room = self.rooms[roomId]
+	return room and room.number or roomId
+end
+
+-- Front guest waiting at the desk, if any.
+function MotelCore:deskGuest()
+	local id = self.queue[1]
+	local g = id and self.guests[id]
+	if g and g.state == self.C.GuestState.Queued then
+		return g
+	end
+	return nil
+end
+
+-- Clears transaction progress (keeps owner, message and lastTx).
+local function resetProgress(s)
+	s.step = "Start"
+	s.mode = nil
+	s.verified = false
+	s.roomId = nil
+	s.method = nil
+	s.given = nil
+end
+
+-- Keeps the session pointed at the current front guest. If that guest is
+-- gone, the old transaction is dropped and can never apply to the next one.
+function MotelCore:deskSync()
+	local s = self.desk
+	if not s then
+		return
+	end
+	local g = self:deskGuest()
+	local fid = g and g.id or nil
+	if s.guestId ~= fid then
+		if s.guestId ~= nil then
+			s.notice = "GuestLeft"
+			s.message = nil
+		end
+		s.guestId = fid
+		resetProgress(s)
+		self:bump()
+	end
+end
+
+function MotelCore:deskTick(now: number)
+	local s = self.desk
+	if not s then
+		return
+	end
+	if now - s.lastActive > self:dur(self.config.desk.sessionTimeout) then
+		self.desk = nil
+		self:bump()
+		return
+	end
+	self:deskSync()
+end
+
+function MotelCore:deskMessage(s, text: string, kind: string)
+	-- Run-wide counter, so a new session never repeats an old message id.
+	self.deskMsgSeq = (self.deskMsgSeq or 0) + 1
+	s.message = { text = text, kind = kind, seq = self.deskMsgSeq }
+	self:bump()
+end
+
+-- Opens (or reopens) the desk for this player. Returns false, "busy" when
+-- another player holds the desk.
+function MotelCore:deskOpen(pid, now: number): (boolean, string?)
+	if not ACTIVE_PHASES[self.phase] then
+		return false, "The motel is closed right now."
+	end
+	local s = self.desk
+	if s and s.owner ~= pid then
+		return false, "busy"
+	end
+	if not s then
+		s = newSession(pid, now)
+		self.desk = s
+	end
+	s.lastActive = now
+	self:deskSync()
+	self:bump()
+	return true, nil
+end
+
+function MotelCore:deskRelease(pid): boolean
+	if self.desk and self.desk.owner == pid then
+		self.desk = nil
+		self:bump()
+		return true
+	end
+	return false
+end
+
+-- Common checks for terminal actions. Returns session, guest or nil, nil, error.
+function MotelCore:deskGuard(pid, now: number)
+	local s = self.desk
+	if not s or s.owner ~= pid then
+		return nil, nil, "Open the front desk first."
+	end
+	s.lastActive = now
+	self:deskSync()
+	local P = self.C.Phase
+	if self.phase == P.Closing then
+		return nil, nil, "Closing time: no new check-ins."
+	elseif self.phase ~= P.Night then
+		return nil, nil, "Check-in opens at Night."
+	end
+	if not self.power then
+		return nil, nil, "Power is out! Reset the breaker first."
+	end
+	local g = self:deskGuest()
+	if not g then
+		return nil, nil, "No guest is waiting at the desk."
+	end
+	s.notice = nil
+	return s, g, nil
+end
+
+-- The session of this player (for error messages), or nil.
+function MotelCore:ownSession(pid)
+	local s = self.desk
+	return if s and s.owner == pid then s else nil
+end
+
+local function fail(self, s, text: string): (boolean, string)
+	if s then
+		self:deskMessage(s, text, "error")
+	end
+	return false, text
+end
+
+function MotelCore:reservationFor(g)
+	local b = g.profile.booking
+	if not b then
+		return nil
+	end
+	local r = self.reservations[b.code]
+	if r and r.night == self.night and r.guestIndex == g.profile.index then
+		return r
+	end
+	return nil
+end
+
+-- Amount still to collect at the desk for this guest and room.
+function MotelCore:deskDue(s, g): number?
+	if s.mode == self.C.GuestKind.Booking then
+		local r = self:reservationFor(g)
+		return r and (r.total - r.paid) or nil
+	end
+	local room = s.roomId and self.rooms[s.roomId]
+	return room and self.config.roomTypes[room.type].rate or nil
+end
+
+-- Cash the guest hands over for an amount (decided by the server).
+function MotelCore:cashGiven(profile, due: number): number
+	local style = profile.cashStyle
+	local given = due
+	if style == "round10" then
+		given = math.ceil(due / 10) * 10
+	elseif style == "twenty" then
+		given = math.ceil(due / 20) * 20
+	elseif style == "fifty" then
+		given = math.max(50, math.ceil(due / 50) * 50)
+	end
+	if profile.cashLimit then
+		given = math.min(given, profile.cashLimit)
+	end
+	return given
+end
+
+function MotelCore:deskChoose(pid, mode, now: number): (boolean, string)
+	local s, g, err = self:deskGuard(pid, now)
+	if not s then
+		return fail(self, self:ownSession(pid), err)
+	end
+	local K = self.C.GuestKind
+	if mode ~= K.Booking and mode ~= K.WalkIn then
+		return false, "Unknown option."
+	end
+	if s.step ~= "Start" then
+		return fail(self, s, "Finish or go back first.")
+	end
+	if g.profile.kind ~= mode then
+		if mode == K.Booking then
+			return fail(self, s, "This guest has no reservation. Go back and choose Walk-in.")
+		end
+		return fail(self, s, "This guest has a reservation. Choose Booking and enter the code.")
+	end
+	s.mode = mode
+	s.step = if mode == K.Booking then "Code" else "Room"
+	s.message = nil
+	self:bump()
+	return true, ""
+end
+
+function MotelCore:deskVerify(pid, code, now: number): (boolean, string)
+	local s, g, err = self:deskGuard(pid, now)
+	if not s then
+		return fail(self, self:ownSession(pid), err)
+	end
+	if s.step ~= "Code" then
+		return fail(self, s, "Choose Booking first.")
+	end
+	if typeof(code) ~= "string" or not string.match(code, "^%d%d%d%d$") then
+		return fail(self, s, "Enter all 4 digits.")
+	end
+	local r = self.reservations[code]
+	if not r or r.used or r.night ~= self.night or r.guestIndex ~= g.profile.index then
+		return fail(self, s, "Code not found for this guest.")
+	end
+	s.verified = true
+	s.step = "Room"
+	s.message = nil
+	self:bump()
+	return true, ""
+end
+
+-- Why a room cannot take this guest right now (nil = it can).
+function MotelCore:deskRoomProblem(s, g, room): string?
+	if not self:isRoomReady(room) then
+		return ("Room %d is not ready (%s)."):format(room.number, table.concat(self:roomBlockers(room), ", "))
+	end
+	if s.mode == self.C.GuestKind.Booking then
+		local r = self:reservationFor(g)
+		if not r then
+			return "Reservation no longer valid."
+		end
+		if room.type ~= r.roomType then
+			return ("This guest booked a %s room."):format(self.config.roomTypes[r.roomType].label)
+		end
+	end
+	return nil
+end
+
+function MotelCore:deskSelectRoom(pid, roomId, now: number): (boolean, string)
+	local s, g, err = self:deskGuard(pid, now)
+	if not s then
+		return fail(self, self:ownSession(pid), err)
+	end
+	if s.step ~= "Room" and s.step ~= "Payment" then
+		return fail(self, s, "Choose Booking or Walk-in first.")
+	end
+	if s.mode == self.C.GuestKind.Booking and not s.verified then
+		return fail(self, s, "Verify the reservation code first.")
 	end
 	local room = self.rooms[roomId]
 	if not room then
 		return false, "Unknown room."
 	end
-	if not self:isRoomReady(room) then
-		return false, ("Room %d is not ready (%s)."):format(room.id, table.concat(self:roomBlockers(room), ", "))
+	local problem = self:deskRoomProblem(s, g, room)
+	if problem then
+		return fail(self, s, problem)
 	end
+	s.roomId = room.id
+	s.step = "Payment"
+	local due = self:deskDue(s, g) or 0
+	local M = self.C.PayMethod
+	s.method = if due <= 0 then M.Online else g.profile.methods[1]
+	s.given = if due > 0 then self:cashGiven(g.profile, due) else 0
+	s.message = nil
+	self:bump()
+	return true, ""
+end
 
-	-- Commit: guest, room and payment in one step.
-	table.remove(self.queue, 1)
-	guest.state = self.C.GuestState.Staying
-	guest.roomId = room.id
-	guest.checkedInAt = now
-	guest.stayUntil = now + self:dur(self.random(self.config.guests.stayMin, self.config.guests.stayMax))
+function MotelCore:deskSetMethod(pid, method, now: number): (boolean, string)
+	local s, g, err = self:deskGuard(pid, now)
+	if not s then
+		return fail(self, self:ownSession(pid), err)
+	end
+	if s.step ~= "Payment" then
+		return fail(self, s, "Pick a room first.")
+	end
+	if (self:deskDue(s, g) or 0) <= 0 then
+		return fail(self, s, "Already paid online.")
+	end
+	if not table.find(g.profile.methods, method) then
+		return fail(self, s, "This guest can't pay that way.")
+	end
+	s.method = method
+	s.message = nil
+	self:bump()
+	return true, ""
+end
+
+function MotelCore:deskBack(pid, now: number): (boolean, string)
+	local s = self:ownSession(pid)
+	if not s then
+		return false, "Open the front desk first."
+	end
+	s.lastActive = now
+	s.notice = nil
+	s.message = nil
+	if s.step == "Payment" then
+		s.step = "Room"
+		s.roomId = nil
+		s.method = nil
+		s.given = nil
+	elseif s.step == "Room" then
+		if s.mode == self.C.GuestKind.Booking then
+			s.step = "Code"
+			s.verified = false
+		else
+			resetProgress(s)
+		end
+	elseif s.step == "Code" then
+		resetProgress(s)
+	end
+	self:bump()
+	return true, ""
+end
+
+-- Moves the guest into the room and records the money: one step, no yield.
+function MotelCore:commitCheckIn(g, room, amount: number, pid, now: number)
+	for i, id in ipairs(self.queue) do
+		if id == g.id then
+			table.remove(self.queue, i)
+			break
+		end
+	end
+	g.state = self.C.GuestState.Staying
+	g.roomId = room.id
+	g.checkedInAt = now
+	g.stayUntil = now + self:dur(self.random(self.config.guests.stayMin, self.config.guests.stayMax))
 	if self.random(0, 1) < self.config.guests.towelRequestChance then
-		guest.towelAt = now
+		g.towelAt = now
 			+ self:dur(self.random(self.config.guests.towelRequestDelayMin, self.config.guests.towelRequestDelayMax))
 	end
-	room.occupant = guest.id
-	local rent = self.config.economy.rent
-	self.cash += rent
-	self.nightStats.rent += rent
-	self.totals.rent += rent
-	self:emit("CheckedIn", { guestId = guest.id, roomId = room.id, by = pid })
+	room.occupant = g.id
+	self.cash += amount
+	self.nightStats.rent += amount
+	self.nightStats.checkIns += 1
+	self.totals.rent += amount
+	self:emit("CheckedIn", { guestId = g.id, roomId = room.id, amount = amount, by = pid })
 	self:bump()
-	return true, ("Guest checked into Room %d. +$%d"):format(room.id, rent)
+end
+
+--[[
+	Final step: validates everything again and commits room, cash,
+	reservation and check-in together. payload = { txId, change = { notes } }.
+	The same txId always returns the first answer and never pays twice.
+]]
+function MotelCore:deskConfirm(pid, payload, now: number): (boolean, string)
+	local own = self:ownSession(pid)
+	local txId = if typeof(payload) == "table" then payload.txId else nil
+	if typeof(txId) ~= "number" then
+		return false, "Bad request."
+	end
+	if own and own.lastTx and own.lastTx.txId == txId then
+		return own.lastTx.ok, own.lastTx.msg
+	end
+	local function done(s, ok: boolean, msg: string): (boolean, string)
+		if s then
+			s.lastTx = { txId = txId, ok = ok, msg = msg }
+			self:deskMessage(s, msg, if ok then "ok" else "error")
+		end
+		return ok, msg
+	end
+
+	local s, g, err = self:deskGuard(pid, now)
+	if not s then
+		return done(own, false, err)
+	end
+	if s.step ~= "Payment" or not s.roomId then
+		return done(s, false, "Pick a room first.")
+	end
+	local room = self.rooms[s.roomId]
+	local problem = self:deskRoomProblem(s, g, room)
+	if problem then
+		-- Room changed meanwhile: keep the guest, ask for another room.
+		s.roomId = nil
+		s.method = nil
+		s.given = nil
+		s.step = "Room"
+		s.notice = "RoomUnavailable"
+		return done(s, false, "Room no longer available. Pick another room.")
+	end
+	local due = self:deskDue(s, g)
+	if due == nil then
+		return done(s, false, "Reservation no longer valid.")
+	end
+	local M = self.C.PayMethod
+	local method = s.method
+	if due <= 0 then
+		method = M.Online
+	elseif method == M.Cash then
+		local given = s.given or 0
+		if given < due then
+			return done(s, false, ("Guest is $%d short. Ask for another way to pay."):format(due - given))
+		end
+		local change = payload.change
+		if typeof(change) ~= "table" or #change > self.config.desk.maxChangeNotes then
+			return done(s, false, "Change is incorrect")
+		end
+		local sum = 0
+		for _, note in ipairs(change) do
+			if typeof(note) ~= "number" or not table.find(self.config.desk.denominations, note) then
+				return done(s, false, "Change is incorrect")
+			end
+			sum += note
+		end
+		if sum ~= given - due then
+			return done(s, false, "Change is incorrect")
+		end
+	elseif method == M.Card then
+		if not table.find(g.profile.methods, M.Card) then
+			return done(s, false, "This guest has no card.")
+		end
+	else
+		return done(s, false, "Choose how the guest pays.")
+	end
+
+	-- Commit (no yields from here on).
+	local r = self:reservationFor(g)
+	if r then
+		r.used = true
+	end
+	self:commitCheckIn(g, room, due, pid, now)
+	if method == M.Cash then
+		self.cashierTutorialDone = true
+	end
+	s.guestId = nil -- the next front guest starts a fresh transaction (no "left" notice)
+	resetProgress(s)
+	local msg = if due > 0
+		then ("%s checked into Room %d. +$%d"):format(g.profile.name, room.number, due)
+		else ("%s checked into Room %d (paid online)."):format(g.profile.name, room.number)
+	return done(s, true, msg)
+end
+
+local function guestLine(g): string
+	local b = g.profile.booking
+	if b then
+		return ("I have a reservation. My code is %s."):format(b.code)
+	end
+	return "Do you have a room for tonight?"
+end
+
+local PAYMENT_LABEL = { Prepaid = "Prepaid", PayAtMotel = "Pay at Motel", Partial = "Partially Paid" }
+
+-- What the terminal shows to one player.
+function MotelCore:deskView(pid)
+	local s = self.desk
+	local view = {
+		open = s ~= nil and s.owner == pid,
+		busy = s ~= nil and s.owner ~= pid,
+		busyBy = if s and s.owner ~= pid then s.owner else nil,
+		night = self.night,
+		queueLength = #self.queue,
+	}
+	if not view.open then
+		return view
+	end
+	local P = self.C.Phase
+	local g = self:deskGuest()
+	if self.phase ~= P.Night then
+		view.status = if self.phase == P.Preparation then "NotOpen" else "Closed"
+	elseif not self.power then
+		view.status = "PowerOut"
+	elseif not g then
+		view.status = "NoGuests"
+	else
+		view.status = "Active"
+	end
+	view.step = s.step
+	view.mode = s.mode
+	view.verified = s.verified
+	view.notice = s.notice
+	view.message = s.message
+	view.roomId = s.roomId
+	view.method = s.method
+	view.denominations = self.config.desk.denominations
+	if g then
+		view.guest = {
+			id = g.id,
+			name = g.profile.name,
+			line = guestLine(g),
+			code = g.profile.booking and g.profile.booking.code or nil,
+			patienceEndsAt = g.patienceEndsAt,
+			patienceTotal = if g.queuedAt then g.patienceEndsAt - g.queuedAt else nil,
+			methods = table.clone(g.profile.methods),
+		}
+		local r = if s.verified then self:reservationFor(g) else nil
+		if r then
+			view.reservation = {
+				name = r.name,
+				roomType = self.config.roomTypes[r.roomType].label,
+				total = r.total,
+				paid = r.paid,
+				remaining = r.total - r.paid,
+				payment = PAYMENT_LABEL[r.payment] or r.payment,
+			}
+		end
+		local anySelectable = false
+		view.rooms = {}
+		for i, room in ipairs(self.rooms) do
+			local status = "Ready"
+			if room.occupant then
+				status = "Occupied"
+			elseif room.acBroken then
+				status = "Out of Order"
+			elseif room.trash or room.sheetsDirty then
+				status = "Dirty"
+			end
+			local selectable = s.step == "Room" and self:deskRoomProblem(s, g, room) == nil
+			if selectable then
+				anySelectable = true
+			end
+			view.rooms[i] = {
+				id = room.id,
+				number = room.number,
+				type = self.config.roomTypes[room.type].label,
+				rate = self.config.roomTypes[room.type].rate,
+				status = status,
+				selectable = selectable,
+			}
+		end
+		view.noMatch = s.step == "Room" and not anySelectable
+		if s.step == "Payment" then
+			local due = self:deskDue(s, g) or 0
+			view.due = due
+			view.given = s.given
+			if s.method == self.C.PayMethod.Cash and not self.cashierTutorialDone and s.given and s.given >= due then
+				view.changeHint = s.given - due
+			end
+		end
+	end
+	return view
 end
 
 function MotelCore:takeSupply(pid, item: string): (boolean, string)
@@ -820,6 +1456,7 @@ function MotelCore:playerLeft(pid)
 	end
 	self.carries[pid] = nil
 	self.ready[pid] = nil
+	self:deskRelease(pid)
 	self:bump()
 end
 
@@ -832,6 +1469,8 @@ function MotelCore:snapshot(pid)
 	for i, room in ipairs(self.rooms) do
 		rooms[i] = {
 			id = room.id,
+			number = room.number,
+			type = room.type,
 			occupied = room.occupant ~= nil,
 			trash = room.trash,
 			sheetsDirty = room.sheetsDirty,
@@ -877,6 +1516,7 @@ function MotelCore:snapshot(pid)
 		isReady = self.ready[pid] == true,
 		nightStats = table.clone(self.nightStats),
 		report = self.lastReport and table.clone(self.lastReport) or nil,
+		desk = self:deskView(pid),
 	}
 end
 

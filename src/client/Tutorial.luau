@@ -115,23 +115,23 @@ local CORE = {
 			return interactable("Desk")
 		end,
 		done = function(s)
-			return (s.nightStats and s.nightStats.rent or 0) > 0
+			return (s.nightStats and s.nightStats.checkIns or 0) > 0
 		end,
 	},
 	{
 		id = "checkin",
-		text = "When a guest waits at the desk, press E and pick a READY room. Be quick: guests leave when their timer runs out!",
+		text = "Press E at the desk. A guest with a code = BOOKING, no code = WALK-IN. Pick a READY room, take the money, give the right change and hand over the key!",
 		target = function()
 			return interactable("Desk")
 		end,
 		done = function(s)
-			return (s.nightStats and s.nightStats.rent or 0) > 0
+			return (s.nightStats and s.nightStats.checkIns or 0) > 0
 		end,
 	},
 	{
 		id = "wait",
 		info = true,
-		text = "+$25! Guests stay about 30 seconds, then leave a mess. Keep checking in new guests meanwhile.",
+		text = "Checked in! Guests stay about 30 seconds, then leave a mess. Keep serving new guests meanwhile.",
 		done = function(s)
 			return firstRoom(s, function(r)
 				return not r.occupied and (r.trash or r.sheetsDirty)

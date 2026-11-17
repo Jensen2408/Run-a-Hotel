@@ -32,7 +32,7 @@ local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 10
+MapBuilder.VERSION = 11
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -226,7 +226,7 @@ function MapBuilder.build(config)
 	layout.deskPosition = desk.Position
 	layout.prompts.desk = prompt(desk, config, {
 		action = "OpenCheckIn",
-		actionText = "Check In Guest",
+		actionText = "Open Terminal",
 		objectText = "Front Desk",
 		offset = Vector3.new(0, 1.5, -1.2),
 	})
@@ -437,7 +437,7 @@ function MapBuilder.build(config)
 			bin = bin,
 			trashBag = trashBag,
 			ac = ac,
-			sign = label(signPost, "Room " .. i, 0, 8, "check"),
+			sign = label(signPost, "Room " .. config.rooms[i].number, 0, 8, "check"),
 			hall = waypoint(wpFolder, "Room" .. i .. "Hall", Vector3.new(cx, 1, -3)).Position,
 			doorPoint = waypoint(wpFolder, "Room" .. i .. "DoorPoint", Vector3.new(cx, 1, 2)).Position,
 			inside = waypoint(wpFolder, "Room" .. i .. "Inside", Vector3.new(cx - 1.5, 1, 11)).Position,
@@ -445,13 +445,13 @@ function MapBuilder.build(config)
 				changeSheets = prompt(bed, config, {
 					action = "ChangeSheets",
 					actionText = "Change Sheets",
-					objectText = "Room " .. i .. " Bed",
+					objectText = "Room " .. config.rooms[i].number .. " Bed",
 					roomId = i,
 				}),
 				collectTrash = prompt(bin, config, {
 					action = "CollectTrash",
 					actionText = "Collect Trash",
-					objectText = "Room " .. i,
+					objectText = "Room " .. config.rooms[i].number,
 					roomId = i,
 					-- Bin is rotated 90deg on Z, so local +X is world up: raise the prompt to eye level.
 					offset = Vector3.new(2.5, 0, 0),
@@ -459,13 +459,13 @@ function MapBuilder.build(config)
 				deliverTowel = prompt(door, config, {
 					action = "DeliverTowel",
 					actionText = "Deliver Towel",
-					objectText = "Room " .. i,
+					objectText = "Room " .. config.rooms[i].number,
 					roomId = i,
 				}),
 				repairAC = prompt(ac, config, {
 					action = "RepairAC",
 					actionText = "Repair AC",
-					objectText = "Room " .. i,
+					objectText = "Room " .. config.rooms[i].number,
 					roomId = i,
 					hold = config.interaction.repairHoldDuration,
 				}),

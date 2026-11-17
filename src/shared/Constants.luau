@@ -39,7 +39,13 @@ Constants.PromptAction = {
 
 -- Actions a client may send through the Action RemoteEvent.
 Constants.RemoteAction = {
-	CheckIn = "CheckIn",
+	DeskClose = "DeskClose",
+	DeskMode = "DeskMode", -- { mode = "Booking" | "WalkIn" }
+	DeskVerify = "DeskVerify", -- { code = "2846" }
+	DeskRoom = "DeskRoom", -- { roomId }
+	DeskMethod = "DeskMethod", -- { method = "Cash" | "Card" }
+	DeskBack = "DeskBack",
+	DeskConfirm = "DeskConfirm", -- { txId, change = { 20, 5 } }
 	Ready = "Ready",
 	Restart = "Restart",
 	RequestState = "RequestState",
@@ -49,12 +55,23 @@ Constants.RemoteAction = {
 	BackToLobby = "BackToLobby",
 }
 
+-- Front desk terminal.
+Constants.DeskStep = {
+	Start = "Start", -- choose Booking or Walk-in
+	Code = "Code", -- enter the reservation code
+	Room = "Room", -- pick a ready room
+	Payment = "Payment", -- take the money, give change, issue the key
+}
+Constants.GuestKind = { Booking = "Booking", WalkIn = "WalkIn" }
+Constants.Payment = { Prepaid = "Prepaid", PayAtMotel = "PayAtMotel", Partial = "Partial" }
+Constants.PayMethod = { Cash = "Cash", Card = "Card", Online = "Online" }
+
 Constants.Remotes = {
 	Folder = "MotelRemotes",
 	Action = "Action", -- client -> server
 	State = "State", -- server -> client snapshot
 	Feedback = "Feedback", -- server -> client toast
-	OpenCheckIn = "OpenCheckIn", -- server -> client: show room picker
+	OpenCheckIn = "OpenCheckIn", -- server -> client: open the front desk terminal
 	OpenShop = "OpenShop", -- server -> client: show the supply shop panel
 	OpenLinen = "OpenLinen", -- server -> client: show the linen closet panel
 }

@@ -53,7 +53,7 @@ Teleport tidak bisa di Studio: peluncuran room hanya disimulasikan dengan notifi
 ## Pemeriksaan CLI
 
 ```powershell
-luau tests/core.spec.luau     # 21 test logika inti (transaksi, race, tagihan, restart, simulasi 3 malam)
+luau tests/core.spec.luau     # 37 test logika inti (meja resepsionis, transaksi, race, tagihan, restart, simulasi 3 malam)
 selene src
 stylua --check src tests
 rojo sourcemap default.project.json -o sourcemap.json
@@ -84,17 +84,30 @@ luau-lsp analyze --sourcemap=sourcemap.json --definitions=<path>/globalTypes.d.l
 
 ## Cara main
 
-- **Resepsionis:** prompt *Check In Guest* di Front Desk → pilih kamar READY. Sewa $25 masuk saat check-in.
+- **Resepsionis:** prompt *Open Terminal* di Front Desk membuka terminal resepsionis (lihat bagian di bawah). Uang masuk hanya setelah transaksi terminal dikonfirmasi.
 - **Housekeeping:** setelah checkout, ambil sampah (tong di kamar) → buang di Dumpster; ambil seprai di Linen Shelf → *Change Sheets* di kasur. Handuk diantar ke pintu kamar yang meminta (tip $5).
 - **Maintenance:** *Repair AC* (tahan) saat AC rusak; *Reset Breaker* di lobby saat listrik padam (check-in berhenti).
 - **Supply Shop:** Refill $15 (+3 seprai, +3 handuk), Troli $45 (kapasitas bawa 1 → 2 untuk seluruh tim).
 - Tombol **Ready** di Preparation melewati sisa waktu jika semua pemain siap.
 
+## Terminal resepsionis (Front Desk)
+
+Satu sesi per meja, dipegang server (`MotelCore` bagian *Front desk terminal*). Alur: **Start** (Booking / Walk-in) → **Code** (4 digit, keypad atau keyboard) → **Room** (kartu Room 101–103 dengan status Ready / Occupied / Dirty / Out of Order) → **Payment** (Cash dengan kembalian, Card sekali klik, atau Paid Online).
+
+- Tipe kamar dan tarif: `Config.roomTypes` (Single $25, Double $30) dan `Config.rooms` (101 Single, 102 Double, 103 Single).
+- Profil tamu dibuat di rencana malam (`makeGuestProfiles`): nama, walk-in atau reservasi (Prepaid / Pay at Motel / Partially Paid), metode bayar, dan cara tamu menyerahkan uang. Semua angka ada di `Config.desk`. Tamu pertama malam 1 selalu walk-in tunai (tutorial kasir dengan petunjuk kembalian).
+- Uang muka reservasi dikreditkan sekali saat malam dimulai (baris **Deposits** di laporan). Check-in menambah kas sebesar sisa tagihan yang diterima (baris **Rent**).
+- Pemilihan kamar tidak mengubah hunian. `deskConfirm` memvalidasi ulang semuanya (tamu terdepan, reservasi, kamar, metode, kembalian) lalu menyelesaikan kamar, kas, reservasi, dan check-in sekaligus tanpa yield. `txId` yang sama mengembalikan jawaban pertama tanpa transaksi kedua.
+- Sesi dilepas saat HUD ditutup, pemilik keluar jangkauan / mati / keluar server, idle `Config.desk.sessionTimeout` detik, atau fase Closing. Pemain lain melihat *Front Desk Busy*. Jika tamu pergi, transaksi dibatalkan (*Guest Left*).
+
 ## Checklist uji manual di Studio
+
+Tips: set atribut `Mode = "Game"` dan `TimeScale = 2` di Workspace supaya tamu menunggu 80 detik (cukup untuk mencoba terminal).
+
 
 Belum dijalankan (MCP Studio tidak tersedia saat implementasi). Pakai `TimeScale = 0.25` untuk mempercepat.
 
-1. **M1 slice:** Play Solo → Output berisi `[Motel] Server ready`. Tekan Ready → mobil datang, tamu antre dengan label hitung mundur. Check-in ke Room 1 → kas +$25, papan Room 1 biru. Tunggu checkout → kantong sampah muncul, kasur coklat. Bersihkan → papan hijau READY. Tamu berikutnya bisa memakai Room 1.
+1. **M1 slice:** Play Solo → Output berisi `[Motel] Server ready`. Tekan Ready → mobil datang, tamu antre dengan label hitung mundur. Tekan E di Front Desk → WALK-IN → Room 101 → susun kembalian → GIVE CHANGE & ISSUE KEY → kas +$25, papan Room 101 biru. Tunggu checkout → kantong sampah muncul, kasur coklat. Bersihkan → papan hijau READY. Tamu berikutnya bisa memakai Room 101.
 2. **Transaksi sekali:** klik tombol kamar di picker berkali-kali dengan cepat → kas hanya naik sekali. Tekan *Deliver Towel* dua kali → tip sekali.
 3. **Validasi jarak:** buka picker, berjalan jauh dari meja, lalu pilih kamar → "Go back to the front desk".
 4. **M2:** biarkan tamu antre melewati kesabaran → "Too slow!", walkout tercatat di laporan. Habiskan seprai → "Out of sheets", beli refill. Cek laporan: rent/tips/purchases/bill/kas akhir.

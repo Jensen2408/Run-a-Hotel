@@ -98,13 +98,65 @@ local function cleanRoom(core, pid, roomId)
 	end
 end
 
+-- Serves the front guest through the whole desk flow (open, mode, code,
+-- room, payment with exact change or card), then releases the desk.
+local txSeq = 0
+local function serve(core, pid, roomId, t)
+	local ok, err = core:deskOpen(pid, t)
+	if not ok then
+		return false, err
+	end
+	local function finish(...)
+		core:deskRelease(pid)
+		return ...
+	end
+	local g = core:deskGuest()
+	if not g then
+		return finish(false, "No guest is waiting at the desk.")
+	end
+	ok, err = core:deskChoose(pid, g.profile.kind, t)
+	if not ok then
+		return finish(false, err)
+	end
+	if g.profile.booking then
+		ok, err = core:deskVerify(pid, g.profile.booking.code, t)
+		if not ok then
+			return finish(false, err)
+		end
+	end
+	ok, err = core:deskSelectRoom(pid, roomId, t)
+	if not ok then
+		return finish(false, err)
+	end
+	local v = core:deskView(pid)
+	local change = {}
+	if v.method == "Cash" then
+		if v.given < v.due then
+			if table.find(g.profile.methods, "Card") then
+				core:deskSetMethod(pid, "Card", t)
+			end
+		else
+			local left = v.given - v.due
+			local notes = Config.desk.denominations
+			for i = #notes, 1, -1 do
+				while left >= notes[i] do
+					table.insert(change, notes[i])
+					left -= notes[i]
+				end
+			end
+		end
+	end
+	txSeq += 1
+	return finish(core:deskConfirm(pid, { txId = txSeq, change = change }, t))
+end
+
 ------------------------------------------------------------------------
 
 test("M1: single-room cycle (arrive, check in, checkout, clean, reuse)", function()
 	local core = newCore()
 	local t = nightWithQueue(core, 1)
 	eq(core.cash, 50, "starting cash")
-	local ok, msg = core:checkIn("A", 1, t)
+	local ok, msg = serve(core, "A", 1, t)
 	expect(ok, msg)
 	eq(core.cash, 75, "cash after rent")
 	eq(core.rooms[1].occupant ~= nil, true, "occupied")
@@ -122,7 +174,7 @@ test("M1: single-room cycle (arrive, check in, checkout, clean, reuse)", functio
 		t += 0.5
 		core:update(t)
 	end
-	ok, msg = core:checkIn("A", 1, t)
+	ok, msg = serve(core, "A", 1, t)
 	expect(ok, msg)
 	eq(core.cash, 100, "second rent")
 end)
@@ -130,20 +182,20 @@ end)
 test("M1: replaying a check-in is counted once", function()
 	local core = newCore()
 	local t = nightWithQueue(core, 1)
-	assert(core:checkIn("A", 1, t))
-	local ok = core:checkIn("A", 1, t)
+	assert(serve(core, "A", 1, t))
+	local ok = serve(core, "A", 1, t)
 	eq(ok, false, "replay rejected")
 	eq(core.cash, 75, "rent paid once")
 	eq(core.nightStats.rent, 25, "rent stat once")
 end)
 
-test("M2: two players pick the same room at once", function()
+test("M2: two players use the same room one after another", function()
 	local core = newCore()
 	local t = nightWithQueue(core, 2)
-	local okA = core:checkIn("A", 2, t)
-	local okB = core:checkIn("B", 2, t)
+	local okA = serve(core, "A", 2, t)
+	local okB = serve(core, "B", 2, t)
 	expect(okA and not okB, "only one check-in for room 2")
-	eq(core.cash, 75, "single rent")
+	eq(core.cash, 80, "single rent (Double $30)")
 	eq(#core.queue, 1, "second guest still queued")
 end)
 
@@ -170,7 +222,7 @@ end)
 test("M2: towel tip paid exactly once", function()
 	local core = newCore({ random = lowRandom })
 	local t = nightWithQueue(core, 1)
-	assert(core:checkIn("A", 1, t))
+	assert(serve(core, "A", 1, t))
 	t = run(core, t, t + 7) -- towel delay min 6s
 	expect(core.rooms[1].towelRequest, "towel requested")
 	assert(core:takeSupply("A", "Towel"))
@@ -255,7 +307,7 @@ end)
 test("M2: restart with pending guests clears everything", function()
 	local core = newCore()
 	local t = nightWithQueue(core, 2)
-	assert(core:checkIn("A", 1, t))
+	assert(serve(core, "A", 1, t))
 	assert(core:takeSupply("A", "Sheet"))
 	eq(core:restart("A", t), false, "restart blocked mid-run")
 	core.phase = P.RunEnded
@@ -273,10 +325,10 @@ end)
 test("M2: closing records unserved once and evicts stayers", function()
 	local core = newCore()
 	local t = nightWithQueue(core, 2)
-	assert(core:checkIn("A", 1, t))
+	assert(serve(core, "A", 1, t))
 	core:enterClosing(t)
 	eq(core.nightStats.unserved, 1, "one unserved")
-	eq(core:checkIn("A", 2, t), false, "no check-in while closing")
+	eq(serve(core, "A", 2, t), false, "no check-in while closing")
 	-- Closing again must not double count.
 	core:enterClosing(t)
 	eq(core.nightStats.unserved, 1, "still one")
@@ -290,19 +342,19 @@ test("M3: broken AC blocks renting until repaired", function()
 	local core = newCore()
 	local t = nightWithQueue(core, 1)
 	core.rooms[1].acBroken = true
-	eq(core:checkIn("A", 1, t), false, "blocked")
+	eq(serve(core, "A", 1, t), false, "blocked")
 	assert(core:repairAC("A", 1))
-	assert(core:checkIn("A", 1, t))
+	assert(serve(core, "A", 1, t))
 end)
 
 test("M3: power outage blocks check-in, housekeeping continues", function()
 	local core = newCore()
 	local t = nightWithQueue(core, 1)
 	core.power = false
-	eq(core:checkIn("A", 1, t), false, "blocked")
+	eq(serve(core, "A", 1, t), false, "blocked")
 	assert(core:takeSupply("A", "Sheet"))
 	assert(core:resetBreaker("A"))
-	assert(core:checkIn("A", 1, t))
+	assert(serve(core, "A", 1, t))
 end)
 
 test("M3: player leaving returns clean supplies", function()
@@ -352,6 +404,311 @@ test("M3: night events (AC on night 2, power on night 3)", function()
 	expect(core.rain, "rain on night 3")
 end)
 
+------------------------------------------------------------------------
+-- Front desk terminal
+------------------------------------------------------------------------
+
+-- Gives the guest at the front a known profile (and a live reservation).
+local function setFront(core, profile)
+	local g = core.guests[core.queue[1]]
+	profile.index = profile.index or 900 + g.id
+	profile.name = profile.name or "Test Guest"
+	profile.methods = profile.methods or { "Cash" }
+	profile.cashStyle = profile.cashStyle or "exact"
+	profile.kind = if profile.booking then "Booking" else "WalkIn"
+	g.profile = profile
+	if profile.booking then
+		local b = profile.booking
+		b.night = core.night
+		core.reservations[b.code] = {
+			code = b.code,
+			night = core.night,
+			guestIndex = profile.index,
+			name = profile.name,
+			roomType = b.roomType,
+			total = b.total,
+			paid = b.paid,
+			payment = b.payment,
+			used = false,
+		}
+	end
+	return g
+end
+
+local function booking(code, roomType, total, paid, payment)
+	return { code = code, roomType = roomType, total = total, paid = paid, payment = payment }
+end
+
+test("Desk: walk-in cash, $25 due, guest gives $50, change 20+5 adds $25", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	setFront(core, { cashStyle = "fifty" })
+	assert(core:deskOpen("A", t))
+	assert(core:deskChoose("A", "WalkIn", t))
+	assert(core:deskSelectRoom("A", 1, t))
+	local v = core:deskView("A")
+	eq(v.due, 25, "due")
+	eq(v.given, 50, "guest gives")
+	eq(core.rooms[1].occupant, nil, "room not taken before confirm")
+	local ok, msg = core:deskConfirm("A", { txId = 1, change = { 20, 5 } }, t)
+	expect(ok, msg)
+	eq(core.cash, 75, "+25")
+	eq(core.nightStats.rent, 25, "rent stat")
+	expect(core.rooms[1].occupant ~= nil, "guest in room")
+	eq(#core.queue, 0, "queue empty")
+end)
+
+test("Desk: wrong change is rejected, nothing changes, then corrected", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	setFront(core, { cashStyle = "fifty" })
+	assert(core:deskOpen("A", t))
+	assert(core:deskChoose("A", "WalkIn", t))
+	assert(core:deskSelectRoom("A", 1, t))
+	local ok, msg = core:deskConfirm("A", { txId = 1, change = { 20 } }, t)
+	eq(ok, false, "wrong change")
+	eq(msg, "Change is incorrect", "message")
+	eq(core.cash, 50, "cash unchanged")
+	eq(core.rooms[1].occupant, nil, "room unchanged")
+	eq(#core.queue, 1, "guest still waiting")
+	eq(core:deskView("A").step, "Payment", "stays on payment")
+	ok, msg = core:deskConfirm("A", { txId = 2, change = { 20, 5 } }, t)
+	expect(ok, msg)
+	eq(core.cash, 75, "+25 after correction")
+end)
+
+test("Desk: exact cash with no change", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	setFront(core, { cashStyle = "exact" })
+	assert(core:deskOpen("A", t))
+	assert(core:deskChoose("A", "WalkIn", t))
+	assert(core:deskSelectRoom("A", 2, t)) -- Double, $30
+	eq(core:deskView("A").given, 30, "exact")
+	assert(core:deskConfirm("A", { txId = 1, change = {} }, t))
+	eq(core.cash, 80, "+30")
+end)
+
+test("Desk: guest short on cash switches to card", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	setFront(core, { methods = { "Cash", "Card" }, cashStyle = "fifty", cashLimit = 20 })
+	assert(core:deskOpen("A", t))
+	assert(core:deskChoose("A", "WalkIn", t))
+	assert(core:deskSelectRoom("A", 1, t))
+	eq(core:deskView("A").given, 20, "only $20 cash")
+	local ok, msg = core:deskConfirm("A", { txId = 1, change = {} }, t)
+	eq(ok, false, "short")
+	expect(msg:find("short"), msg)
+	eq(core.cash, 50, "no money yet")
+	assert(core:deskSetMethod("A", "Card", t))
+	assert(core:deskConfirm("A", { txId = 2 }, t))
+	eq(core.cash, 75, "card +25")
+end)
+
+test("Desk: card not offered by the guest is rejected", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	setFront(core, { methods = { "Cash" } })
+	assert(core:deskOpen("A", t))
+	assert(core:deskChoose("A", "WalkIn", t))
+	assert(core:deskSelectRoom("A", 1, t))
+	eq(core:deskSetMethod("A", "Card", t), false, "no card")
+end)
+
+test("Desk: wrong mode gives a hint and stays on Start", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	setFront(core, {})
+	assert(core:deskOpen("A", t))
+	local ok, msg = core:deskChoose("A", "Booking", t)
+	eq(ok, false, "walk-in guest")
+	expect(msg:find("Walk%-in"), msg)
+	eq(core:deskView("A").step, "Start", "still start")
+end)
+
+test("Desk: booking code wrong then right; prepaid issues key for $0", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	setFront(core, { booking = booking("2846", "Single", 25, 25, "Prepaid") })
+	assert(core:deskOpen("A", t))
+	eq(core:deskVerify("A", "2846", t), false, "must choose Booking first")
+	assert(core:deskChoose("A", "Booking", t))
+	eq(core:deskVerify("A", "1111", t), false, "wrong code")
+	eq(core:deskVerify("A", "28a6", t), false, "not digits")
+	assert(core:deskVerify("A", "2846", t))
+	local v = core:deskView("A")
+	eq(v.reservation.remaining, 0, "nothing due")
+	eq(v.reservation.payment, "Prepaid", "label")
+	assert(core:deskSelectRoom("A", 1, t))
+	eq(core:deskView("A").method, "Online", "paid online")
+	assert(core:deskConfirm("A", { txId = 1 }, t))
+	eq(core.cash, 50, "no money at check-in")
+	eq(core.nightStats.checkIns, 1, "checked in")
+	expect(core.reservations["2846"].used, "reservation used")
+end)
+
+test("Desk: partially paid booking collects the rest ($15), change $5", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	setFront(core, { booking = booking("5310", "Single", 25, 10, "Partial"), cashStyle = "round10" })
+	assert(core:deskOpen("A", t))
+	assert(core:deskChoose("A", "Booking", t))
+	assert(core:deskVerify("A", "5310", t))
+	assert(core:deskSelectRoom("A", 3, t))
+	local v = core:deskView("A")
+	eq(v.due, 15, "remaining")
+	eq(v.given, 20, "guest gives 20")
+	assert(core:deskConfirm("A", { txId = 1, change = { 5 } }, t))
+	eq(core.cash, 65, "+15 at check-in")
+	eq(core.nightStats.rent, 15, "rent = collected")
+end)
+
+test("Desk: pay-at-motel booking collects the full rate", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	setFront(core, { booking = booking("7777", "Double", 30, 0, "PayAtMotel"), cashStyle = "fifty" })
+	assert(core:deskOpen("A", t))
+	assert(core:deskChoose("A", "Booking", t))
+	assert(core:deskVerify("A", "7777", t))
+	assert(core:deskSelectRoom("A", 2, t))
+	assert(core:deskConfirm("A", { txId = 1, change = { 20 } }, t))
+	eq(core.cash, 80, "+30")
+end)
+
+test("Desk: deposits are credited once at night start and reported apart", function()
+	local core = newCore()
+	core.plan.guests[1] = {
+		index = 1,
+		name = "Deposit Guest",
+		kind = "Booking",
+		methods = { "Cash" },
+		cashStyle = "exact",
+		booking = booking("4242", "Single", 25, 10, "Partial"),
+	}
+	core.plan.guests[1].booking.night = 1
+	core:enterNight(0)
+	eq(core.cash, 60, "deposit credited")
+	eq(core.nightStats.deposits, 10, "deposit stat")
+	core:enterNight(0) -- re-entering must not credit again
+	eq(core.cash, 60, "credited once")
+	core:enterClosing(1)
+	core:update(1.5)
+	eq(core.lastReport.deposits, 10, "report line")
+	eq(core.lastReport.rent, 0, "rent separate")
+end)
+
+test("Desk: booking needs its room type; no matching room ready", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	setFront(core, { booking = booking("9001", "Double", 30, 0, "PayAtMotel") })
+	core.rooms[2].trash = true
+	assert(core:deskOpen("A", t))
+	assert(core:deskChoose("A", "Booking", t))
+	assert(core:deskVerify("A", "9001", t))
+	local ok, msg = core:deskSelectRoom("A", 1, t)
+	eq(ok, false, "single room refused")
+	expect(msg:find("Double"), msg)
+	expect(core:deskView("A").noMatch, "no matching room")
+	core.rooms[2].trash = false
+	expect(not core:deskView("A").noMatch, "double ready again")
+	assert(core:deskSelectRoom("A", 2, t))
+end)
+
+test("Desk: double click on confirm pays once", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 2)
+	setFront(core, { cashStyle = "fifty" })
+	assert(core:deskOpen("A", t))
+	assert(core:deskChoose("A", "WalkIn", t))
+	assert(core:deskSelectRoom("A", 1, t))
+	local ok1 = core:deskConfirm("A", { txId = 77, change = { 20, 5 } }, t)
+	local ok2 = core:deskConfirm("A", { txId = 77, change = { 20, 5 } }, t)
+	expect(ok1 and ok2, "same answer for the same tx")
+	eq(core.cash, 75, "paid once")
+	eq(core.nightStats.checkIns, 1, "one check-in")
+	-- A new click after success has no transaction to apply to.
+	eq(core:deskConfirm("A", { txId = 78, change = { 20, 5 } }, t), false, "nothing to confirm")
+	eq(core.cash, 75, "still once")
+	eq(#core.queue, 1, "second guest untouched")
+end)
+
+test("Desk: room taken away before confirm asks for another room", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	setFront(core, { cashStyle = "exact" })
+	assert(core:deskOpen("A", t))
+	assert(core:deskChoose("A", "WalkIn", t))
+	assert(core:deskSelectRoom("A", 1, t))
+	core.rooms[1].acBroken = true
+	local ok = core:deskConfirm("A", { txId = 1, change = {} }, t)
+	eq(ok, false, "room unavailable")
+	local v = core:deskView("A")
+	eq(v.step, "Room", "back to room step")
+	eq(v.notice, "RoomUnavailable", "notice")
+	eq(v.guest ~= nil, true, "guest kept")
+	eq(core.cash, 50, "no money")
+	assert(core:deskSelectRoom("A", 3, t))
+	assert(core:deskConfirm("A", { txId = 2, change = {} }, t))
+end)
+
+test("Desk: guest walks out mid-transaction, old transaction is void", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	setFront(core, { cashStyle = "exact" })
+	local firstId = core.queue[1]
+	assert(core:deskOpen("A", t))
+	assert(core:deskChoose("A", "WalkIn", t))
+	assert(core:deskSelectRoom("A", 1, t))
+	while core.guests[firstId] and core.guests[firstId].state ~= "Departed" do
+		t += 0.5
+		core:update(t)
+		core.desk.lastActive = t -- keep the session alive while waiting
+	end
+	local v = core:deskView("A")
+	eq(v.notice, "GuestLeft", "guest left notice")
+	eq(v.step, "Start", "transaction reset")
+	eq(core:deskConfirm("A", { txId = 1, change = {} }, t), false, "old tx void")
+	eq(core.cash, 50, "no money")
+	eq(core.rooms[1].occupant, nil, "room free")
+end)
+
+test("Desk: one session per desk (co-op), release and timeout", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	assert(core:deskOpen("A", t))
+	local ok, err = core:deskOpen("B", t)
+	eq(ok, false, "B blocked")
+	eq(err, "busy", "busy")
+	eq(core:deskView("B").busy, true, "B sees busy")
+	eq(core:deskChoose("B", "WalkIn", t), false, "B cannot act")
+	eq(core:deskConfirm("B", { txId = 1 }, t), false, "B cannot confirm")
+	core:deskRelease("A")
+	assert(core:deskOpen("B", t))
+	-- Idle past the timeout releases the desk.
+	core:update(t + Config.desk.sessionTimeout + 1)
+	eq(core.desk, nil, "timed out")
+	-- Leaving the server releases too.
+	assert(core:deskOpen("A", t + 50))
+	core:playerLeft("A")
+	eq(core.desk, nil, "released on leave")
+end)
+
+test("Desk: power out blocks the terminal, closing releases it", function()
+	local core = newCore()
+	local t = nightWithQueue(core, 1)
+	assert(core:deskOpen("A", t))
+	core.power = false
+	eq(core:deskView("A").status, "PowerOut", "power out state")
+	eq(core:deskChoose("A", "WalkIn", t), false, "blocked")
+	core.power = true
+	core:enterClosing(t)
+	eq(core.desk, nil, "released at closing")
+	eq(core:deskOpen("A", t), true, "can open to see the closed state")
+	eq(core:deskView("A").status, "Closed", "closed state")
+	eq(core:deskChoose("A", "WalkIn", t), false, "no check-in while closing")
+end)
+
 -- Simulates players doing every job through the normal actions.
 local function simulateRun(playerCount, competent)
 	local core = newCore({ playerCount = playerCount, random = midRandom })
@@ -387,7 +744,7 @@ local function simulateRun(playerCount, competent)
 				if core.phase == P.Night and #core.queue > 0 then
 					for _, room in ipairs(core.rooms) do
 						if core:isRoomReady(room) then
-							core:checkIn("A", room.id, t)
+							serve(core, "A", room.id, t)
 							break
 						end
 					end
