@@ -1,8 +1,9 @@
 --!nonstrict
 --[[
 	NpcRigs: default Roblox R15 characters for guests and the shopkeeper,
-	dressed from a fixed list of outfits (catalog items made by Roblox:
-	classic shirt/pants, face, hair; IDs checked with GetProductInfo).
+	dressed from a fixed list of outfits (marketplace items by community
+	creators: classic shirt/pants, face accessory, hair; found with
+	AvatarEditorService:SearchCatalog).
 
 	Building a rig downloads assets (Players:CreateHumanoidModelFromDescription
 	yields), so every outfit is built once in the background at startup and
@@ -18,46 +19,48 @@ local Players = game:GetService("Players")
 
 local NpcRigs = {}
 
--- Catalog asset IDs (all created by Roblox).
+-- Marketplace (UGC) items by community creators, picked for a casual
+-- road-trip crowd; no brand names or licensed characters. Faces are face
+-- accessories, so the classic face decal is removed from the head.
 local HAIR = {
-	pal = 63690008, -- Pal Hair
-	lavenderUpdo = 451220849, -- Lavender Updo
-	brownCharmer = 376548738, -- Brown Charmer Hair
-	blondeSpiked = 376524487, -- Blonde Spiked Hair
-	brown = 62234425, -- Brown Hair
-	trueBlue = 451221329, -- True Blue Hair
-	straightBlonde = 376526888, -- Straight Blonde Hair
-	stylishBrown = 62743701, -- Stylish Brown Hair
-}
-local HAT = {
-	robloxCap = 607702162, -- Roblox Baseball Cap
+	coolBoy = 5644883846, -- Cool Boy Hair (genkroco)
+	curlyPonytail = 6005308235, -- Blonde Aesthetic Curly High Ponytail (Archi_tecture)
+	blackAfro = 11748367474, -- Black Curly Afro (HYPSAL)
+	wavyBlonde = 11597599236, -- Lush Wavy Hair (Blonde) (auroriies)
+	shortParted = 4875445470, -- Black Short Parted Hair (Homemade_Meal)
+	braidedPonytail = 13251161977, -- Braided Ponytail(Brown) (DIDIgamedev)
+	fluffyMessy = 14892162637, -- Fluffy Messy Hair(Black) (DIDIgamedev)
+	orangeAfro = 12143093583, -- Orange Curly Afro (Zartania)
+	blackSwept = 6413085241, -- Black Swept Hair (antilique)
 }
 local FACE = {
-	smile = 144075659, -- Smile
-	chill = 7074764, -- Chill
-	sillyFun = 7699174, -- Silly Fun
-	freckles = 12145366, -- Freckles
-	checkIt = 7074786, -- Check It
-	meh = 7075469, -- :-/
-	stare = 8560971, -- Stare
-	glee = 7074729, -- Glee
+	bigSmile = 12409796490, -- Big Smile Face (3D) (Headpets)
+	blushSmile = 12064732367, -- Blushing Big Smile Face (3D) (Headpets)
+	cuteBlush = 13253018587, -- Cute Blush Face (Blizzei)
+	kawaiiBlush = 14077508293, -- Kawaii Cutie Blush Face (VireDero)
+	bored = 12162793732, -- White Simple Bored Face (Empyror)
+	sideEye = 106622059771618, -- Side Eye Face (AW FACES)
+	simpleBlush = 71577948938042, -- Simple Cute Blush (CH!BI)
+	grumpy = 17448541918, -- Intimidating Face - Light (Evaeko)
 }
 local SHIRT = {
-	motorcycle = 144076358, -- Blue and Black Motorcycle Shirt
-	denimStriped = 144076436, -- Grey Striped Shirt with Denim Jacket
-	robloxJacket = 607785314, -- ROBLOX Jacket
-	denimHoodie = 398633584, -- Denim Jacket with White Hoodie
-	greenJersey = 382538059, -- Green Jersey
-	guitarTee = 382538295, -- Guitar Tee with Black Jacket
-	pizza = 382537085, -- I <3 Pizza Shirt
-	teal = 382537702, -- Teal Shirt
+	redFlannel = 1431276681, -- MU Red Flannel w/ Black Tee (Moda Unica)
+	blueFlannel = 1434248701, -- MU Blue & Black Flannel w/ Black Tee (Moda Unica)
+	tropical = 7008020566, -- (B) Tropical Flannel (HairyClub)
+	rainbowHoodie = 7136156284, -- Cartoony Rainbow Hoodie (Coarse)
+	beigePlaid = 4015873542, -- beige plaid flannel w white shirt (Aesthetic Vibe)
+	redJacket = 12499718918, -- Crimson Red Shirt + Black Jacket (DiligentVUK's Fan group)
+	simpleFlannel = 6582350831, -- simple flannel w/ top (vinty)
+	brownFlannel = 9069617976, -- brown flannel jacket plaid (j194cm)
+	apron = 7467445048, -- Apron (+) (Eden's Bar)
 }
 local PANTS = {
-	pinkJeans = 144076512, -- Pink Jeans
-	darkGreenJeans = 144076760, -- Dark Green Jeans
-	blackJeans = 382537569, -- Black Jeans
-	blackJeansSneakers = 382538503, -- Black Jeans with Sneakers
-	skater = 398635338, -- Ripped Skater Pants
+	blackJeansSneakers = 1174596088, -- Ripped Black Jeans w/ MU White Sneakers (Moda Unica)
+	denimShorts = 8828281142, -- cute denim shorts (Pink Potato Clothing)
+	greyCargo = 12598481285, -- cargo pants grey (AFTER WORLD)
+	rippedJeans = 5197702014, -- Cute ripped Jeans (uaeu)
+	allBlack = 7189083561, -- all black pants (#AMS)
+	white = 117436666145142, -- White pants (calm_fITZ)
 }
 local SKIN = {
 	Color3.fromRGB(255, 220, 185),
@@ -68,68 +71,30 @@ local SKIN = {
 }
 
 export type Outfit = {
-	hair: { number },
-	face: number,
+	hair: number,
+	face: number, -- face accessory
 	shirt: number,
 	pants: number,
 	skin: Color3,
 }
 
+local function outfit(hair, face, shirt, pants, skin): Outfit
+	return { hair = hair, face = face, shirt = shirt, pants = pants, skin = skin }
+end
+
 -- Guest outfits; guest id picks one (Visuals).
 NpcRigs.OUTFITS = {
-	{
-		hair = { HAIR.brownCharmer },
-		face = FACE.smile,
-		shirt = SHIRT.denimStriped,
-		pants = PANTS.blackJeans,
-		skin = SKIN[2],
-	},
-	{ hair = { HAIR.lavenderUpdo }, face = FACE.freckles, shirt = SHIRT.teal, pants = PANTS.pinkJeans, skin = SKIN[1] },
-	{
-		hair = { HAIR.pal },
-		face = FACE.checkIt,
-		shirt = SHIRT.greenJersey,
-		pants = PANTS.darkGreenJeans,
-		skin = SKIN[4],
-	},
-	{ hair = { HAIR.trueBlue }, face = FACE.sillyFun, shirt = SHIRT.pizza, pants = PANTS.skater, skin = SKIN[3] },
-	{
-		hair = { HAIR.blondeSpiked },
-		face = FACE.chill,
-		shirt = SHIRT.guitarTee,
-		pants = PANTS.blackJeansSneakers,
-		skin = SKIN[1],
-	},
-	{
-		hair = { HAIR.straightBlonde },
-		face = FACE.glee,
-		shirt = SHIRT.denimHoodie,
-		pants = PANTS.blackJeans,
-		skin = SKIN[5],
-	},
-	{
-		hair = { HAIR.brown, HAT.robloxCap },
-		face = FACE.meh,
-		shirt = SHIRT.motorcycle,
-		pants = PANTS.darkGreenJeans,
-		skin = SKIN[2],
-	},
-	{
-		hair = { HAIR.stylishBrown },
-		face = FACE.stare,
-		shirt = SHIRT.robloxJacket,
-		pants = PANTS.skater,
-		skin = SKIN[4],
-	},
+	outfit(HAIR.coolBoy, FACE.bigSmile, SHIRT.redFlannel, PANTS.blackJeansSneakers, SKIN[2]),
+	outfit(HAIR.curlyPonytail, FACE.cuteBlush, SHIRT.tropical, PANTS.denimShorts, SKIN[1]),
+	outfit(HAIR.blackAfro, FACE.bored, SHIRT.rainbowHoodie, PANTS.greyCargo, SKIN[5]),
+	outfit(HAIR.wavyBlonde, FACE.kawaiiBlush, SHIRT.beigePlaid, PANTS.rippedJeans, SKIN[1]),
+	outfit(HAIR.shortParted, FACE.sideEye, SHIRT.redJacket, PANTS.allBlack, SKIN[3]),
+	outfit(HAIR.braidedPonytail, FACE.simpleBlush, SHIRT.simpleFlannel, PANTS.white, SKIN[4]),
+	outfit(HAIR.fluffyMessy, FACE.blushSmile, SHIRT.blueFlannel, PANTS.greyCargo, SKIN[2]),
+	outfit(HAIR.orangeAfro, FACE.grumpy, SHIRT.brownFlannel, PANTS.allBlack, SKIN[3]),
 }
 
-NpcRigs.SHOPKEEPER = {
-	hair = { HAIR.brownCharmer, HAT.robloxCap },
-	face = FACE.glee,
-	shirt = SHIRT.greenJersey,
-	pants = PANTS.blackJeans,
-	skin = SKIN[3],
-}
+NpcRigs.SHOPKEEPER = outfit(HAIR.blackSwept, FACE.bigSmile, SHIRT.apron, PANTS.allBlack, SKIN[4])
 
 -- Default R15 animations (Roblox).
 local WALK_ANIM = "rbxassetid://507777826"
@@ -137,14 +102,8 @@ local IDLE_ANIM = "rbxassetid://507766388"
 
 local function description(outfit: Outfit): HumanoidDescription
 	local d = Instance.new("HumanoidDescription")
-	local ids = {}
-	for _, id in ipairs(outfit.hair) do
-		table.insert(ids, tostring(id))
-	end
-	-- Hair and hats both go through HairAccessory/HatAccessory; split by list order.
-	d.HairAccessory = ids[1] or ""
-	d.HatAccessory = ids[2] or ""
-	d.Face = outfit.face
+	d.HairAccessory = tostring(outfit.hair)
+	d.FaceAccessory = tostring(outfit.face)
 	d.Shirt = outfit.shirt
 	d.Pants = outfit.pants
 	for _, prop in ipairs({
@@ -183,6 +142,12 @@ function NpcRigs.build(outfit: Outfit, scale: number): Model?
 		return nil
 	end
 	model.Name = "Npc"
+	-- The face accessory replaces the classic face decal.
+	local head = model:FindFirstChild("Head")
+	local decal = head and head:FindFirstChildOfClass("Decal")
+	if decal then
+		decal:Destroy()
+	end
 	local animate = model:FindFirstChild("Animate")
 	if animate then
 		animate:Destroy()
