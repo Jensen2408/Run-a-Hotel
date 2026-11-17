@@ -39,8 +39,8 @@ Config.guests = {
 	stayMax = 40,
 	patience = 40, -- seconds a guest waits in the queue before walking out
 	rainPatienceMultiplier = 0.85,
-	arriveDuration = 7, -- car drives in + guest walks to the queue
-	departDuration = 14, -- guest walks back to the car + car leaves (visual only)
+	arriveDuration = 9, -- car drives in + guest walks to the queue
+	departDuration = 18, -- guest walks back to the car + car leaves (visual only)
 	firstArrivalAt = 6, -- seconds into the night
 	lastArrivalBuffer = 45, -- last arrival is at least this long before Night ends
 	arrivalJitter = 3,
@@ -50,6 +50,15 @@ Config.guests = {
 }
 
 Config.roomCount = 3
+
+-- Uniform scale applied to the whole motel map (buildings, furniture, roads,
+-- waypoints, prompt ranges). Bigger = roomier relative to the player.
+Config.mapScale = 1.4
+
+-- Player movement (default Roblox is 16); raised because the map is larger.
+Config.player = {
+	walkSpeed = 20,
+}
 
 -- One entry per night. Guest counts and bills are the solo values;
 -- co-op scaling is applied from `Config.coop` using the player count at the
@@ -116,8 +125,8 @@ Config.interaction = {
 }
 
 Config.npc = {
-	walkSpeed = 16,
-	carSpeed = 40,
+	walkSpeed = 20,
+	carSpeed = 50,
 }
 
 return Config

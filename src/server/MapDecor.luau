@@ -872,7 +872,7 @@ local function buildLobby(decor, rng)
 		lobby,
 		"DeskBell",
 		0.6,
-		Vector3.new(23.5, 4.6, -14.2),
+		Vector3.new(23.5, 3.6, -14.2),
 		Color3.fromRGB(240, 200, 80),
 		merge(DETAIL, { Material = Enum.Material.Metal })
 	)

@@ -30,7 +30,7 @@ local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 6
+MapBuilder.VERSION = 7
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -215,8 +215,8 @@ function MapBuilder.build(config)
 	})
 	local desk = part({
 		Name = "Desk",
-		Size = Vector3.new(10, 4, 2),
-		Position = Vector3.new(26, 2.4, -14),
+		Size = Vector3.new(10, 3, 2),
+		Position = Vector3.new(26, 1.9, -14),
 		Color = Color3.fromRGB(120, 72, 40),
 		Material = Enum.Material.Wood,
 		Parent = interact,
@@ -233,7 +233,7 @@ function MapBuilder.build(config)
 		Name = "DeskLamp",
 		Size = Vector3.new(1, 1, 1),
 		Shape = Enum.PartType.Ball,
-		Position = Vector3.new(29, 5, -14),
+		Position = Vector3.new(29, 4, -14),
 		Color = Color3.fromRGB(255, 220, 140),
 		Material = Enum.Material.Neon,
 		Parent = map,
@@ -584,7 +584,47 @@ function MapBuilder.build(config)
 	root.Parent = Workspace
 	LightingFX.apply()
 	MapDecor.build(map)
+	-- Everything above is authored at scale 1; enlarge it as a whole.
+	MapBuilder.scale(root, config.mapScale or 1)
+	root:SetAttribute("MapScale", config.mapScale or 1)
 	return MapBuilder.collect(root, config)
+end
+
+--[[
+	Uniformly scales a built map about the world origin: part positions and
+	sizes, attachment offsets, light ranges, label heights, prompt ranges and
+	fire/smoke sizes. Rotations are kept, so wedges and cylinders stay correct.
+	Yields between batches so Studio stays responsive.
+]]
+function MapBuilder.scale(root: Instance, factor: number)
+	if factor == 1 then
+		return
+	end
+	local count = 0
+	for _, d in ipairs(root:GetDescendants()) do
+		if d:IsA("BasePart") then
+			local cf = d.CFrame
+			d.Size = d.Size * factor
+			d.CFrame = CFrame.new(cf.Position * factor) * cf.Rotation
+			count += 1
+			if count % 400 == 0 then
+				task.wait()
+			end
+		elseif d:IsA("Attachment") then
+			d.Position = d.Position * factor
+		elseif d:IsA("Light") then
+			d.Range = math.min(60, d.Range * factor)
+		elseif d:IsA("BillboardGui") then
+			d.StudsOffset = d.StudsOffset * factor
+		elseif d:IsA("ProximityPrompt") then
+			d.MaxActivationDistance = d.MaxActivationDistance * factor
+		elseif d:IsA("Fire") then
+			d.Size = d.Size * factor
+		elseif d:IsA("Smoke") then
+			d.Size = d.Size * factor
+			d.RiseVelocity = d.RiseVelocity * factor
+		end
+	end
 end
 
 ------------------------------------------------------------------------
@@ -724,6 +764,7 @@ function MapBuilder.ensure(config)
 		existing
 		and existing:GetAttribute("MapVersion") == MapBuilder.VERSION
 		and existing:GetAttribute("RoomCount") == config.roomCount
+		and existing:GetAttribute("MapScale") == (config.mapScale or 1)
 	then
 		local ok, layoutOrErr = pcall(MapBuilder.collect, existing, config)
 		if ok then

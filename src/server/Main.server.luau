@@ -255,7 +255,7 @@ actionRemote.OnServerEvent:Connect(function(player: Player, payload)
 		if not validRoomId(roomId) then
 			return
 		end
-		if not withinRange(player, layout.deskPosition, Config.interaction.deskRange) then
+		if not withinRange(player, layout.deskPosition, Config.interaction.deskRange * (Config.mapScale or 1)) then
 			feedback(player, "Go back to the front desk to check guests in.", "error")
 			return
 		end
@@ -290,8 +290,23 @@ local function refreshPlayerCount(excluding: Player?)
 	core:setPlayerCount(math.max(1, n))
 end
 
+-- The map is scaled up, so players walk a bit faster than Roblox's default.
+local function applyWalkSpeed(player: Player)
+	local function onCharacter(character: Model)
+		local humanoid = character:WaitForChild("Humanoid", 10)
+		if humanoid and humanoid:IsA("Humanoid") then
+			humanoid.WalkSpeed = Config.player.walkSpeed
+		end
+	end
+	player.CharacterAdded:Connect(onCharacter)
+	if player.Character then
+		task.spawn(onCharacter, player.Character)
+	end
+end
+
 Players.PlayerAdded:Connect(function(player)
 	refreshPlayerCount(nil)
+	applyWalkSpeed(player)
 	sendState(player)
 end)
 
@@ -302,6 +317,7 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 for _, player in ipairs(Players:GetPlayers()) do
+	applyWalkSpeed(player)
 	sendState(player)
 end
 

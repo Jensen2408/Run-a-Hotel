@@ -20,7 +20,7 @@ local UiAssets = {}
 
 UiAssets.iconSheets = {
 	"rbxassetid://85647358432325", -- sheet 1: assets/ui/icon-sheet.png
-	"", -- sheet 2: assets/ui/icon-sheet-2.png (paste "rbxassetid://..." after upload)
+	"rbxassetid://92991628549421", -- sheet 2: assets/ui/icon-sheet-2.png (paste "rbxassetid://..." after upload)
 }
 UiAssets.cellSize = 256 -- pixels per icon cell in a sheet
 UiAssets.cellInset = 0 -- shave pixels off each cell edge if neighbours bleed in

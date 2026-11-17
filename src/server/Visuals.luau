@@ -57,8 +57,14 @@ local CAR_COLORS = {
 	Color3.fromRGB(230, 150, 90),
 }
 
-local GUEST_Y = 2.2 -- root pivot height (hips at y = 2.2)
+-- Root pivot heights and NPC scale; Visuals.new sets them from Config.mapScale.
+local GUEST_Y = 2.2
 local CAR_Y = 1.2
+local NPC_SCALE = 1
+
+local function scaleCF(cf: CFrame, k: number): CFrame
+	return CFrame.new(cf.Position * k) * cf.Rotation
+end
 
 local function newPart(props)
 	local p = Instance.new("Part")
@@ -191,6 +197,22 @@ local function makeGuest(id: number, parent: Instance)
 	stroke.LineJoinMode = Enum.LineJoinMode.Round
 	stroke.Parent = tl
 	gui.Parent = root
+	if NPC_SCALE ~= 1 then
+		local k = NPC_SCALE
+		root.Size *= k
+		gui.StudsOffset *= k
+		for _, st in ipairs(statics) do
+			st.part.Size *= k
+			st.offset = scaleCF(st.offset, k)
+		end
+		for _, l in ipairs(limbs) do
+			l.joint = scaleCF(l.joint, k)
+			for _, lp in ipairs(l.parts) do
+				lp.part.Size *= k
+				lp.offset = scaleCF(lp.offset, k)
+			end
+		end
+	end
 	model.Parent = parent
 	return { model = model, root = root, label = tl, icon = icon, statics = statics, limbs = limbs, phase = 0 }
 end
@@ -297,6 +319,18 @@ local function makeCar(id: number, parent: Instance)
 		)
 	end
 	part("Grille", Vector3.new(1.8, 0.4, 0.12), CFrame.new(0, 0.1, -4.55), Color3.fromRGB(60, 60, 66))
+	if NPC_SCALE ~= 1 then
+		local pivot = CFrame.new(0, CAR_Y, 0)
+		for _, d in ipairs(model:GetDescendants()) do
+			if d:IsA("BasePart") then
+				local rel = pivot:ToObjectSpace(d.CFrame)
+				d.Size *= NPC_SCALE
+				d.CFrame = pivot * scaleCF(rel, NPC_SCALE)
+			elseif d:IsA("SpotLight") then
+				d.Range = math.min(60, d.Range * NPC_SCALE)
+			end
+		end
+	end
 	model.Parent = parent
 	return model
 end
@@ -330,6 +364,12 @@ end
 
 function Visuals.new(layout, config, constants, timeScale: number)
 	local self = setmetatable({}, Visuals)
+	-- NPCs scale with the map so guests match doors/furniture and cars match
+	-- the parking slots. Pivot heights keep feet/wheels on the scaled floors.
+	local k = config.mapScale or 1
+	NPC_SCALE = k
+	GUEST_Y = 2.2 * k + 0.2 * (k - 1)
+	CAR_Y = 1.2 * k + 0.2 * (k - 1)
 	self.layout = layout
 	self.config = config
 	self.C = constants

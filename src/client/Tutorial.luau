@@ -17,11 +17,14 @@
 ]]
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Icons = require(script.Parent:WaitForChild("Icons"))
 local Workspace = game:GetService("Workspace")
 
 local Tutorial = {}
 Tutorial.__index = Tutorial
+
+local MAP_SCALE = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config")).mapScale or 1
 
 local YELLOW = Color3.fromRGB(255, 214, 64)
 local OUTLINE = Color3.fromRGB(46, 32, 22)
@@ -583,7 +586,7 @@ function Tutorial:tick()
 	local distance = if hrp then (hrp.Position - part.Position).Magnitude else 0
 
 	-- Reaching a location completes "go here" info steps.
-	if cur and cur.step.near and hrp and distance <= cur.step.near then
+	if cur and cur.step.near and hrp and distance <= cur.step.near * MAP_SCALE then
 		self:advance()
 		return
 	end
