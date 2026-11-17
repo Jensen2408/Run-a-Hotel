@@ -62,6 +62,16 @@ local PANTS = {
 	allBlack = 7189083561, -- all black pants (#AMS)
 	white = 117436666145142, -- White pants (calm_fITZ)
 }
+-- Body parts for the girl guests: "Woman Revamped" bundle (Blizzei, bundle
+-- 370445). Its dynamic head is not used: the default head keeps the face
+-- accessories lined up.
+local GIRL_BODY = {
+	torso = 17463695664,
+	rightArm = 17463697612,
+	leftArm = 17463695466,
+	leftLeg = 17463697564,
+	rightLeg = 17463695529,
+}
 local SKIN = {
 	Color3.fromRGB(255, 220, 185),
 	Color3.fromRGB(234, 184, 146),
@@ -76,20 +86,21 @@ export type Outfit = {
 	shirt: number,
 	pants: number,
 	skin: Color3,
+	body: { [string]: number }?, -- body part IDs; nil = default R15 body
 }
 
-local function outfit(hair, face, shirt, pants, skin): Outfit
-	return { hair = hair, face = face, shirt = shirt, pants = pants, skin = skin }
+local function outfit(hair, face, shirt, pants, skin, body): Outfit
+	return { hair = hair, face = face, shirt = shirt, pants = pants, skin = skin, body = body }
 end
 
 -- Guest outfits; guest id picks one (Visuals).
 NpcRigs.OUTFITS = {
 	outfit(HAIR.coolBoy, FACE.bigSmile, SHIRT.redFlannel, PANTS.blackJeansSneakers, SKIN[2]),
-	outfit(HAIR.curlyPonytail, FACE.cuteBlush, SHIRT.tropical, PANTS.denimShorts, SKIN[1]),
+	outfit(HAIR.curlyPonytail, FACE.cuteBlush, SHIRT.tropical, PANTS.denimShorts, SKIN[1], GIRL_BODY),
 	outfit(HAIR.blackAfro, FACE.bored, SHIRT.rainbowHoodie, PANTS.greyCargo, SKIN[5]),
-	outfit(HAIR.wavyBlonde, FACE.kawaiiBlush, SHIRT.beigePlaid, PANTS.rippedJeans, SKIN[1]),
+	outfit(HAIR.wavyBlonde, FACE.kawaiiBlush, SHIRT.beigePlaid, PANTS.rippedJeans, SKIN[1], GIRL_BODY),
 	outfit(HAIR.shortParted, FACE.sideEye, SHIRT.redJacket, PANTS.allBlack, SKIN[3]),
-	outfit(HAIR.braidedPonytail, FACE.simpleBlush, SHIRT.simpleFlannel, PANTS.white, SKIN[4]),
+	outfit(HAIR.braidedPonytail, FACE.simpleBlush, SHIRT.simpleFlannel, PANTS.white, SKIN[4], GIRL_BODY),
 	outfit(HAIR.fluffyMessy, FACE.blushSmile, SHIRT.blueFlannel, PANTS.greyCargo, SKIN[2]),
 	outfit(HAIR.orangeAfro, FACE.grumpy, SHIRT.brownFlannel, PANTS.allBlack, SKIN[3]),
 }
@@ -104,6 +115,14 @@ local function description(outfit: Outfit): HumanoidDescription
 	local d = Instance.new("HumanoidDescription")
 	d.HairAccessory = tostring(outfit.hair)
 	d.FaceAccessory = tostring(outfit.face)
+	local body = outfit.body
+	if body then
+		d.Torso = body.torso
+		d.RightArm = body.rightArm
+		d.LeftArm = body.leftArm
+		d.LeftLeg = body.leftLeg
+		d.RightLeg = body.rightLeg
+	end
 	d.Shirt = outfit.shirt
 	d.Pants = outfit.pants
 	for _, prop in ipairs({
