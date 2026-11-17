@@ -10,6 +10,11 @@ local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local Mode = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Mode"))
+if Mode.get() ~= Mode.Game then
+	return
+end
+
 local chase, blink, bulbs, flicker, fireflies = {}, {}, {}, {}, {}
 local motel: Instance? = nil
 

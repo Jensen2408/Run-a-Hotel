@@ -6,8 +6,9 @@
 	Pads: a player standing on pad N joins room N (capacity N). The first
 	player starts a countdown (Config.lobby.padCountdown); the room launches
 	when it is full or the countdown ends. Launch = TeleportService into a
-	fresh reserved server of Places.game, with { partySize } teleport data.
-	In Studio (or while Places.game is 0) the launch is only simulated.
+	fresh reserved server of this same place (which then runs in Game mode,
+	see Shared/Mode), with { partySize } teleport data. In Studio the launch
+	is only simulated.
 ]]
 
 local Players = game:GetService("Players")
@@ -17,12 +18,18 @@ local TeleportService = game:GetService("TeleportService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Mode = require(Shared:WaitForChild("Mode"))
+if Mode.get() ~= Mode.Lobby then
+	return -- this server runs a motel game
+end
+
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
-local Places = require(Shared:WaitForChild("Places"))
 local LobbyBuilder = require(script.Parent:WaitForChild("LobbyBuilder"))
-local Persistence = require(script.Parent:WaitForChild("Persistence"))
-local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
+-- Shared with the game server.
+local ServerModules = game:GetService("ServerScriptService"):WaitForChild("Server")
+local Persistence = require(ServerModules:WaitForChild("Persistence"))
+local LightingFX = require(ServerModules:WaitForChild("LightingFX"))
 
 local SCALE = Config.mapScale or 1
 local R = Constants.LobbyRemotes
@@ -58,7 +65,18 @@ end
 -- World
 ------------------------------------------------------------------------
 
+-- A motel map saved in the place file (Edit-mode preview) is not needed here.
+local savedMotel = Workspace:FindFirstChild("Motel")
+if savedMotel then
+	savedMotel:Destroy()
+end
 local lobby = LobbyBuilder.build(SCALE)
+-- Only the lobby spawn is used.
+for _, d in ipairs(Workspace:GetDescendants()) do
+	if d:IsA("SpawnLocation") and not d:IsDescendantOf(lobby) then
+		d.Enabled = false
+	end
+end
 LightingFX.apply()
 local lighting = game:GetService("Lighting")
 lighting.ClockTime = 19.2
@@ -161,18 +179,20 @@ local function launch(i)
 	room.launching = true
 	dirty = true
 	broadcastRooms()
-	local live = not RunService:IsStudio() and Places.game ~= 0
-	if not live then
-		local why = if Places.game == 0 then "set Places.game first" else "teleport only works in the live game"
-		notice(nil, ("Room %d would start now with %d player(s) (%s)."):format(i, #party, why), "info")
+	if RunService:IsStudio() then
+		notice(
+			nil,
+			("Room %d would start now with %d player(s) (teleport only works in the live game)."):format(i, #party),
+			"info"
+		)
 		task.wait(1.5)
 	else
 		local ok, err = pcall(function()
-			local code = TeleportService:ReserveServer(Places.game)
+			local code = TeleportService:ReserveServer(game.PlaceId)
 			local options = Instance.new("TeleportOptions")
 			options.ReservedServerAccessCode = code
 			options:SetTeleportData({ partySize = #party, room = i })
-			TeleportService:TeleportAsync(Places.game, party, options)
+			TeleportService:TeleportAsync(game.PlaceId, party, options)
 		end)
 		if ok then
 			for _, p in ipairs(party) do
@@ -305,4 +325,4 @@ for _, player in ipairs(Players:GetPlayers()) do
 	task.spawn(sendProfile, player)
 end
 
-print(("[Lobby] Ready. Game place: %s"):format(if Places.game ~= 0 then tostring(Places.game) else "not set"))
+print("[Lobby] Ready.")

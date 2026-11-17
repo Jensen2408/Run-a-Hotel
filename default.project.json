@@ -10,12 +10,18 @@
     "ServerScriptService": {
       "Server": {
         "$path": "src/server"
+      },
+      "Lobby": {
+        "$path": "src/lobby/server"
       }
     },
     "StarterPlayer": {
       "StarterPlayerScripts": {
         "Client": {
-          "$path": "src/client"
+          "$path": "src/client",
+          "LobbyClient": {
+            "$path": "src/lobby/client/LobbyClient.client.luau"
+          }
         }
       }
     }

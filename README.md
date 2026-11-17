@@ -33,26 +33,22 @@ Ini membangun `Workspace.Motel` (gameplay + scenery `MapDecor`) di place. Saat P
 
 **Mode cepat untuk tester:** di Studio, set atribut `TimeScale` (number, mis. `0.25`) pada `Workspace` sebelum menekan Play. Semua durasi (fase, menginap, kesabaran, gerak NPC) ikut dikali. Diabaikan di server live.
 
-## Lobby + Game (dua place)
+## Lobby + Game (satu place, dua mode)
 
-Game sekarang terdiri dari dua place dalam satu experience:
+Satu place menjalankan dua mode ([src/shared/Mode.luau](src/shared/Mode.luau)):
 
-| Place | Project Rojo | Isi |
+| Mode | Server | Isi |
 |---|---|---|
-| **Lobby** (place awal, id `138304056640374`) | `lobby.project.json` | Aula lobby, pad room 1–4, papan TOP NIGHTS, papan profil, papan How to play, musik + pengaturan volume |
-| **Game** (place baru) | `default.project.json` | Motel (permainan 3 malam) |
+| **Lobby** | Server publik (pemain masuk dari halaman game) | Aula lobby, pad room 1–4, papan TOP NIGHTS, papan profil, papan How to play, musik + pengaturan volume |
+| **Game** | Reserved server yang dibuat lobby | Motel (permainan 3 malam) |
 
-Langkah setup:
+Setiap script memanggil `Mode.get()` lalu berhenti bila modenya bukan miliknya (`Server/Main` dan `Client/Main` + `Ambience` untuk Game, `Lobby/LobbyMain` dan `Client/LobbyClient` untuk Lobby). Server menulis hasilnya ke atribut `Workspace.Mode`.
 
-1. Di Creator Hub buat place kedua di experience yang sama (Game), lalu salin place ID-nya ke `Places.game` di [src/shared/Places.luau](src/shared/Places.luau).
-2. Place Lobby: `rojo serve lobby.project.json` lalu hubungkan plugin Rojo. Hapus isi lama motel (`ServerScriptService.Server`, `StarterPlayerScripts.Client`, `Workspace.Motel`) dari place lobby.
-3. Place Game: `rojo serve` (default.project.json) seperti biasa.
-4. Game Settings → Security → **Enable Studio Access to API Services** (DataStore leaderboard/profil).
-5. Build lokal: `rojo build lobby.project.json -o Lobby-Test.rbxlx`.
+**Di Studio** tidak ada reserved server, jadi pilih mode dengan atribut `Mode` (string) di `Workspace` sebelum Play: `Game` untuk menguji motel, kosong atau `Lobby` untuk menguji lobby. Map yang tersimpan di place untuk mode lain (`Workspace.Motel` / `Workspace.Lobby`) dihapus otomatis saat server mulai.
 
-Alur: pemain berdiri di pad N masuk room N (kapasitas N). Pemain pertama memulai hitung mundur `Config.lobby.padCountdown` (20 dtk); room berangkat saat penuh atau waktu habis, lewat `TeleportService` ke reserved server Game dengan `TeleportData { partySize }`. Server Game menunggu seluruh party (maks `Config.lobby.partyWait`) sebelum fase pertama. Setelah run selesai, rekor disimpan (`Persistence.recordRun`), rekor baru memunculkan banner NEW RECORD, dan tombol **LOBBY** di laporan mengembalikan pemain ke lobby.
+Alur: pemain berdiri di pad N masuk room N (kapasitas N). Pemain pertama memulai hitung mundur `Config.lobby.padCountdown` (20 dtk); room berangkat saat penuh atau waktu habis, lewat `TeleportService:ReserveServer(game.PlaceId)` dengan `TeleportData { partySize }`. Server Game menunggu seluruh party (maks `Config.lobby.partyWait`) sebelum fase pertama. Setelah run selesai, rekor disimpan (`Persistence.recordRun`), rekor baru memunculkan banner NEW RECORD, dan tombol **LOBBY** di laporan mengirim pemain ke server publik place ini (lobby).
 
-Teleport tidak bisa di Studio: di Studio (atau selama `Places.game = 0`) peluncuran hanya disimulasikan dengan notifikasi, lalu pemain didorong keluar pad.
+Teleport tidak bisa di Studio: peluncuran room hanya disimulasikan dengan notifikasi, lalu pemain didorong keluar pad. Leaderboard dan profil memakai DataStore: aktifkan **Game Settings → Security → Enable Studio Access to API Services**.
 
 ## Pemeriksaan CLI
 
@@ -78,8 +74,9 @@ luau-lsp analyze --sourcemap=sourcemap.json --definitions=<path>/globalTypes.d.l
 | `src/server/Main.server.luau` | | Remote, validasi, loop Heartbeat |
 | `src/client/Hud.luau`, `Main.client.luau` | `StarterPlayerScripts.Client` | HUD, pemilih kamar, laporan |
 | `src/server/Persistence.luau` | | DataStore rekor malam + profil (juga dipakai lobby) |
-| `src/lobby/server/*` | `ServerScriptService.Lobby` (place Lobby) | `LobbyBuilder` (aula, pad, papan), `LobbyMain` (room, teleport, leaderboard) |
-| `src/lobby/client/*` | `StarterPlayerScripts.LobbyClient` | Panel room, profil, toast; memakai `UiKit`, `Icons`, `Sfx`, `Settings` dari `src/client` |
+| `src/lobby/server/*` | `ServerScriptService.Lobby` | `LobbyBuilder` (aula, pad, papan), `LobbyMain` (room, teleport, leaderboard) |
+| `src/lobby/client/LobbyClient.client.luau` | `StarterPlayerScripts.Client.LobbyClient` | Panel room, profil, toast; memakai `UiKit`, `Icons`, `Sfx`, `Settings` |
+| `src/shared/Mode.luau` | `ReplicatedStorage.Shared.Mode` | Pilih mode Lobby/Game per server |
 | `tests/core.spec.luau` | (tidak di-sync) | Test CLI |
 
 `Workspace.Motel` berisi `Map` (geometri, boleh diganti art final), `Waypoints` (part tak terlihat untuk rute NPC), `Interactables` (part dengan prompt; atribut `Action` dan `RoomId`), dan `Runtime` (NPC; dikosongkan saat restart).

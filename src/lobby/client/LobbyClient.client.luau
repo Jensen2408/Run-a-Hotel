@@ -13,6 +13,10 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local Mode = require(Shared:WaitForChild("Mode"))
+if Mode.get() ~= Mode.Lobby then
+	return
+end
 local Constants = require(Shared:WaitForChild("Constants"))
 local UiKit = require(script.Parent:WaitForChild("UiKit"))
 local Icons = require(script.Parent:WaitForChild("Icons"))

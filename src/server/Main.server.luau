@@ -14,6 +14,11 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Mode = require(Shared:WaitForChild("Mode"))
+if Mode.get() ~= Mode.Game then
+	return -- this server is a lobby (see Shared/Mode)
+end
+
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local MotelCore = require(script.Parent:WaitForChild("MotelCore"))
@@ -21,7 +26,6 @@ local MapBuilder = require(script.Parent:WaitForChild("MapBuilder"))
 local Visuals = require(script.Parent:WaitForChild("Visuals"))
 local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
 local Persistence = require(script.Parent:WaitForChild("Persistence"))
-local Places = require(Shared:WaitForChild("Places"))
 local TeleportService = game:GetService("TeleportService")
 
 local PA = Constants.PromptAction
@@ -60,6 +64,11 @@ if RunService:IsStudio() and Config.allowStudioTimeScaleOverride then
 	end
 end
 
+-- A lobby hall saved in the place file is not needed here.
+local savedLobby = Workspace:FindFirstChild("Lobby")
+if savedLobby then
+	savedLobby:Destroy()
+end
 local layout = MapBuilder.ensure(Config)
 LightingFX.apply()
 local rng = Random.new()
@@ -311,12 +320,13 @@ actionRemote.OnServerEvent:Connect(function(player: Player, payload)
 		end
 		ok, msg = core:buyItem(player.UserId, itemId)
 	elseif kind == RA.BackToLobby then
-		if RunService:IsStudio() or Places.lobby == 0 then
+		if RunService:IsStudio() then
 			feedback(player, "Back to lobby works in the live game (not in Studio).", "info")
 			return
 		end
 		local tpOk, err = pcall(function()
-			TeleportService:TeleportAsync(Places.lobby, { player })
+			-- No TeleportOptions = a public server of this place = the lobby.
+			TeleportService:TeleportAsync(game.PlaceId, { player })
 		end)
 		if not tpOk then
 			feedback(player, "Could not reach the lobby, try again.", "error")
