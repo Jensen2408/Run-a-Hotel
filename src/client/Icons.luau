@@ -1,7 +1,10 @@
 --!nonstrict
 -- Icons from the UI icon sheet (UiAssets.iconSheet), with an emoji/text
--- fallback while the sheet has not been uploaded yet.
+-- fallback. The sheet is used only after it has actually loaded (a fresh
+-- upload can sit in Roblox moderation for a few minutes); until then icons
+-- show the fallback and a background task retries, then swaps every icon.
 
+local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local UiAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiAssets"))
@@ -9,6 +12,10 @@ local UiAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("
 local Icons = {}
 
 local OUTLINE = Color3.fromRGB(46, 32, 22)
+local RETRY_SECONDS = 20
+
+local sheetReady = false
+local live = setmetatable({}, { __mode = "k" }) -- every created icon, for the swap
 
 export type Icon = {
 	frame: ImageLabel,
@@ -17,13 +24,10 @@ export type Icon = {
 	set: (Icon, string) -> (),
 }
 
-local function setIcon(self, name: string)
-	if self.name == name then
-		return
-	end
-	self.name = name
+local function apply(self)
+	local name = self.name
 	local cell = UiAssets.icons[name]
-	if UiAssets.iconSheet ~= "" and cell then
+	if sheetReady and cell then
 		local size = UiAssets.cellSize - UiAssets.cellInset * 2
 		self.frame.Image = UiAssets.iconSheet
 		self.frame.ImageRectSize = Vector2.new(size, size)
@@ -40,6 +44,14 @@ local function setIcon(self, name: string)
 		self.fallback.UIStroke.Enabled = text == "$" or text == "★"
 		self.fallback.Visible = true
 	end
+end
+
+local function setIcon(self, name: string)
+	if self.name == name then
+		return
+	end
+	self.name = name
+	apply(self)
 end
 
 -- props: Name, Size, Position, AnchorPoint, ZIndex, Parent, FallbackColor
@@ -67,8 +79,37 @@ function Icons.create(name: string, props): Icon
 	stroke.Parent = fb
 	img.Parent = props.Parent
 	local icon = { frame = img, fallback = fb, name = nil, set = setIcon }
+	live[icon] = true
 	icon:set(name)
 	return icon :: any
+end
+
+function Icons.isSheetReady(): boolean
+	return sheetReady
+end
+
+-- Load the sheet in the background; swap all icons once it is available.
+if UiAssets.iconSheet ~= "" then
+	task.spawn(function()
+		while not sheetReady do
+			local status
+			pcall(function()
+				ContentProvider:PreloadAsync({ UiAssets.iconSheet }, function(_, s)
+					status = s
+				end)
+			end)
+			if status == Enum.AssetFetchStatus.Success then
+				sheetReady = true
+				for icon in pairs(live) do
+					if icon.frame.Parent then
+						apply(icon)
+					end
+				end
+				break
+			end
+			task.wait(RETRY_SECONDS)
+		end
+	end)
 end
 
 return Icons
