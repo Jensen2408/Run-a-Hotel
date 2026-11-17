@@ -385,6 +385,7 @@ function Tutorial.new(hud)
 	edgeGui.DisplayOrder = 5
 	edgeGui.Parent = playerGui
 	local edge = Icons.create("arrowRight", {
+		Animate = false, -- points at the target; no sway
 		Parent = edgeGui,
 		Size = UDim2.fromOffset(64, 64),
 		AnchorPoint = Vector2.new(0.5, 0.5),

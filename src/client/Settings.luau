@@ -10,6 +10,7 @@
 	SfxVolume, 0..1) so both scripts in a place share them.
 ]]
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
@@ -47,24 +48,47 @@ function Settings.new(playerGui: PlayerGui, sfx, track: string)
 		s:Play()
 	end
 
-	-- UI.
-	local screen = UiKit.screen(playerGui, "MotelSettings", 20)
+	-- UI. Full-screen gui so the gear can sit in Roblox's topbar row.
+	local screen = UiKit.screen(playerGui, "MotelSettings", 20, true)
 	self.screen = screen
-	local gear = UiKit.button(
-		screen.root,
-		"SettingsButton",
-		UDim2.fromOffset(56, 56),
-		UDim2.new(1, -14, 0, 14),
-		UiKit.GREY,
-		"",
-		function()
-			self:render()
-			screen:open(self.panel)
-		end,
-		"gear"
-	)
-	gear.holder.AnchorPoint = Vector2.new(1, 0)
-	self.gear = gear
+	-- Gear: just the icon (no button background), hover/press scale.
+	local GEAR = 50
+	local holder = UiKit.make("Frame", {
+		Name = "SettingsButton",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(GEAR, GEAR),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Parent = screen.root,
+	})
+	local gearBody = UiKit.make("TextButton", {
+		Name = "Body",
+		BackgroundTransparency = 1,
+		Text = "",
+		AutoButtonColor = false,
+		Size = UDim2.fromScale(1, 1),
+		Parent = holder,
+	})
+	Icons.create("gear", { Parent = gearBody, Size = UDim2.fromScale(1, 1) })
+	UiKit.pressable(holder, gearBody, function()
+		self:render()
+		screen:open(self.panel)
+	end)
+	self.gear = holder
+	local function place()
+		local s = screen.uiScale.Scale
+		local inset = GuiService.TopbarInset
+		local cam = workspace.CurrentCamera
+		local vpX = if cam then cam.ViewportSize.X else 1280
+		local centerY = math.max(inset.Max.Y - 24, 22)
+		holder.Position = UDim2.fromOffset((math.min(inset.Max.X, vpX) - 12) / s, centerY / s)
+	end
+	place()
+	GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(place)
+	if workspace.CurrentCamera then
+		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+			task.defer(place) -- after the screen rescales
+		end)
+	end
 
 	local panel, body = screen:modal("Settings", Vector2.new(480, 280), "SETTINGS", "gear")
 	self.panel = panel

@@ -285,12 +285,14 @@ end
 	with UIScale, plus a backdrop for modals. Returns a screen table with
 	:modal(name, size, title) and :open(panel) / :close(panel).
 ]]
-function UiKit.screen(playerGui: PlayerGui, name: string, displayOrder: number?)
+function UiKit.screen(playerGui: PlayerGui, name: string, displayOrder: number?, fullScreen: boolean?)
 	local gui = make("ScreenGui", {
 		Name = name,
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		DisplayOrder = displayOrder or 0,
+		-- fullScreen: draw under Roblox's topbar too (for items placed in its row).
+		ScreenInsets = if fullScreen then Enum.ScreenInsets.None else Enum.ScreenInsets.CoreUISafeInsets,
 		Parent = playerGui,
 	})
 	local root =

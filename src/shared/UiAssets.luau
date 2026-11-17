@@ -151,7 +151,13 @@ function UiAssets.cell(name: string): (string?, Vector2?, Vector2?)
 end
 
 -- Points an ImageLabel at an icon (no fallback; used for world labels).
+-- CollectionService tag on every icon image (clients animate tagged icons).
+UiAssets.ICON_TAG = "UiIcon"
+
 function UiAssets.applyTo(label: ImageLabel, name: string)
+	if not label:HasTag(UiAssets.ICON_TAG) then
+		label:AddTag(UiAssets.ICON_TAG)
+	end
 	local image, offset, size = UiAssets.cell(name)
 	if image and offset and size then
 		label.Image = image

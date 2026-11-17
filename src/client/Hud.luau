@@ -21,6 +21,7 @@
 	centred so it does not collide with the mobile thumbstick or jump button.
 ]]
 
+local GuiService = game:GetService("GuiService")
 local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 
@@ -374,6 +375,8 @@ function Hud.new(playerGui: PlayerGui, config, callbacks)
 		Name = "MotelHud",
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		-- Full screen: the top bar shares the row with Roblox's topbar.
+		ScreenInsets = Enum.ScreenInsets.None,
 		Parent = playerGui,
 	})
 	self.gui = gui
@@ -392,14 +395,19 @@ function Hud.new(playerGui: PlayerGui, config, callbacks)
 		uiScale.Scale = s
 		root.Size = UDim2.fromScale(1 / s, 1 / s)
 	end
-	rescale()
-	if Workspace.CurrentCamera then
-		Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
-	end
 	self.root = root
 	self.uiScale = uiScale
 
 	self:buildTopBar()
+	local function layout()
+		rescale()
+		self:placeTopBar()
+	end
+	layout()
+	if Workspace.CurrentCamera then
+		Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(layout)
+	end
+	GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(layout)
 	self:buildRoomsCard()
 	self:buildStatusTiles()
 	self:buildBottomBar()
@@ -420,8 +428,6 @@ function Hud:buildTopBar()
 	local top = make("Frame", {
 		Name = "TopBar",
 		BackgroundTransparency = 1,
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 10),
 		Size = UDim2.fromOffset(980, 96),
 		Parent = self.root,
 	})
@@ -510,7 +516,17 @@ function Hud:buildTopBar()
 	})
 	self.cashHolder = cashHolder
 	self.cashGrad = cashGrad
-	local coinHolder, coinIcon = medallion(cashHolder, 58, GOLD, "coin")
+	-- Plain coin icon on the left edge (no circle behind it).
+	local coinHolder = make("Frame", {
+		Name = "Coin",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(64, 64),
+		Position = UDim2.new(0, -26, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		ZIndex = 3,
+		Parent = cashHolder,
+	})
+	local coinIcon = Icons.create("coin", { Parent = coinHolder, ZIndex = 3 })
 	self.coinHolder = coinHolder
 	self.coinIcon = coinIcon
 	self.cashText = label({
@@ -651,6 +667,22 @@ function Hud:buildTopBar()
 		Stroke = 0,
 		Text = "OPEN",
 	})
+end
+
+-- Puts the top bar in the same row as Roblox's topbar: vertically centred on
+-- its buttons, right of them, and clear of the settings gear on the right.
+local TOP_MAIN_CENTER = 29 -- centre of the main pills inside the top bar frame
+function Hud:placeTopBar()
+	local s = self.uiScale.Scale
+	local inset = GuiService.TopbarInset
+	local cam = Workspace.CurrentCamera
+	local rootW = (if cam then cam.ViewportSize.X else 1280) / s
+	local centerY = math.max(inset.Max.Y - 24, 22) / s
+	local width = self.top.Size.X.Offset
+	local left = (rootW - width) / 2
+	left = math.max(left, inset.Min.X / s + 26) -- night star pokes 14 left of the frame
+	left = math.min(left, rootW - width - 70) -- keep room for the gear
+	self.top.Position = UDim2.fromOffset(left, centerY - TOP_MAIN_CENTER)
 end
 
 -- Rooms card: white card with a gold ribbon, one checklist row per room -----
@@ -2309,7 +2341,7 @@ function Hud:tick()
 	-- Coin flip after a cash change; star spin after a new night.
 	if self.coinSpin then
 		local k = (clock - self.coinSpin) / 0.5
-		self.coinIcon.frame.Rotation = if k < 1 then k * 360 else 0
+		self.coinHolder.Rotation = if k < 1 then k * 360 else 0
 		if k >= 1 then
 			self.coinSpin = nil
 		end
