@@ -70,7 +70,8 @@ luau-lsp analyze --sourcemap=sourcemap.json --definitions=<path>/globalTypes.d.l
 | `src/shared/Constants.luau` | `ReplicatedStorage.Shared.Constants` | Nama fase, item, action, remote |
 | `src/server/MotelCore.luau` | `ServerScriptService.Server.MotelCore` | State otoritatif murni (tanpa API Roblox, tanpa yield) |
 | `src/server/MapBuilder.luau` | | Blockout, waypoint, ProximityPrompt |
-| `src/server/Visuals.luau` | | Mobil/tamu placeholder, papan kamar, lampu, hujan |
+| `src/server/Visuals.luau` | | Mobil, tamu, papan kamar, lampu, hujan |
+| `src/server/NpcRigs.luau` | | Tamu dan penjaga toko R15 default (pakaian, muka, rambut dari katalog Roblox) |
 | `src/server/Main.server.luau` | | Remote, validasi, loop Heartbeat |
 | `src/client/Hud.luau`, `Main.client.luau` | `StarterPlayerScripts.Client` | HUD, pemilih kamar, laporan |
 | `src/server/Persistence.luau` | | DataStore rekor malam + profil (juga dipakai lobby) |

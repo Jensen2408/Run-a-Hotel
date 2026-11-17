@@ -12,6 +12,7 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local UiAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiAssets"))
+local NpcRigs = require(script.Parent:WaitForChild("NpcRigs"))
 
 local Visuals = {}
 Visuals.__index = Visuals
@@ -89,8 +90,43 @@ local function pick(list, id: number, salt: number)
 	return list[(id * 7 + salt * 13) % #list + 1]
 end
 
+-- Mood label above a guest: icon + outlined text, sized in studs.
+local function makeMood(offsetY: number)
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "Mood"
+	gui.Size = UDim2.fromScale(4.4, 0.9) -- studs: shrinks with distance
+	gui.StudsOffset = Vector3.new(0, offsetY, 0)
+	gui.AlwaysOnTop = false
+	gui.MaxDistance = 55
+	gui.LightInfluence = 0
+	local icon = Instance.new("ImageLabel")
+	icon.Name = "Icon"
+	icon.BackgroundTransparency = 1
+	icon.ScaleType = Enum.ScaleType.Fit
+	icon.Size = UDim2.fromScale(0.27, 1.25)
+	icon.Position = UDim2.fromScale(0, 0.5)
+	icon.AnchorPoint = Vector2.new(0, 0.5)
+	icon.Parent = gui
+	local tl = Instance.new("TextLabel")
+	tl.Size = UDim2.fromScale(0.7, 1)
+	tl.Position = UDim2.fromScale(0.3, 0)
+	tl.TextXAlignment = Enum.TextXAlignment.Left
+	tl.BackgroundTransparency = 1
+	tl.TextColor3 = Color3.new(1, 1, 1)
+	tl.TextScaled = true
+	tl.Font = Enum.Font.FredokaOne
+	tl.Text = ""
+	tl.Parent = gui
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(46, 32, 22)
+	stroke.LineJoinMode = Enum.LineJoinMode.Round
+	stroke.Parent = tl
+	return gui, icon, tl
+end
+
 --[[
-	Blocky guest rig. Returns:
+	Blocky guest rig (fallback while R15 rigs load). Returns:
 	  { model, root, label, statics = { {part, offset} }, limbs = { {joint, swing, parts} }, phase }
 	All parts are anchored; poseGuest() places them every frame from a root CFrame.
 ]]
@@ -166,36 +202,7 @@ local function makeGuest(id: number, parent: Instance)
 		{ "Handle", Vector3.new(0.2, 0.3, 0.6), CFrame.new(0.3, -1.55, 0), Color3.fromRGB(40, 36, 34) },
 	})
 
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "Mood"
-	gui.Size = UDim2.fromScale(4.4, 0.9) -- studs: shrinks with distance
-	gui.StudsOffset = Vector3.new(0, 4, 0)
-	gui.AlwaysOnTop = false
-	gui.MaxDistance = 55
-	gui.LightInfluence = 0
-	local icon = Instance.new("ImageLabel")
-	icon.Name = "Icon"
-	icon.BackgroundTransparency = 1
-	icon.ScaleType = Enum.ScaleType.Fit
-	icon.Size = UDim2.fromScale(0.27, 1.25)
-	icon.Position = UDim2.fromScale(0, 0.5)
-	icon.AnchorPoint = Vector2.new(0, 0.5)
-	icon.Parent = gui
-	local tl = Instance.new("TextLabel")
-	tl.Size = UDim2.fromScale(0.7, 1)
-	tl.Position = UDim2.fromScale(0.3, 0)
-	tl.TextXAlignment = Enum.TextXAlignment.Left
-	tl.BackgroundTransparency = 1
-	tl.TextColor3 = Color3.new(1, 1, 1)
-	tl.TextScaled = true
-	tl.Font = Enum.Font.FredokaOne
-	tl.Text = ""
-	tl.Parent = gui
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 2
-	stroke.Color = Color3.fromRGB(46, 32, 22)
-	stroke.LineJoinMode = Enum.LineJoinMode.Round
-	stroke.Parent = tl
+	local gui, icon, tl = makeMood(4)
 	gui.Parent = root
 	if NPC_SCALE ~= 1 then
 		local k = NPC_SCALE
@@ -217,8 +224,58 @@ local function makeGuest(id: number, parent: Instance)
 	return { model = model, root = root, label = tl, icon = icon, statics = statics, limbs = limbs, phase = 0 }
 end
 
+-- R15 guest (NpcRigs) with a suitcase in the right hand. Returns the same
+-- shape as makeGuest plus r15 = true, or nil while templates load.
+local function makeR15Guest(id: number, parent: Instance)
+	local model = NpcRigs.clone(id)
+	if not model then
+		return nil
+	end
+	model.Name = "Guest" .. id
+	local root = model.PrimaryPart
+	local k = NPC_SCALE
+	local hand = model:FindFirstChild("RightHand")
+	if hand then
+		local case = newPart({
+			Name = "Suitcase",
+			Size = Vector3.new(0.45, 1.2, 1.7) * k,
+			Color = pick(SHIRTS, id, 7):Lerp(Color3.fromRGB(90, 60, 40), 0.5),
+			Anchored = false,
+			Massless = true,
+			Parent = model,
+		})
+		case.CFrame = hand.CFrame * CFrame.new(0.15 * k, -0.75 * k, 0)
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = hand
+		weld.Part1 = case
+		weld.Parent = case
+	end
+	local head = model:FindFirstChild("Head")
+	local gui, icon, tl = makeMood(1.9)
+	gui.StudsOffset *= k
+	gui.Size = UDim2.fromScale(4.4 * k, 0.9 * k)
+	gui.Parent = head or root
+	model.Parent = parent
+	return {
+		model = model,
+		root = root,
+		label = tl,
+		icon = icon,
+		r15 = true,
+		rootHeight = model:GetAttribute("RootHeight") or 2.9 * k,
+	}
+end
+
 -- Places every rig part from the root CFrame; limbs swing while walking.
 local function poseGuest(rig, rootCF: CFrame, moving: boolean, dt: number)
+	if rig.r15 then
+		-- rootCF is at the blocky rig's root height; put the R15 soles on the
+		-- floor (floors and paths sit ~0.35 studs above that rig's soles).
+		local floorY = rootCF.Position.Y - 2.2 * NPC_SCALE + 0.35
+		rig.root.CFrame = rootCF + Vector3.new(0, floorY + rig.rootHeight - rootCF.Position.Y, 0)
+		NpcRigs.setMoving(rig.model, moving, rig.walkRate)
+		return
+	end
 	if moving then
 		rig.phase += dt * 9
 	else
@@ -378,7 +435,36 @@ function Visuals.new(layout, config, constants, timeScale: number)
 	self.runId = nil
 	self.labelTimer = 0
 	self.lightingKey = nil
+	NpcRigs.preload(k)
+	self:dressShopkeeper()
 	return self
+end
+
+-- Swaps the blocky shopkeeper from MapDecor for an R15 one (background).
+function Visuals:dressShopkeeper()
+	local old = self.layout.root and self.layout.root:FindFirstChild("Shopkeeper", true)
+	if not old then
+		return
+	end
+	task.spawn(function()
+		local rig = NpcRigs.build(NpcRigs.SHOPKEEPER, NPC_SCALE)
+		if not rig or not old.Parent then
+			return
+		end
+		local cf, size = old:GetBoundingBox()
+		local floor = cf.Position - Vector3.new(0, size.Y / 2, 0)
+		local pos = floor + Vector3.new(0, rig:GetAttribute("RootHeight"), 0)
+		rig.Name = "Shopkeeper"
+		rig.PrimaryPart.CFrame = CFrame.lookAt(pos, pos - Vector3.xAxis) -- faces the counter (west)
+		rig.Parent = old.Parent
+		old:Destroy()
+		NpcRigs.setMoving(rig, false)
+		task.wait(0.5)
+		local sole = NpcRigs.soleY(rig)
+		if sole then
+			rig.PrimaryPart.CFrame += Vector3.new(0, floor.Y - sole, 0)
+		end
+	end)
 end
 
 function Visuals:clearAll()
@@ -468,7 +554,8 @@ function Visuals:updateTargets(core, g, e)
 			self:sendCarAway(e)
 			return
 		end
-		local rig = makeGuest(g.id, layout.runtime)
+		local rig = makeR15Guest(g.id, layout.runtime) or makeGuest(g.id, layout.runtime)
+		rig.walkRate = self.config.npc.walkSpeed / self.timeScale / (16 * NPC_SCALE)
 		e.rig = rig
 		e.guest = rig.model
 		e.label = rig.label
