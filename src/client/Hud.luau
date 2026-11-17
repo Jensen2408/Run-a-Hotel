@@ -258,6 +258,7 @@ end
 
 -- Quick squash-and-stretch bounce.
 local function pop(gui: GuiObject, amount: number?)
+	Icons.bumpIn(gui) -- something changed here: animate its icons too
 	local s = scaleOf(gui)
 	s.Value = 1
 	local up = tween(s, 0.08, { Value = 1 + (amount or 0.12) })
@@ -311,6 +312,7 @@ end
 local function pressable(holder: GuiObject, body: GuiButton, onActivate)
 	body.Activated:Connect(function()
 		play("click")
+		Icons.bumpIn(holder)
 		onActivate()
 	end)
 	local s = scaleOf(holder, "Hover")

@@ -198,6 +198,7 @@ function UiKit.scaleOf(gui: GuiObject, name: string?): NumberValue
 end
 
 function UiKit.pop(gui: GuiObject, amount: number?)
+	Icons.bumpIn(gui) -- something changed here: animate its icons too
 	local s = UiKit.scaleOf(gui)
 	s.Value = 1
 	local up = UiKit.tween(s, 0.08, { Value = 1 + (amount or 0.12) })
@@ -221,6 +222,7 @@ end
 function UiKit.pressable(holder: GuiObject, body: GuiButton, onActivate)
 	body.Activated:Connect(function()
 		UiKit.play("click")
+		Icons.bumpIn(holder)
 		onActivate()
 	end)
 	local s = UiKit.scaleOf(holder, "Hover")

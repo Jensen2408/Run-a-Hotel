@@ -64,83 +64,124 @@ local function setIcon(self, name: string)
 end
 
 ------------------------------------------------------------------------
--- Idle animation: every icon sways, breathes and wiggles now and then.
--- Covers HUD icons (Icons.create) and world icons made on the server
--- (UiAssets.applyTo tags them "UiIcon"). Code that rotates an icon itself
--- still works: a rotation written by someone else becomes the new base.
--- Opt out with Icons.create(name, { Animate = false }) or the attribute
--- NoIdle = true.
+-- Action animation: icons stay still at idle and play a short wiggle +
+-- pop when something happens to them:
+--   * Icons.bump(icon) / Icons.bumpIn(container) (called by pop and press
+--     helpers in Hud and UiKit, so value changes and button presses animate)
+--   * the icon image changes (e.g. a room sign switching READY -> CLEAN,
+--     also for world icons made on the server)
+--   * the icon becomes visible
+-- Covers HUD icons (Icons.create) and world icons (UiAssets.applyTo tags
+-- them "UiIcon"). Opt out with Icons.create(name, { Animate = false }) or
+-- the attribute NoIdle = true (e.g. pointer arrows rotated by code).
 ------------------------------------------------------------------------
 
--- Strong keys on purpose: a weak table would lose world icons, whose Lua
--- wrappers can be collected while the instances still exist. Entries are
--- dropped when the icon leaves the game (render loop) or is destroyed.
-local animated = {}
+local BUMP_TIME = 0.6
 
-function Icons.animate(img: ImageLabel)
-	if animated[img] or img:GetAttribute("NoIdle") then
+-- Icons currently animating. Strong keys on purpose (a weak table could
+-- lose world icons whose Lua wrappers get collected); entries end with the
+-- animation or when the icon leaves the game.
+local active = {}
+local hooked = setmetatable({}, { __mode = "k" })
+
+local function iconOf(target): ImageLabel?
+	if typeof(target) == "table" and target.frame then
+		return target.frame
+	end
+	if typeof(target) == "Instance" and target:IsA("ImageLabel") then
+		return target
+	end
+	return nil
+end
+
+-- Plays the action animation on one icon (Icon object or ImageLabel).
+function Icons.bump(target)
+	local img = iconOf(target)
+	if not img or img:GetAttribute("NoIdle") then
 		return
 	end
-	local rng = Random.new()
-	local scale = img:FindFirstChild("IconIdle") or Instance.new("UIScale")
-	scale.Name = "IconIdle"
+	local st = active[img]
+	if st then
+		st.start = os.clock() -- restart, keep the original base rotation
+		return
+	end
+	local scale = img:FindFirstChild("IconFx") or Instance.new("UIScale")
+	scale.Name = "IconFx"
 	scale.Parent = img
-	img.Destroying:Once(function()
-		animated[img] = nil
+	active[img] = { start = os.clock(), base = img.Rotation, last = img.Rotation, scale = scale }
+end
+
+-- Bumps every icon inside a container (and the container if it is one).
+function Icons.bumpIn(container: Instance?)
+	if not container then
+		return
+	end
+	if container:HasTag(UiAssets.ICON_TAG) then
+		Icons.bump(container)
+	end
+	for _, d in ipairs(container:GetDescendants()) do
+		if d:IsA("ImageLabel") and d:HasTag(UiAssets.ICON_TAG) then
+			Icons.bump(d)
+		end
+	end
+end
+
+-- Automatic triggers for one icon: image changed, became visible.
+local function hook(img: ImageLabel)
+	if hooked[img] then
+		return
+	end
+	hooked[img] = true
+	img:GetPropertyChangedSignal("ImageRectOffset"):Connect(function()
+		Icons.bump(img)
 	end)
-	animated[img] = {
-		phase = rng:NextNumber(0, math.pi * 2),
-		speed = rng:NextNumber(1.7, 2.6),
-		amp = rng:NextNumber(3, 5),
-		base = img.Rotation,
-		last = img.Rotation,
-		scale = scale,
-		wiggleAt = os.clock() + rng:NextNumber(1.5, 8),
-		rng = rng,
-	}
+	img:GetPropertyChangedSignal("Visible"):Connect(function()
+		if img.Visible then
+			Icons.bump(img)
+		end
+	end)
 end
 
 if RunService:IsClient() then
 	for _, inst in ipairs(CollectionService:GetTagged(UiAssets.ICON_TAG)) do
 		if inst:IsA("ImageLabel") then
-			Icons.animate(inst)
+			hook(inst)
 		end
 	end
 	CollectionService:GetInstanceAddedSignal(UiAssets.ICON_TAG):Connect(function(inst)
 		if inst:IsA("ImageLabel") then
-			Icons.animate(inst)
+			hook(inst)
 		end
 	end)
 	-- After the other render-step code, so their rotations are seen as the base.
-	RunService:BindToRenderStep("MotelIconIdle", Enum.RenderPriority.Last.Value + 10, function()
-		local t = os.clock()
-		for img, st in pairs(animated) do
+	RunService:BindToRenderStep("MotelIconFx", Enum.RenderPriority.Last.Value + 10, function()
+		local now = os.clock()
+		for img, st in pairs(active) do
+			local t = now - st.start
 			if not img:IsDescendantOf(game) then
-				animated[img] = nil
-			elseif img.Visible then
+				active[img] = nil
+			else
 				if math.abs(img.Rotation - st.last) > 0.01 then
-					st.base = img.Rotation
+					st.base = img.Rotation -- someone else rotated it meanwhile
 				end
-				local rot = math.sin(t * st.speed + st.phase) * st.amp
-				local w = t - st.wiggleAt
-				if w >= 0 then
-					if w < 0.6 then
-						rot += math.sin(w * 30) * 14 * (1 - w / 0.6)
-					else
-						st.wiggleAt = t + st.rng:NextNumber(4, 9)
-					end
+				if t >= BUMP_TIME then
+					img.Rotation = st.base
+					st.scale.Scale = 1
+					active[img] = nil
+				else
+					local k = 1 - t / BUMP_TIME
+					local value = st.base + math.sin(t * 30) * 14 * k
+					img.Rotation = value
+					st.last = value
+					st.scale.Scale = 1 + 0.28 * math.sin(math.pi * math.min(t / 0.35, 1)) * k
 				end
-				local value = st.base + rot
-				img.Rotation = value
-				st.last = value
-				st.scale.Scale = 1 + math.sin(t * st.speed * 1.3 + st.phase) * 0.045
 			end
 		end
 	end)
 end
 
 -- props: Name, Size, Position, AnchorPoint, ZIndex, Rotation, Parent, FallbackColor,
--- Animate (default true: idle animation)
+-- Animate (default true: action animation)
 function Icons.create(name: string, props): Icon
 	local img = Instance.new("ImageLabel")
 	img.Name = props.Name or "Icon"
