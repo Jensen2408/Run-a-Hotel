@@ -32,7 +32,7 @@ local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 9
+MapBuilder.VERSION = 10
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -491,29 +491,13 @@ function MapBuilder.build(config)
 		Material = Enum.Material.Wood,
 		Parent = interact,
 	})
-	layout.prompts.takeSheet = prompt(shelf, config, {
-		action = "TakeSheet",
-		actionText = "Take Sheet",
-		objectText = "Linen Shelf",
-		key = Enum.KeyCode.E,
-		gamepadKey = Enum.KeyCode.ButtonX,
-		offset = Vector3.new(-2.5, 0, 1.2),
-	})
-	layout.prompts.takeTowel = prompt(shelf, config, {
-		action = "TakeTowel",
-		actionText = "Take Towel",
-		objectText = "Linen Shelf",
-		key = Enum.KeyCode.F,
-		gamepadKey = Enum.KeyCode.ButtonY,
+	-- One prompt opens the linen closet panel on the client; taking and
+	-- returning supplies go through validated remote actions.
+	layout.prompts.linen = prompt(shelf, config, {
+		action = "OpenLinen",
+		actionText = "Open Linen",
+		objectText = "Linen Closet",
 		offset = Vector3.new(0, 0, 1.2),
-	})
-	layout.prompts.returnSupplies = prompt(shelf, config, {
-		action = "ReturnSupplies",
-		actionText = "Return Supplies",
-		objectText = "Linen Shelf",
-		key = Enum.KeyCode.R,
-		gamepadKey = Enum.KeyCode.ButtonB,
-		offset = Vector3.new(2.5, 0, 1.2),
 	})
 	layout.linenLabel = label(shelf, "LINEN", 4, 8.2, "sheet")
 
@@ -748,9 +732,8 @@ function MapBuilder.collect(root: Instance, config)
 	layout.prompts.shop = promptIn(shop, "OpenShop")
 
 	local shelf = must(interact, "LinenShelf")
-	layout.prompts.takeSheet = promptIn(shelf, "TakeSheet")
-	layout.prompts.takeTowel = promptIn(shelf, "TakeTowel")
-	layout.prompts.returnSupplies = promptIn(shelf, "ReturnSupplies")
+	layout.linenPosition = (shelf :: BasePart).Position
+	layout.prompts.linen = promptIn(shelf, "OpenLinen")
 	layout.linenLabel = labelText(shelf)
 
 	layout.prompts.dumpTrash = promptIn(must(interact, "Dumpster"), "DumpTrash")

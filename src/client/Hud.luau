@@ -410,6 +410,7 @@ function Hud.new(playerGui: PlayerGui, config, callbacks)
 	self:buildPicker()
 	self:buildReport()
 	self:buildShop()
+	self:buildLinen()
 	self:buildTutorial()
 	self:buildFx()
 	return self
@@ -1089,9 +1090,9 @@ function Hud:closeModal(holder: GuiObject)
 	t.Completed:Once(function()
 		holder.Visible = false
 		s.Value = 1
-		if not (self.picker.Visible or self.report.Visible or self.shop.Visible) then
+		if not (self.picker.Visible or self.report.Visible or self.shop.Visible or self.linen.Visible) then
 			tween(self.backdrop, 0.2, { BackgroundTransparency = 1 }).Completed:Once(function()
-				if not (self.picker.Visible or self.report.Visible or self.shop.Visible) then
+				if not (self.picker.Visible or self.report.Visible or self.shop.Visible or self.linen.Visible) then
 					self.backdrop.Visible = false
 				end
 			end)
@@ -1786,6 +1787,235 @@ function Hud:renderShop()
 	end
 end
 
+------------------------------------------------------------------------
+-- Linen closet panel
+------------------------------------------------------------------------
+
+function Hud:buildLinen()
+	local holder, body = modal(self.root, "Linen", Vector2.new(560, 440), "LINEN CLOSET")
+	self.linen = holder
+
+	-- "Your hands" strip with one slot per carry capacity.
+	local strip = make("Frame", {
+		BackgroundColor3 = WHITE,
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, -40, 0, 78),
+		Position = UDim2.fromOffset(20, 38),
+		Parent = body,
+	})
+	corner(strip, UDim.new(0, 12))
+	Icons.create("hand", {
+		Parent = strip,
+		Size = UDim2.fromOffset(40, 40),
+		Position = UDim2.new(0, 12, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+	})
+	label({
+		Parent = strip,
+		Size = UDim2.fromOffset(150, 30),
+		Position = UDim2.new(0, 58, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		TextSize = 22,
+		TextColor3 = TEXT_DARK,
+		Stroke = 0,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = "YOUR HANDS",
+	})
+	self.linenSlots = {}
+	for i = 1, 2 do
+		local slotHolder, slotBody, slotGrad = chunk({
+			Name = "Slot" .. i,
+			Parent = strip,
+			Size = UDim2.fromOffset(60, 60),
+			Position = UDim2.new(0, 214 + (i - 1) * 72, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Colors = GREY,
+			Radius = UDim.new(0, 12),
+			ShadowDepth = 3,
+		})
+		local icon = Icons.create("sheet", {
+			Parent = slotBody,
+			Size = UDim2.fromScale(0.8, 0.8),
+			Position = UDim2.fromScale(0.5, 0.5),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			ZIndex = 2,
+		})
+		self.linenSlots[i] = { holder = slotHolder, grad = slotGrad, icon = icon }
+	end
+	self.linenReturn = chunkyButton(
+		strip,
+		"Return",
+		UDim2.fromOffset(150, 46),
+		UDim2.new(1, -160, 0.5, -23),
+		BLUE,
+		"RETURN",
+		function()
+			local s = self.state
+			local clean = 0
+			for _, item in ipairs(s and s.carry or {}) do
+				if item == "Sheet" or item == "Towel" then
+					clean += 1
+				end
+			end
+			if clean == 0 then
+				play("error")
+				wiggle(self.linenReturn.holder, 4, 0.3)
+				return
+			end
+			self.callbacks.onReturnSupplies()
+		end,
+		"arrowDown"
+	)
+	self.linenReturn.label.TextSize = 20
+
+	-- One big card per supply type.
+	self.linenCards = {}
+	for i, def in ipairs({
+		{ item = "Sheet", icon = "sheet", name = "Clean Sheet", desc = "For changing dirty beds" },
+		{ item = "Towel", icon = "towel", name = "Fresh Towel", desc = "For guests who ask for one" },
+	}) do
+		local cardHolder, card = chunk({
+			Name = "Card_" .. def.item,
+			Parent = body,
+			Size = UDim2.fromOffset(245, 250),
+			Position = UDim2.fromOffset(20 + (i - 1) * 275, 132),
+			Colors = CARD,
+			Radius = UDim.new(0, 16),
+			ShadowDepth = 4,
+		})
+		local medal = make("Frame", {
+			BackgroundColor3 = Color3.fromRGB(255, 240, 200),
+			BorderSizePixel = 0,
+			Size = UDim2.fromOffset(104, 104),
+			Position = UDim2.new(0.5, 0, 0, 12),
+			AnchorPoint = Vector2.new(0.5, 0),
+			Parent = card,
+		})
+		corner(medal, UDim.new(0, 16))
+		outline(medal, 2.5)
+		Icons.create(def.icon, {
+			Parent = medal,
+			Size = UDim2.fromScale(0.9, 0.9),
+			Position = UDim2.fromScale(0.5, 0.5),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+		})
+		label({
+			Parent = card,
+			Size = UDim2.new(1, -20, 0, 28),
+			Position = UDim2.fromOffset(10, 120),
+			TextSize = 22,
+			TextColor3 = TEXT_DARK,
+			Stroke = 0,
+			Text = def.name,
+		})
+		local stock = label({
+			Parent = card,
+			Size = UDim2.new(1, -20, 0, 24),
+			Position = UDim2.fromOffset(10, 148),
+			TextSize = 17,
+			Font = Enum.Font.GothamMedium,
+			TextColor3 = Color3.fromRGB(110, 90, 70),
+			Stroke = 0,
+			Text = def.desc,
+		})
+		local take = chunkyButton(
+			card,
+			"Take",
+			UDim2.new(1, -24, 0, 50),
+			UDim2.fromOffset(12, 186),
+			GREEN,
+			"TAKE",
+			function()
+				self:tryTake(i)
+			end,
+			def.icon
+		)
+		take.label.TextSize = 22
+		self.linenCards[i] = { def = def, holder = cardHolder, take = take, stock = stock }
+	end
+
+	local close = chunkyButton(body, "Close", UDim2.fromOffset(48, 48), UDim2.new(1, -30, 0, -30), RED, "", function()
+		self:closeLinen()
+	end, "cross")
+	close.holder.ZIndex = 4
+	close.icon.frame.Position = UDim2.fromScale(0.5, 0.5)
+	close.icon.frame.AnchorPoint = Vector2.new(0.5, 0.5)
+end
+
+function Hud:tryTake(i: number)
+	local card = self.linenCards[i]
+	local s = self.state
+	if not card or not s then
+		return
+	end
+	local inStock = s.stock[card.def.item] or 0
+	if #s.carry >= s.carryCapacity or inStock <= 0 then
+		play("error")
+		wiggle(card.holder, 4, 0.3)
+		return
+	end
+	pop(card.holder, 0.08)
+	self.callbacks.onTakeSupply(card.def.item)
+end
+
+function Hud:openLinen()
+	self:openModal(self.linen)
+	self:renderLinen()
+end
+
+function Hud:closeLinen()
+	self:closeModal(self.linen)
+end
+
+function Hud:renderLinen()
+	local s = self.state
+	if not s or not self.linen.Visible then
+		return
+	end
+	if not (s.phase == "Preparation" or s.phase == "Night" or s.phase == "Closing") then
+		self:closeLinen()
+		return
+	end
+	-- Hands.
+	local cleanCarried = 0
+	for i, slot in ipairs(self.linenSlots) do
+		slot.holder.Visible = i <= s.carryCapacity
+		local item = s.carry[i]
+		if item then
+			slot.icon:set(ITEM_ICON[item] or "check")
+			slot.icon.frame.Visible = true
+			setColors(slot.grad, if item == "Trash" then ORANGE else TEAL)
+			if item ~= "Trash" then
+				cleanCarried += 1
+			end
+		else
+			slot.icon.frame.Visible = false
+			setColors(slot.grad, GREY)
+		end
+	end
+	setColors(self.linenReturn.grad, if cleanCarried > 0 then BLUE else GREY)
+	-- Cards.
+	local full = #s.carry >= s.carryCapacity
+	for _, c in ipairs(self.linenCards) do
+		local left = s.stock[c.def.item] or 0
+		c.stock.Text = ("%d left in the closet"):format(left)
+		if left <= 0 then
+			c.take.label.Text = "OUT OF STOCK"
+			c.take.icon:set("cross")
+			setColors(c.take.grad, GREY)
+		elseif full then
+			c.take.label.Text = "HANDS FULL"
+			c.take.icon:set("hand")
+			setColors(c.take.grad, GREY)
+		else
+			c.take.label.Text = "TAKE"
+			c.take.icon:set(c.def.icon)
+			setColors(c.take.grad, GREEN)
+		end
+	end
+end
+
 function Hud:openPicker()
 	self:openModal(self.picker)
 	self:renderPicker()
@@ -2141,6 +2371,7 @@ function Hud:setState(s)
 	self.prev = s
 	self:renderPicker()
 	self:renderShop()
+	self:renderLinen()
 end
 
 -- Called every frame: timers, rolling numbers and idle motion.

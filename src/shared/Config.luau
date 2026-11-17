@@ -156,6 +156,7 @@ Config.interaction = {
 	rangeSlack = 4, -- extra studs the server tolerates for latency
 	deskRange = 14, -- max distance from the desk anchor for a check-in request
 	shopRange = 16, -- max distance from the shop counter for a purchase
+	linenRange = 14, -- max distance from the linen closet to take/return supplies
 	remoteCooldown = 0.2,
 	repairHoldDuration = 1.5,
 	breakerHoldDuration = 1,

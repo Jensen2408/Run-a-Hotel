@@ -83,7 +83,7 @@ local CORE = {
 		id = "linen",
 		info = true,
 		near = 12,
-		text = "This is the LINEN SHELF. Take clean sheets (E) and towels (F) here. You can carry 1 item (2 with a trolley).",
+		text = "This is the LINEN CLOSET. Press E to open it and take clean sheets or towels. You can carry 1 item (2 with a trolley).",
 		target = function()
 			return interactable("LinenShelf")
 		end,
@@ -172,7 +172,7 @@ local CORE = {
 	},
 	{
 		id = "sheet",
-		text = "Now grab a clean sheet at the LINEN SHELF (E).",
+		text = "Now open the LINEN CLOSET (E) and take a clean sheet.",
 		target = function()
 			return interactable("LinenShelf")
 		end,
@@ -219,7 +219,7 @@ local HINTS = {
 			if carrying(s, "Towel") then
 				return ("Deliver the towel at Room %d's door (E) for a $5 tip."):format(ctx.towelRoom or 1)
 			end
-			return ("Room %d wants a towel! Take one at the LINEN SHELF (F)."):format(ctx.towelRoom or 1)
+			return ("Room %d wants a towel! Open the LINEN CLOSET (E) and take one."):format(ctx.towelRoom or 1)
 		end,
 		target = function(s, ctx)
 			if carrying(s, "Towel") then

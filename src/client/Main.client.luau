@@ -20,6 +20,7 @@ local stateRemote = remotes:WaitForChild(Constants.Remotes.State)
 local feedbackRemote = remotes:WaitForChild(Constants.Remotes.Feedback)
 local openCheckInRemote = remotes:WaitForChild(Constants.Remotes.OpenCheckIn)
 local openShopRemote = remotes:WaitForChild(Constants.Remotes.OpenShop)
+local openLinenRemote = remotes:WaitForChild(Constants.Remotes.OpenLinen)
 
 local RA = Constants.RemoteAction
 
@@ -27,6 +28,12 @@ local hud = Hud.new(player:WaitForChild("PlayerGui"), Config, {
 	sfx = Sfx.new(),
 	onCheckIn = function(roomId: number)
 		actionRemote:FireServer({ kind = RA.CheckIn, roomId = roomId })
+	end,
+	onTakeSupply = function(item: string)
+		actionRemote:FireServer({ kind = RA.TakeSupply, item = item })
+	end,
+	onReturnSupplies = function()
+		actionRemote:FireServer({ kind = RA.ReturnSupplies })
 	end,
 	onBuy = function(itemId: string)
 		actionRemote:FireServer({ kind = RA.Buy, itemId = itemId })
@@ -82,17 +89,30 @@ openShopRemote.OnClientEvent:Connect(function()
 	hud:openShop()
 end)
 
--- Close the shop panel when the player walks away from the counter.
-local SHOP_CLOSE_DISTANCE = Config.interaction.shopRange * (Config.mapScale or 1) + 6
+openLinenRemote.OnClientEvent:Connect(function()
+	hud:openLinen()
+end)
+
+-- Close station panels when the player walks away from the station.
+local SCALE = Config.mapScale or 1
+local stations = {
+	{ panel = "shop", part = "SupplyShop", range = Config.interaction.shopRange * SCALE + 6, close = "closeShop" },
+	{ panel = "linen", part = "LinenShelf", range = Config.interaction.linenRange * SCALE + 6, close = "closeLinen" },
+}
 local function checkShopDistance()
-	if not hud.shop.Visible then
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local motel = workspace:FindFirstChild("Motel")
+	local interact = motel and motel:FindFirstChild("Interactables")
+	if not (hrp and interact) then
 		return
 	end
-	local motel = workspace:FindFirstChild("Motel")
-	local counter = motel and motel:FindFirstChild("Interactables") and motel.Interactables:FindFirstChild("SupplyShop")
-	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	if counter and hrp and (hrp.Position - counter.Position).Magnitude > SHOP_CLOSE_DISTANCE then
-		hud:closeShop()
+	for _, st in ipairs(stations) do
+		if hud[st.panel].Visible then
+			local part = interact:FindFirstChild(st.part)
+			if part and (hrp.Position - part.Position).Magnitude > st.range then
+				hud[st.close](hud)
+			end
+		end
 	end
 end
 

@@ -41,6 +41,7 @@ local stateRemote = remote(Constants.Remotes.State)
 local feedbackRemote = remote(Constants.Remotes.Feedback)
 local openCheckInRemote = remote(Constants.Remotes.OpenCheckIn)
 local openShopRemote = remote(Constants.Remotes.OpenShop)
+local openLinenRemote = remote(Constants.Remotes.OpenLinen)
 remotes.Parent = ReplicatedStorage
 
 ------------------------------------------------------------------------
@@ -166,14 +167,13 @@ local promptHandlers = {
 		openCheckInRemote:FireClient(player)
 		return nil, nil -- no toast; the client opens the room picker
 	end,
-	[PA.TakeSheet] = function(player)
-		return core:takeSupply(player.UserId, Constants.Item.Sheet)
-	end,
-	[PA.TakeTowel] = function(player)
-		return core:takeSupply(player.UserId, Constants.Item.Towel)
-	end,
-	[PA.ReturnSupplies] = function(player)
-		return core:returnSupplies(player.UserId)
+	[PA.OpenLinen] = function(player)
+		local ok, err = core:requireActive()
+		if not ok then
+			return false, err
+		end
+		openLinenRemote:FireClient(player)
+		return nil, nil -- no toast; the client opens the linen panel
 	end,
 	[PA.DumpTrash] = function(player)
 		return core:dumpTrash(player.UserId)
@@ -263,6 +263,21 @@ actionRemote.OnServerEvent:Connect(function(player: Player, payload)
 			return
 		end
 		ok, msg = core:checkIn(player.UserId, roomId, now())
+	elseif kind == RA.TakeSupply or kind == RA.ReturnSupplies then
+		local range = Config.interaction.linenRange * (Config.mapScale or 1)
+		if not withinRange(player, layout.linenPosition, range) then
+			feedback(player, "Walk to the linen closet first.", "error")
+			return
+		end
+		if kind == RA.ReturnSupplies then
+			ok, msg = core:returnSupplies(player.UserId)
+		else
+			local item = payload.item
+			if item ~= Constants.Item.Sheet and item ~= Constants.Item.Towel then
+				return
+			end
+			ok, msg = core:takeSupply(player.UserId, item)
+		end
 	elseif kind == RA.Buy then
 		local itemId = payload.itemId
 		if typeof(itemId) ~= "string" or not core:shopItem(itemId) then

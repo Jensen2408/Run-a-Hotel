@@ -27,9 +27,7 @@ Constants.Item = {
 -- Actions a ProximityPrompt can carry in its "Action" attribute.
 Constants.PromptAction = {
 	OpenCheckIn = "OpenCheckIn",
-	TakeSheet = "TakeSheet",
-	TakeTowel = "TakeTowel",
-	ReturnSupplies = "ReturnSupplies",
+	OpenLinen = "OpenLinen",
 	CollectTrash = "CollectTrash",
 	DumpTrash = "DumpTrash",
 	ChangeSheets = "ChangeSheets",
@@ -46,6 +44,8 @@ Constants.RemoteAction = {
 	Restart = "Restart",
 	RequestState = "RequestState",
 	Buy = "Buy",
+	TakeSupply = "TakeSupply",
+	ReturnSupplies = "ReturnSupplies",
 }
 
 Constants.Remotes = {
@@ -55,6 +55,7 @@ Constants.Remotes = {
 	Feedback = "Feedback", -- server -> client toast
 	OpenCheckIn = "OpenCheckIn", -- server -> client: show room picker
 	OpenShop = "OpenShop", -- server -> client: show the supply shop panel
+	OpenLinen = "OpenLinen", -- server -> client: show the linen closet panel
 }
 
 return Constants

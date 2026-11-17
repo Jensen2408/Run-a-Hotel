@@ -681,9 +681,7 @@ function Visuals:refreshWorld(core)
 	layout.prompts.desk.Enabled = core.phase == P.Night or core.phase == P.Closing
 	layout.prompts.breaker.Enabled = active and not core.power
 	layout.prompts.shop.Enabled = active
-	layout.prompts.takeSheet.Enabled = active
-	layout.prompts.takeTowel.Enabled = active
-	layout.prompts.returnSupplies.Enabled = active
+	layout.prompts.linen.Enabled = active
 	layout.prompts.dumpTrash.Enabled = active
 
 	layout.breakerLabel.Text = if core.power then "BREAKER: OK" else "BREAKER: RESET!"
