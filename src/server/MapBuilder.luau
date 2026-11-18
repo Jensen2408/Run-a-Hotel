@@ -33,10 +33,15 @@ local Kit = require(script.Parent:WaitForChild("Kit"))
 -- Room door leaf colours (Blender kit door, one per room).
 local DOOR_COLORS = { Color3.fromRGB(64, 150, 146), Color3.fromRGB(230, 120, 70), Color3.fromRGB(110, 120, 200) }
 
+-- Front-door line of the office (scale 1): entrance path, desk, queue and
+-- lobby entrance sit on it. 22 = office centre, where the v2 office has its
+-- centred double door (the old office's wide gap 19..33 contains it too).
+local LOBBY_X = 22
+
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 17
+MapBuilder.VERSION = 18
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -193,7 +198,7 @@ function MapBuilder.build(config)
 	part({
 		Name = "Path",
 		Size = Vector3.new(6, 0.25, 18),
-		Position = Vector3.new(26, 0.12, -40),
+		Position = Vector3.new(LOBBY_X, 0.12, -40),
 		Color = Color3.fromRGB(170, 160, 140),
 		Material = Enum.Material.Concrete,
 		Parent = map,
@@ -226,7 +231,7 @@ function MapBuilder.build(config)
 	local desk = part({
 		Name = "Desk",
 		Size = Vector3.new(10, 3, 2),
-		Position = Vector3.new(26, 1.9, -14),
+		Position = Vector3.new(LOBBY_X, 1.9, -14),
 		Color = Color3.fromRGB(120, 72, 40),
 		Material = Enum.Material.Wood,
 		Parent = interact,
@@ -239,13 +244,13 @@ function MapBuilder.build(config)
 		offset = Vector3.new(0, 1.5, -1.2),
 	})
 	label(desk, "FRONT DESK", 3.2, 5.2, "guests")
-	Kit.skin(desk, "FrontDesk", CFrame.new(26, 0.4, -14), { only = { SM_Prop_FrontDesk = true } })
-	Kit.place("FrontDesk", map, CFrame.new(23.5, 3.68, -14.8), { only = { SM_Prop_DeskBell = true } })
+	Kit.skin(desk, "FrontDesk", CFrame.new(LOBBY_X, 0.4, -14), { only = { SM_Prop_FrontDesk = true } })
+	Kit.place("FrontDesk", map, CFrame.new(LOBBY_X - 2.5, 3.68, -14.8), { only = { SM_Prop_DeskBell = true } })
 	local deskLamp = part({
 		Name = "DeskLamp",
 		Size = Vector3.new(1, 1, 1),
 		Shape = Enum.PartType.Ball,
-		Position = Vector3.new(29, 4, -14),
+		Position = Vector3.new(LOBBY_X + 3, 4, -14),
 		Color = Color3.fromRGB(255, 220, 140),
 		Material = Enum.Material.Neon,
 		Parent = map,
@@ -264,9 +269,10 @@ function MapBuilder.build(config)
 	-- Queue: slot 1 is in front of the desk, the line grows toward the entrance.
 	layout.queueSlots = {}
 	for k = 1, 10 do
-		layout.queueSlots[k] = waypoint(wpFolder, "QueueSlot" .. k, Vector3.new(26, 1, -18 - 3.5 * (k - 1))).Position
+		layout.queueSlots[k] =
+			waypoint(wpFolder, "QueueSlot" .. k, Vector3.new(LOBBY_X, 1, -18 - 3.5 * (k - 1))).Position
 	end
-	layout.entrance = waypoint(wpFolder, "LobbyEntrance", Vector3.new(26, 1, -36)).Position
+	layout.entrance = waypoint(wpFolder, "LobbyEntrance", Vector3.new(LOBBY_X, 1, -36)).Position
 	layout.deskSide = waypoint(wpFolder, "DeskSide", Vector3.new(16, 1, -18)).Position
 	layout.hallMain = waypoint(wpFolder, "HallMain", Vector3.new(16, 1, -3)).Position
 
@@ -677,7 +683,7 @@ function MapBuilder.build(config)
 	spawn.Name = "MotelSpawn"
 	spawn.Anchored = true
 	spawn.Size = Vector3.new(6, 0.4, 6)
-	spawn.Position = Vector3.new(20, 0.45, -24)
+	spawn.Position = Vector3.new(14.5, 0.45, -27) -- beside the queue line, clear of the coffee table
 	spawn.Neutral = true
 	spawn.Duration = 0
 	spawn.Color = Color3.fromRGB(196, 176, 150)

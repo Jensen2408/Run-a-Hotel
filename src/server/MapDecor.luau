@@ -980,9 +980,9 @@ local function buildLobby(decor, rng)
 	local lobby = folder(decor, "LobbyShell")
 	-- The v2 office (reference art) has real doorways: the (invisible)
 	-- collider walls get the same narrower gaps. NPC routes stay inside
-	-- them: queue / entrance at x 26, desk side to hall at x 16.
+	-- them: queue / entrance at x 22, desk side to hall at x 16.
 	local v2 = Kit.has("OfficeV2")
-	local frontGap = if v2 then { 23, 29 } else { 19, 33 }
+	local frontGap = if v2 then { 19, 25 } else { 19, 33 }
 	local hallGap = if v2 then { 14, 18 } else { 10, 22 }
 	local sideGap = if v2 then { -18, -14 } else { -24, -14 }
 	wallZ(lobby, "WestWall", -32, -6, 4, LOBBY_H, nil)
@@ -1052,8 +1052,8 @@ local function buildLobby(decor, rng)
 	bench(lobby, Vector3.new(10, 0.2, -35.5), 0)
 
 	-- Interior.
-	detail(lobby, "RugBorder", Vector3.new(6.6, 0.04, 12.6), Vector3.new(26, 0.42, -24), Color3.fromRGB(230, 190, 90))
-	detail(lobby, "Rug", Vector3.new(6, 0.05, 12), Vector3.new(26, 0.43, -24), Color3.fromRGB(160, 50, 56))
+	detail(lobby, "RugBorder", Vector3.new(6.6, 0.04, 12.6), Vector3.new(22, 0.42, -24), Color3.fromRGB(230, 190, 90))
+	detail(lobby, "Rug", Vector3.new(6, 0.05, 12), Vector3.new(22, 0.43, -24), Color3.fromRGB(160, 50, 56))
 	block(lobby, "CouchSeat", Vector3.new(2.6, 1.4, 7), Vector3.new(6.4, 1.1, -24), Color3.fromRGB(70, 120, 150))
 	block(lobby, "CouchBack", Vector3.new(0.8, 2.6, 7), Vector3.new(5.2, 1.7, -24), Color3.fromRGB(60, 104, 132))
 	detail(lobby, "CoffeeTable", Vector3.new(2.4, 1, 3.6), Vector3.new(10, 0.9, -24), WOOD)
@@ -1064,11 +1064,11 @@ local function buildLobby(decor, rng)
 		lobby,
 		"DeskBell",
 		0.6,
-		Vector3.new(23.5, 3.6, -14.2),
+		Vector3.new(19.5, 3.6, -14.2),
 		Color3.fromRGB(240, 200, 80),
 		merge(DETAIL, { Material = Enum.Material.Metal })
 	)
-	local rack = detail(lobby, "KeyRack", Vector3.new(6, 3, 0.3), Vector3.new(28, 7, -6.7), WOOD_DARK)
+	local rack = detail(lobby, "KeyRack", Vector3.new(6, 3, 0.3), Vector3.new(24, 7, -6.7), WOOD_DARK)
 	for k = 0, 5 do
 		detail(
 			lobby,
@@ -1080,7 +1080,9 @@ local function buildLobby(decor, rng)
 	end
 	local officeMeshes
 	if v2 then
-		officeMeshes = Kit.place("OfficeV2", lobby, CFrame.new(22, 0, -19))
+		-- Glowing windows stay a little see-through (Neon + transparency).
+		officeMeshes =
+			Kit.place("OfficeV2", lobby, CFrame.new(22, 0, -19), { transparency = { SM_Bld_OfficeV2_Windows = 0.3 } })
 		for _, door in ipairs(OFFICE_DOORS) do
 			Kit.door(door, lobby, CFrame.new(22, 0, -19))
 		end
