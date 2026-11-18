@@ -8,3 +8,7 @@ sourcemap.json
 Packages/
 ServerPackages/
 DevPackages/
+
+# Blender backups
+*.blend1
+*.blend2
