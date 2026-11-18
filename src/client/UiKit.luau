@@ -12,6 +12,7 @@
 ]]
 
 local TweenService = game:GetService("TweenService")
+local GuiService = game:GetService("GuiService")
 local Workspace = game:GetService("Workspace")
 
 local Icons = require(script.Parent:WaitForChild("Icons"))
@@ -321,6 +322,17 @@ function UiKit.screen(playerGui: PlayerGui, name: string, displayOrder: number?,
 		Visible = false,
 		Parent = root,
 	})
+	-- The dim backdrop always covers the whole screen, also the strip under
+	-- Roblox's topbar that an inset gui leaves out (ScreenGuis do not clip).
+	local function fitBackdrop()
+		local top = if fullScreen then 0 else GuiService:GetGuiInset().Y
+		local inset = top / uiScale.Scale
+		backdrop.Position = UDim2.fromOffset(0, -inset)
+		backdrop.Size = UDim2.new(1, 0, 1, inset)
+	end
+	fitBackdrop()
+	uiScale:GetPropertyChangedSignal("Scale"):Connect(fitBackdrop)
+	GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(fitBackdrop)
 	local screen = { gui = gui, root = root, uiScale = uiScale, backdrop = backdrop, panels = {} }
 
 	function screen:modal(panelName: string, size: Vector2, title: string, titleIcon: string?)
