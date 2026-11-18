@@ -107,6 +107,7 @@ end
 	  tint         { [meshName] = Color3 } colour for TINT meshes (default white)
 	  scale        number                  uniform scale about the pivot
 	  scaleX       number                  extra stretch along the group's X
+	  stretch      Vector3                 extra per-axis stretch (group frame)
 	  transparency { [meshName] = number }
 	Returns { [meshName] = MeshPart } or nil when the group is unavailable.
 ]]
@@ -116,7 +117,9 @@ function Kit.place(group: string, parent: Instance, pivot: CFrame, opts)
 	end
 	opts = opts or {}
 	local k = opts.scale or 1
-	local sx = opts.scaleX or 1 -- stretch along the group's X (fence sections)
+	-- Per-axis stretch in the group frame (on top of `scale`): fence sections
+	-- (scaleX), flat grass patches and mountains / hills of a given height.
+	local st = opts.stretch or Vector3.new(opts.scaleX or 1, 1, 1)
 	local out = {}
 	for _, name in ipairs(groups[group]) do
 		if opts.only == nil or opts.only[name] then
@@ -127,10 +130,10 @@ function Kit.place(group: string, parent: Instance, pivot: CFrame, opts)
 			p.CanCollide = false
 			p.CanQuery = false
 			p.CanTouch = false
-			if k ~= 1 or sx ~= 1 then
-				p.Size = Vector3.new(p.Size.X * k * sx, p.Size.Y * k, p.Size.Z * k)
+			if k ~= 1 or st ~= Vector3.one then
+				p.Size = Vector3.new(p.Size.X * k * st.X, p.Size.Y * k * st.Y, p.Size.Z * k * st.Z)
 			end
-			p.CFrame = pivot * CFrame.new(m.c[1] * k * sx, m.c[2] * k, m.c[3] * k) * FLIP
+			p.CFrame = pivot * CFrame.new(m.c[1] * k * st.X, m.c[2] * k * st.Y, m.c[3] * k * st.Z) * FLIP
 			-- Plain meshes sit just under white so the brightest painted
 			-- highlights (cream trim) do not cross the bloom threshold at night.
 			p.Color = (opts.tint and opts.tint[name]) or (if m.glow then WHITE else BASE)

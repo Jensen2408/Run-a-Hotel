@@ -1,0 +1,334 @@
+{
+  "batch": "batch5",
+  "units": "studs",
+  "axes": "roblox",
+  "meshes": {
+    "SM_Veg_RockA": {
+      "group": "RockA",
+      "size": [
+        1.986,
+        0.799,
+        1.722
+      ],
+      "center": [
+        -0.013,
+        0.379,
+        -0.031
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 144
+    },
+    "SM_Veg_RockB": {
+      "group": "RockB",
+      "size": [
+        2.145,
+        0.616,
+        1.57
+      ],
+      "center": [
+        -0.023,
+        0.303,
+        0.018
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 144
+    },
+    "SM_Veg_RockC": {
+      "group": "RockC",
+      "size": [
+        1.591,
+        1.041,
+        1.656
+      ],
+      "center": [
+        0.008,
+        0.481,
+        -0.023
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 144
+    },
+    "SM_Veg_Flowers": {
+      "group": "FlowerClump",
+      "size": [
+        4.254,
+        1.405,
+        2.78
+      ],
+      "center": [
+        -0.014,
+        0.703,
+        -0.447
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 360
+    },
+    "SM_Veg_Flowers_Petals": {
+      "group": "FlowerClump",
+      "size": [
+        4.683,
+        0.458,
+        3.202
+      ],
+      "center": [
+        -0.124,
+        1.111,
+        -0.459
+      ],
+      "tint": true,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 480
+    },
+    "SM_Veg_GrassTuft": {
+      "group": "GrassTuft",
+      "size": [
+        0.891,
+        1.068,
+        0.856
+      ],
+      "center": [
+        0.025,
+        -0.012,
+        -0.036
+      ],
+      "tint": true,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 54
+    },
+    "SM_Veg_GrassPatch": {
+      "group": "GrassPatch",
+      "size": [
+        2.136,
+        0.08,
+        2.145
+      ],
+      "center": [
+        0.043,
+        0.04,
+        0.08
+      ],
+      "tint": true,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 20
+    },
+    "SM_Env_MountainTall": {
+      "group": "MountainTall",
+      "size": [
+        9.689,
+        8.0,
+        9.615
+      ],
+      "center": [
+        0.155,
+        4.0,
+        0.196
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 70
+    },
+    "SM_Env_MountainWide": {
+      "group": "MountainWide",
+      "size": [
+        9.784,
+        5.0,
+        9.651
+      ],
+      "center": [
+        0.108,
+        2.5,
+        -0.189
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 70
+    },
+    "SM_Env_Hill": {
+      "group": "Hill",
+      "size": [
+        10.017,
+        2.532,
+        8.142
+      ],
+      "center": [
+        -0.066,
+        0.966,
+        0.065
+      ],
+      "tint": true,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 288
+    }
+  },
+  "validation": {
+    "SM_Veg_RockA": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_RockA": {
+      "tris": 144,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Veg_RockB": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_RockB": {
+      "tris": 144,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Veg_RockC": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_RockC": {
+      "tris": 144,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Veg_Flowers": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Veg_Flowers_Petals": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_FlowerClump": {
+      "tris": 840,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Veg_GrassTuft": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_GrassTuft": {
+      "tris": 54,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Veg_GrassPatch": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 20,
+      "scale_applied": true
+    },
+    "_group_GrassPatch": {
+      "tris": 20,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Env_MountainTall": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_MountainTall": {
+      "tris": 70,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Env_MountainWide": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_MountainWide": {
+      "tris": 70,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Env_Hill": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Hill": {
+      "tris": 288,
+      "budget": 1000,
+      "status": "OK"
+    }
+  }
+}

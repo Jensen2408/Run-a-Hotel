@@ -2749,6 +2749,182 @@ def flower_bed():
     return {"SM_Yard_FlowerBed": (build_mesh("SM_Yard_FlowerBed", parts), dict(collision="Box"))}
 
 
+# ======================================================================
+# Batch 5: nature (vegetation-artist + environment-artist): rocks, wild
+# flowers, grass, distant mountains and hills. Unit-ish sizes, ground
+# pivot; the game scales / turns / tints every instance.
+# ======================================================================
+ROCK_LIGHT = srgb(178, 176, 170)
+ROCK_DARK = srgb(124, 124, 132)
+MOSS = srgb(110, 160, 80)
+STEM = srgb(70, 136, 62)
+PETAL_CENTRE = srgb(255, 206, 70)
+MTN_ROCK = srgb(110, 130, 156)
+MTN_DARK = srgb(84, 100, 128)
+MTN_SNOW = srgb(246, 248, 252)
+HILL_GREEN = srgb(96, 150, 80)
+
+
+def lumpy_rock(seed, size=(1.0, 0.7, 0.9)):
+    """Faceted cartoon rock (~1 x 0.7 x 0.9), flat underside, mossy top."""
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=0.5, location=(0, 0, 0))
+    o = bpy.context.active_object
+    for v in o.data.vertices:
+        n = v.co.normalized()
+        k = 1.0 + 0.22 * noise.noise(n * 2.3 + Vector((seed, seed * 1.7, seed * 0.3)))
+        p = n * 0.5 * k
+        v.co = Vector((p.x * size[0] * 2, p.y * size[2] * 2, max(-0.05, p.z) * size[1] * 2 + 0.05))
+    bpy.ops.object.transform_apply(location=True, rotation=False, scale=False)
+    finish(o, ROCK_LIGHT, smooth_angle=25)
+    moss = blob(0.36, (0.05, 0.0, size[1] * 0.98), MOSS, squash=(1.0, 0.85, 0.22), lump=0.25, seed=seed, segs=8, rings=5)
+    return [o, moss]
+
+
+def rock_variant(name, seed, size):
+    parts = lumpy_rock(seed, size)
+    return {name: (build_mesh(name, parts), dict(collision="Hull"))}
+
+
+def rock_a():
+    return rock_variant("SM_Veg_RockA", 1.3, (1.0, 0.7, 0.9))
+
+
+def rock_b():
+    return rock_variant("SM_Veg_RockB", 4.7, (1.1, 0.55, 0.8))
+
+
+def rock_c():
+    return rock_variant("SM_Veg_RockC", 8.1, (0.8, 0.9, 0.8))
+
+
+def flower_clump():
+    """Six daisies on stems in a 5-wide clump; petals tinted per patch."""
+    import random
+
+    rnd = random.Random(5)
+    stems, petals = [], []
+    for i in range(6):
+        a = i / 6 * math.pi * 2 + rnd.uniform(-0.3, 0.3)
+        r = rnd.uniform(0.6, 2.2)
+        x, y = math.cos(a) * r, math.sin(a) * r
+        h = rnd.uniform(0.9, 1.3)
+        stems.append(cyl(0.06, h, (x, y, h / 2), STEM, verts=6, bevel=0.0))
+        stems.append(blob(0.22, (x + 0.15, y, h * 0.4), STEM, squash=(1.0, 0.45, 0.25), lump=0, segs=5, rings=3))
+        stems.append(blob(0.13, (x, y, h + 0.05), PETAL_CENTRE, squash=(1, 1, 0.6), lump=0, segs=5, rings=3))
+        for k in range(4):
+            b = k / 4 * math.pi * 2 + i
+            petals.append(blob(0.18, (x + math.cos(b) * 0.25, y + math.sin(b) * 0.25, h), NEUTRAL, squash=(1.25, 0.8, 0.35), lump=0, segs=5, rings=3))
+    return {
+        "SM_Veg_Flowers": (build_mesh("SM_Veg_Flowers", stems), dict(collision="None")),
+        "SM_Veg_Flowers_Petals": (build_mesh("SM_Veg_Flowers_Petals", petals, "tint"), dict(tint=True, collision="None")),
+    }
+
+
+def grass_tuft():
+    """Grass tuft ~1.6 wide x 1.1 tall: a fan of tapered blades (tinted)."""
+    import random
+
+    rnd = random.Random(9)
+    blades = []
+    for i in range(9):
+        a = i / 9 * math.pi * 2 + rnd.uniform(-0.2, 0.2)
+        r = rnd.uniform(0.1, 0.45)
+        h = rnd.uniform(0.7, 1.1)
+        o = cyl(0.14, h, (0, 0, h / 2), NEUTRAL, verts=4, radius2=0.0, bevel=0.0)
+        o.rotation_euler = (rnd.uniform(0.15, 0.4), 0, a)
+        o.location = (math.cos(a) * r, math.sin(a) * r, 0)
+        bpy.context.view_layer.update()
+        _activate(o)
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
+        blades.append(o)
+    return {"SM_Veg_GrassTuft": (build_mesh("SM_Veg_GrassTuft", blades, "tint"), dict(tint=True, collision="None"))}
+
+
+def grass_patch():
+    """Organic flat grass patch, radius ~1 (scaled to the patch size), tinted."""
+    bm = bmesh.new()
+    n = 20
+    centre = bm.verts.new((0, 0, 0.08))
+    ring = []
+    for i in range(n):
+        a = i / n * math.pi * 2
+        r = 1.0 + 0.12 * math.sin(a * 3 + 0.7) + 0.06 * math.sin(a * 7)
+        ring.append(bm.verts.new((math.cos(a) * r, math.sin(a) * r, 0.0)))
+    for i in range(n):
+        bm.faces.new((centre, ring[i], ring[(i + 1) % n]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new("patch")
+    bm.to_mesh(mesh)
+    bm.free()
+    o = bpy.data.objects.new("patch", mesh)
+    scene.collection.objects.link(o)
+    finish(o, NEUTRAL, smooth_angle=80)
+    return {"SM_Veg_GrassPatch": (build_mesh("SM_Veg_GrassPatch", [o], "tint"), dict(tint=True, collision="None"))}
+
+
+def mountain_mesh(name, height, seed):
+    """Faceted cartoon mountain, base width 10, with snow above 68%."""
+    bm = bmesh.new()
+    segs = 9
+    rings = [(5.0, 0.0), (3.9, 0.3), (2.6, 0.58), (1.3, 0.82)]
+    verts = []
+    for ri, (r, t) in enumerate(rings):
+        ring = []
+        for i in range(segs):
+            a = i / segs * math.pi * 2 + ri * 0.3
+            rr = r * (1 + 0.16 * noise.noise(Vector((math.cos(a) * 2 + seed, math.sin(a) * 2, ri))))
+            ring.append(bm.verts.new((math.cos(a) * rr, math.sin(a) * rr, height * t)))
+        verts.append(ring)
+    apex = bm.verts.new((0.2, -0.1, height))
+    for ri in range(len(verts) - 1):
+        lo, hi = verts[ri], verts[ri + 1]
+        for i in range(segs):
+            j = (i + 1) % segs
+            bm.faces.new((lo[i], lo[j], hi[j], hi[i]))
+    for i in range(segs):
+        bm.faces.new((verts[-1][i], verts[-1][(i + 1) % segs], apex))
+    bm.faces.new(list(reversed(verts[0])))
+    bmesh.ops.triangulate(bm, faces=bm.faces)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new(name)
+    bm.to_mesh(mesh)
+    bm.free()
+    o = bpy.data.objects.new(name, mesh)
+    scene.collection.objects.link(o)
+    finish(o, MTN_ROCK, smooth_angle=15)
+    # Height-banded colours (rock, darker base, snow cap) painted per corner.
+    o.data.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
+    attr = o.data.color_attributes["Col"]
+    normals = [cn.vector for cn in o.data.corner_normals]
+    for poly in o.data.polygons:
+        zc = sum(o.data.vertices[v].co.z for v in poly.vertices) / len(poly.vertices)
+        base = MTN_SNOW if zc > height * 0.68 else (MTN_DARK if zc < height * 0.2 else MTN_ROCK)
+        for li in poly.loop_indices:
+            k, s, l = band(normals[li].dot(KEY))
+            attr.data[li].color = mix(mul(base, k), mul(COOL, 0.6), (1 - s) * 0.15)
+    o.data.color_attributes.active_color = attr
+    o["prepainted"] = True
+    return o
+
+
+def mountain_tall():
+    o = mountain_mesh("SM_Env_MountainTall", 8.0, 2.0)
+    return {"SM_Env_MountainTall": (o, dict(collision="None"))}
+
+
+def mountain_wide():
+    o = mountain_mesh("SM_Env_MountainWide", 5.0, 6.0)
+    return {"SM_Env_MountainWide": (o, dict(collision="None"))}
+
+
+def hill():
+    """Rolling green hill, base 10 wide x 2.2 tall (tinted per hill)."""
+    parts = [blob(5.0, (0, 0, -1.4), NEUTRAL, squash=(1.0, 0.8, 0.72), lump=0.12, seed=3.0, segs=16, rings=10)]
+    for v in parts[0].data.vertices:  # flatten the buried half just under the ground
+        v.co.z = max(v.co.z, -0.3)
+    return {"SM_Env_Hill": (build_mesh("SM_Env_Hill", parts, "tint"), dict(tint=True, collision="None"))}
+
+
 BATCHES = {
     "batch1": [
         ("Bed", bed, "hero"),
@@ -2829,6 +3005,17 @@ BATCHES = {
         ("GuardRail", guard_rail, "background"),
         ("LightPole", light_pole, "background"),
         ("FlowerBed", flower_bed, "standard"),
+    ],
+    "batch5": [
+        ("RockA", rock_a, "background"),
+        ("RockB", rock_b, "background"),
+        ("RockC", rock_c, "background"),
+        ("FlowerClump", flower_clump, "background"),
+        ("GrassTuft", grass_tuft, "background"),
+        ("GrassPatch", grass_patch, "background"),
+        ("MountainTall", mountain_tall, "background"),
+        ("MountainWide", mountain_wide, "background"),
+        ("Hill", hill, "background"),
     ],
 }
 # Triangle budget per object group (prop-artist tiers, mobile-adjusted).

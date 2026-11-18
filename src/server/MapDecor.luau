@@ -633,7 +633,7 @@ local function bushParts(parent, pos: Vector3, rng: Random, flowers: boolean?)
 	end
 end
 
-local function rock(parent, pos: Vector3, size: number, rng: Random)
+local function rockParts(parent, pos: Vector3, size: number, rng: Random)
 	for i = 1, rng:NextInteger(1, 3) do
 		local s = size * rng:NextNumber(0.6, 1)
 		local cf = CFrame.new(pos + Vector3.new(rng:NextNumber(-1, 1) * i, s * 0.2, rng:NextNumber(-1, 1) * i))
@@ -648,7 +648,7 @@ local function rock(parent, pos: Vector3, size: number, rng: Random)
 	end
 end
 
-local function flowerPatch(parent, pos: Vector3, rng: Random)
+local function flowerPatchParts(parent, pos: Vector3, rng: Random)
 	local color = BULB_COLORS[rng:NextInteger(1, #BULB_COLORS)]
 	for _ = 1, 6 do
 		local p = pos + Vector3.new(rng:NextNumber(-2.5, 2.5), 0, rng:NextNumber(-2.5, 2.5))
@@ -657,7 +657,7 @@ local function flowerPatch(parent, pos: Vector3, rng: Random)
 	end
 end
 
-local function mountain(parent, x, z, width, height, rng: Random)
+local function mountainParts(parent, x, z, width, height, rng: Random)
 	local model = Instance.new("Model")
 	model.Name = "Mountain"
 	local spin = rng:NextNumber(0, math.pi / 2)
@@ -668,6 +668,59 @@ local function mountain(parent, x, z, width, height, rng: Random)
 	local capW = width * capH / height
 	pyramid(model, x, -2 + height - capH, z, capW + 1, capH + 0.4, Color3.fromRGB(246, 248, 252), spin)
 	model.Parent = parent
+end
+
+-- Blender kit nature (batch 5): rocks, wild flowers, mountains. The old
+-- part versions stay as the fallback when the meshes are missing.
+local ROCK_GROUPS = { "RockA", "RockB", "RockC" }
+
+local function rock(parent, pos: Vector3, size: number, rng: Random)
+	if not Kit.has("RockA") then
+		rockParts(parent, pos, size, rng)
+		return
+	end
+	for i = 1, rng:NextInteger(1, 3) do
+		local s = size * rng:NextNumber(0.6, 1)
+		local x, z = pos.X + rng:NextNumber(-1, 1) * i, pos.Z + rng:NextNumber(-1, 1) * i
+		Kit.place(
+			ROCK_GROUPS[rng:NextInteger(1, #ROCK_GROUPS)],
+			parent,
+			CFrame.new(x, pos.Y, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
+			{ scale = s }
+		)
+	end
+end
+
+local function flowerPatch(parent, pos: Vector3, rng: Random)
+	if not Kit.has("FlowerClump") then
+		flowerPatchParts(parent, pos, rng)
+		return
+	end
+	local color = BULB_COLORS[rng:NextInteger(1, #BULB_COLORS)]
+	Kit.place(
+		"FlowerClump",
+		parent,
+		CFrame.new(pos) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
+		{ tint = { SM_Veg_Flowers_Petals = color } }
+	)
+end
+
+-- Mountain of the given base width and height: the closer of the two kit
+-- shapes, scaled to the width and stretched to the exact height.
+local function mountain(parent, x, z, width, height, rng: Random)
+	if not Kit.has("MountainTall") then
+		mountainParts(parent, x, z, width, height, rng)
+		return
+	end
+	local tall = height / width > 0.65
+	local k = width / 10
+	local baseH = (if tall then 8 else 5) * k
+	Kit.place(
+		if tall then "MountainTall" else "MountainWide",
+		parent,
+		CFrame.new(x, -2, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
+		{ scale = k, stretch = Vector3.new(1, height / baseH, 1) }
+	)
 end
 
 ------------------------------------------------------------------------
@@ -1890,9 +1943,11 @@ local function buildCampfire(decor, rng)
 	local camp = folder(decor, "Campfire")
 	local fx, fz = -26, -24
 	cylY(camp, "FirePit", 0.4, 5, Vector3.new(fx, 0.3, fz), Color3.fromRGB(70, 60, 56))
-	for k = 0, 7 do
-		local a = k / 8 * math.pi * 2
-		rock(camp, Vector3.new(fx + math.cos(a) * 2.8, 0.1, fz + math.sin(a) * 2.8), 1.1, rng)
+	if not Kit.has("Campfire") then -- (the kit campfire has its own stone ring)
+		for k = 0, 7 do
+			local a = k / 8 * math.pi * 2
+			rock(camp, Vector3.new(fx + math.cos(a) * 2.8, 0.1, fz + math.sin(a) * 2.8), 1.1, rng)
+		end
 	end
 	for k = 0, 2 do
 		detail(
@@ -2088,15 +2143,30 @@ local function buildWild(decor, rng)
 		local x, z = rng:NextNumber(-140, 170), rng:NextNumber(-150, 110)
 		if not inLot(x, z) and not onRoad(z) then
 			local d = rng:NextNumber(8, 26)
-			cylY(
-				wild,
-				"GrassPatch",
-				0.06,
-				d,
-				Vector3.new(x, 0.14, z),
-				GRASS:Lerp(Color3.fromRGB(150, 180, 90), rng:NextNumber(0.1, 0.5)),
-				DETAIL
-			)
+			local colour = GRASS:Lerp(Color3.fromRGB(150, 180, 90), rng:NextNumber(0.1, 0.5))
+			if Kit.has("GrassPatch") then
+				Kit.place(
+					"GrassPatch",
+					wild,
+					CFrame.new(x, 0.12, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
+					{ scale = d / 2, stretch = Vector3.new(1, 0.15, 1), tint = { SM_Veg_GrassPatch = colour } }
+				)
+				for _ = 1, rng:NextInteger(2, 4) do
+					local a, r = rng:NextNumber(0, math.pi * 2), rng:NextNumber(0, d * 0.4)
+					Kit.place(
+						"GrassTuft",
+						wild,
+						CFrame.new(x + math.cos(a) * r, 0.12, z + math.sin(a) * r)
+							* CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
+						{
+							scale = rng:NextNumber(1, 1.6),
+							tint = { SM_Veg_GrassTuft = colour:Lerp(Color3.fromRGB(80, 140, 60), 0.35) },
+						}
+					)
+				end
+			else
+				cylY(wild, "GrassPatch", 0.06, d, Vector3.new(x, 0.14, z), colour, DETAIL)
+			end
 		end
 	end
 	for _ = 1, 26 do
@@ -2192,6 +2262,18 @@ local function buildHorizon(decor, rng)
 		local a = k / 14 * math.pi * 2 + rng:NextNumber(-0.15, 0.15)
 		local r = rng:NextNumber(330, 400)
 		local c = Color3.fromRGB(78, 128, 74):Lerp(Color3.fromRGB(110, 150, 90), rng:NextNumber())
+		if Kit.has("Hill") then
+			local w, h = rng:NextNumber(110, 160), rng:NextNumber(18, 32)
+			local hk = w / 10
+			Kit.place(
+				"Hill",
+				horizon,
+				CFrame.new(15 + math.cos(a) * r, -1, -10 + math.sin(a) * r)
+					* CFrame.Angles(0, rng:NextNumber(0, math.pi), 0),
+				{ scale = hk, stretch = Vector3.new(1, h / (2.2 * hk), 1), tint = { SM_Env_Hill = c } }
+			)
+			continue
+		end
 		pyramid(
 			horizon,
 			15 + math.cos(a) * r,
