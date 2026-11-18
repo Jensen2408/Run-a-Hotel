@@ -120,6 +120,7 @@ function MotelCore:resetRun(now: number)
 	self:resetKitchen()
 	self.desk = nil -- front desk session (see Front desk section)
 	self.reservations = {}
+	self.fixes = {} -- [playerId] = repair minigame in progress
 	self.cashierTutorialDone = false
 	self:enterPreparation(now)
 	self:emit("RunStarted", { runId = self.runId })
@@ -1414,6 +1415,50 @@ function MotelCore:repairAC(_pid, roomId): (boolean, string)
 	room.acBroken = false
 	self:bump()
 	return true, ("Repaired the AC in Room %d."):format(room.number)
+end
+
+-- Repair minigames: the prompt opens a session, the client plays it and
+-- reports a win; the server applies the repair only for an open session that
+-- lasted at least Config.minigame.minSeconds. kind: "AC" | "Breaker".
+function MotelCore:startFix(pid, kind: string, roomId: number?, now: number): (boolean, string?)
+	local ok, err = self:requireActive()
+	if not ok then
+		return false, err
+	end
+	if kind == "AC" then
+		local room = roomId and self.rooms[roomId]
+		if not room or not room.acBroken then
+			return false, "The AC works fine."
+		end
+	elseif kind == "Breaker" then
+		if self.power then
+			return false, "The power is already on."
+		end
+	else
+		return false, "Nothing to fix."
+	end
+	self.fixes[pid] = { kind = kind, roomId = roomId, startedAt = now }
+	return true, nil
+end
+
+function MotelCore:finishFix(pid, kind: string, roomId: number?, now: number): (boolean, string)
+	local s = self.fixes[pid]
+	if not s or s.kind ~= kind or s.roomId ~= roomId then
+		return false, "Start the repair at the panel first."
+	end
+	local minimum = (self.config.minigame and self.config.minigame.minSeconds) or 0
+	if now - s.startedAt < minimum then
+		return false, "Too fast, try again."
+	end
+	self.fixes[pid] = nil
+	if kind == "AC" then
+		return self:repairAC(pid, roomId)
+	end
+	return self:resetBreaker(pid)
+end
+
+function MotelCore:cancelFix(pid)
+	self.fixes[pid] = nil
 end
 
 function MotelCore:resetBreaker(pid): (boolean, string)

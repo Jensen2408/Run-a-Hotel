@@ -300,7 +300,7 @@ local HINTS = {
 			return ctx.acRoom ~= nil
 		end,
 		text = function(_, ctx)
-			return ("The AC in Room %d broke! The room can't be rented until you HOLD E on the AC unit."):format(
+			return ("The AC in Room %d broke! Press E on the AC unit and connect the wires to fix it."):format(
 				ctx.acRoom or 1
 			)
 		end,
@@ -317,7 +317,7 @@ local HINTS = {
 		when = function(s)
 			return s.power == false and (s.phase == "Night" or s.phase == "Closing" or s.phase == "Preparation")
 		end,
-		text = "POWER OUTAGE! Nobody can check in. HOLD E at the BREAKER panel in the lobby.",
+		text = "POWER OUTAGE! Nobody can check in. Press E at the BREAKER panel in the lobby and flip the switches.",
 		target = function()
 			return interactable("BreakerPanel")
 		end,

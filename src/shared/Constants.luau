@@ -60,6 +60,8 @@ Constants.RemoteAction = {
 	CollectDish = "CollectDish", -- { slot }
 	DiscardDish = "DiscardDish", -- { slot }
 	SetRole = "SetRole", -- { role }
+	FinishFix = "FinishFix", -- { fix = "AC" | "Breaker", roomId? }: repair minigame won
+	CancelFix = "CancelFix", -- repair minigame closed
 }
 
 -- Front desk terminal.
@@ -82,6 +84,7 @@ Constants.Remotes = {
 	OpenShop = "OpenShop", -- server -> client: show the supply shop panel
 	OpenLinen = "OpenLinen", -- server -> client: show the linen closet panel
 	OpenKitchen = "OpenKitchen", -- server -> client: show the kitchen panel
+	OpenFix = "OpenFix", -- server -> client: start a repair minigame { fix, roomId?, easy }
 }
 
 -- Lobby place remotes (ReplicatedStorage.LobbyRemotes).

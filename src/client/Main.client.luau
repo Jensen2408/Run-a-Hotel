@@ -16,6 +16,7 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local DeskHud = require(script.Parent:WaitForChild("DeskHud"))
 local KitchenHud = require(script.Parent:WaitForChild("KitchenHud"))
+local FixGame = require(script.Parent:WaitForChild("FixGame"))
 local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
 local Sfx = require(script.Parent:WaitForChild("Sfx"))
 local Settings = require(script.Parent:WaitForChild("Settings"))
@@ -30,6 +31,7 @@ local openCheckInRemote = remotes:WaitForChild(Constants.Remotes.OpenCheckIn)
 local openShopRemote = remotes:WaitForChild(Constants.Remotes.OpenShop)
 local openLinenRemote = remotes:WaitForChild(Constants.Remotes.OpenLinen)
 local openKitchenRemote = remotes:WaitForChild(Constants.Remotes.OpenKitchen)
+local openFixRemote = remotes:WaitForChild(Constants.Remotes.OpenFix)
 
 local RA = Constants.RemoteAction
 
@@ -70,35 +72,34 @@ local kitchen = KitchenHud.new(player:WaitForChild("PlayerGui"), {
 	end,
 }, Config)
 
--- Maintenance perk: repair / breaker prompts hold for less time (local
--- prompts; prompts that stream in later get the same value).
-local holdMultiplier = 1
+-- Repair minigames (AC wires, breaker panel). The repair prompts open the
+-- minigame at once, so their hold time comes from Config (local prompts,
+-- also for an older map built with a longer hold, and ones streamed in).
+local fixGame = FixGame.new(player:WaitForChild("PlayerGui"), {
+	send = function(payload)
+		actionRemote:FireServer(payload)
+	end,
+}, Config)
 local function applyHold(prompt: Instance)
 	if not prompt:IsA("ProximityPrompt") then
 		return
 	end
 	local action = prompt:GetAttribute("Action")
 	if action == "RepairAC" then
-		prompt.HoldDuration = Config.interaction.repairHoldDuration * holdMultiplier
+		prompt.HoldDuration = Config.interaction.repairHoldDuration
 	elseif action == "ResetBreaker" then
-		prompt.HoldDuration = Config.interaction.breakerHoldDuration * holdMultiplier
-	end
-end
-local function setHoldMultiplier(m: number)
-	if m == holdMultiplier then
-		return
-	end
-	holdMultiplier = m
-	local motel = workspace:FindFirstChild("Motel")
-	if motel then
-		for _, d in ipairs(motel:GetDescendants()) do
-			applyHold(d)
-		end
+		prompt.HoldDuration = Config.interaction.breakerHoldDuration
 	end
 end
 task.spawn(function()
 	local motel = workspace:WaitForChild("Motel")
+	for _, d in ipairs(motel:GetDescendants()) do
+		applyHold(d)
+	end
 	motel.DescendantAdded:Connect(applyHold)
+end)
+openFixRemote.OnClientEvent:Connect(function(info)
+	fixGame:open(info)
 end)
 
 -- Music + volume settings (gear button, top right).
@@ -115,8 +116,7 @@ stateRemote.OnClientEvent:Connect(function(snapshot)
 	end
 	desk:setState(snapshot)
 	kitchen:setState(snapshot)
-	local maintenance = snapshot.soloRoles or snapshot.role == "Maintenance"
-	setHoldMultiplier(if maintenance then Config.rolePerks.maintenanceHoldMultiplier else 1)
+	fixGame:setState(snapshot)
 	if snapshot.phase ~= lastPhase then
 		local banners = {
 			Preparation = {
@@ -205,6 +205,7 @@ RunService.RenderStepped:Connect(function()
 	kitchen:tick()
 	tutorial:tick()
 	checkShopDistance()
+	fixGame:checkDistance()
 end)
 
 actionRemote:FireServer({ kind = RA.RequestState })

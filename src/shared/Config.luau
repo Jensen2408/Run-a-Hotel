@@ -203,7 +203,7 @@ local roles: { RoleDef } = {
 		id = "Maintenance",
 		label = "Maintenance",
 		icon = "wrench",
-		perk = "Repairs and breaker resets take half the time",
+		perk = "Easier repair minigames (fewer wires, bigger green zone)",
 	},
 }
 Config.roles = roles
@@ -211,7 +211,7 @@ Config.rolePerks = {
 	chefCookMultiplier = 0.75,
 	chefBurnMultiplier = 1.5,
 	housekeeperExtraCarry = 1,
-	maintenanceHoldMultiplier = 0.5,
+	maintenanceHoldMultiplier = 0.5, -- (unused since the repair minigames)
 }
 
 Config.guests = {
@@ -351,8 +351,22 @@ Config.interaction = {
 	linenRange = 14, -- max distance from the linen closet to take/return supplies
 	kitchenRange = 14, -- max distance from the kitchen stove to cook / pick up
 	remoteCooldown = 0.2,
-	repairHoldDuration = 1.5,
-	breakerHoldDuration = 1,
+	repairHoldDuration = 0, -- the prompt opens the repair minigame
+	breakerHoldDuration = 0,
+}
+
+-- Repair minigames (AC: connect the wires; breaker: flip the tripped
+-- switches, then pull the main lever in the green zone). Maintenance (and
+-- solo players) get the easy version.
+Config.minigame = {
+	minSeconds = 1.5, -- the server refuses a win reported faster than this
+	wires = 4,
+	wiresEasy = 3,
+	tripped = 3, -- breaker switches tripped (of 5)
+	trippedEasy = 2,
+	zone = 0.16, -- green zone width (fraction of the lever bar)
+	zoneEasy = 0.26,
+	needleSpeed = 0.9, -- bar sweeps per second
 }
 
 Config.npc = {

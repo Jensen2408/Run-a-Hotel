@@ -1002,6 +1002,32 @@ test("Endless: nights past the script grow and the run never completes", functio
 	expect(plan.guestCount >= 1 and plan.bill > 0, "far night plan")
 end)
 
+test("Repair minigame: win applies only for an open session after the minimum time", function()
+	local core = newCore()
+	core:update(0)
+	core.rooms[1].acBroken = true
+	local ok = core:finishFix("A", "AC", 1, 10)
+	eq(ok, false, "no session")
+	assert(core:startFix("A", "AC", 1, 10))
+	ok = core:finishFix("A", "AC", 1, 10.2)
+	eq(ok, false, "too fast")
+	eq(core.rooms[1].acBroken, true, "still broken")
+	ok = core:finishFix("A", "AC", 1, 12)
+	eq(ok, true, "fixed")
+	eq(core.rooms[1].acBroken, false, "AC repaired")
+	eq(core:finishFix("A", "AC", 1, 13), false, "session used once")
+	-- Breaker: cancel drops the session.
+	core.power = false
+	eq(core:startFix("A", "AC", 1, 14), false, "AC fine now")
+	assert(core:startFix("A", "Breaker", nil, 14))
+	core:cancelFix("A")
+	eq(core:finishFix("A", "Breaker", nil, 20), false, "cancelled")
+	assert(core:startFix("A", "Breaker", nil, 20))
+	assert(core:finishFix("A", "Breaker", nil, 22))
+	eq(core.power, true, "power back")
+	eq(core:startFix("A", "Breaker", nil, 23), false, "power already on")
+end)
+
 print(("\n%d passed, %d failed"):format(passed, failed))
 if failed > 0 then
 	error("tests failed")

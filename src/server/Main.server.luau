@@ -51,6 +51,7 @@ local openCheckInRemote = remote(Constants.Remotes.OpenCheckIn)
 local openShopRemote = remote(Constants.Remotes.OpenShop)
 local openLinenRemote = remote(Constants.Remotes.OpenLinen)
 local openKitchenRemote = remote(Constants.Remotes.OpenKitchen)
+local openFixRemote = remote(Constants.Remotes.OpenFix)
 remotes.Parent = ReplicatedStorage
 
 ------------------------------------------------------------------------
@@ -215,6 +216,30 @@ end
 -- ProximityPrompt interactions
 ------------------------------------------------------------------------
 
+-- Repair minigames: where each player's repair was started (the win must be
+-- reported from near the same panel).
+local fixSpots = {} -- [Player] = { position, range }
+local function openFix(player: Player, kind: string, roomId: number?, prompt: ProximityPrompt)
+	local ok, err = core:startFix(player.UserId, kind, roomId, now())
+	if not ok then
+		return false, err
+	end
+	fixSpots[player] = {
+		position = promptPosition(prompt),
+		range = prompt.MaxActivationDistance + Config.interaction.rangeSlack + 6,
+	}
+	openFixRemote:FireClient(player, {
+		fix = kind,
+		roomId = roomId,
+		easy = core:hasRole(player.UserId, "Maintenance"),
+	})
+	return nil, nil -- no toast; the client opens the minigame
+end
+Players.PlayerRemoving:Connect(function(player)
+	fixSpots[player] = nil
+	core:cancelFix(player.UserId)
+end)
+
 local promptHandlers = {
 	[PA.OpenCheckIn] = function(player: Player)
 		local ok, err = core:deskOpen(player.UserId, now())
@@ -240,8 +265,8 @@ local promptHandlers = {
 	[PA.DumpTrash] = function(player)
 		return core:dumpTrash(player.UserId)
 	end,
-	[PA.ResetBreaker] = function(player)
-		return core:resetBreaker(player.UserId)
+	[PA.ResetBreaker] = function(player, _roomId, prompt)
+		return openFix(player, "Breaker", nil, prompt)
 	end,
 	[PA.OpenShop] = function(player)
 		local ok, err = core:requireActive()
@@ -268,8 +293,8 @@ local promptHandlers = {
 		openKitchenRemote:FireClient(player)
 		return nil, nil -- no toast; the client opens the kitchen panel
 	end,
-	[PA.RepairAC] = function(player, roomId)
-		return core:repairAC(player.UserId, roomId)
+	[PA.RepairAC] = function(player, roomId, prompt)
+		return openFix(player, "AC", roomId, prompt)
 	end,
 }
 
@@ -288,7 +313,7 @@ local function onPromptTriggered(prompt: ProximityPrompt, player: Player)
 	if roomId ~= nil and not validRoomId(roomId) then
 		return
 	end
-	local ok, msg = handler(player, roomId)
+	local ok, msg = handler(player, roomId, prompt)
 	if msg then
 		feedback(player, msg, if ok then "ok" else "error")
 	end
@@ -372,6 +397,30 @@ actionRemote.OnServerEvent:Connect(function(player: Player, payload)
 			ok, msg = core:collectDish(player.UserId, payload.slot)
 		else
 			ok, msg = core:discardDish(player.UserId, payload.slot)
+		end
+	elseif kind == RA.CancelFix then
+		core:cancelFix(player.UserId)
+		fixSpots[player] = nil
+		return
+	elseif kind == RA.FinishFix then
+		local fix = payload.fix
+		if fix ~= "AC" and fix ~= "Breaker" then
+			return
+		end
+		local roomId = payload.roomId
+		if roomId ~= nil and not validRoomId(roomId) then
+			return
+		end
+		local spot = fixSpots[player]
+		if not spot or not withinRange(player, spot.position, spot.range) then
+			core:cancelFix(player.UserId)
+			fixSpots[player] = nil
+			feedback(player, "You walked away from the repair.", "error")
+			return
+		end
+		ok, msg = core:finishFix(player.UserId, fix, roomId, now())
+		if ok then
+			fixSpots[player] = nil
 		end
 	elseif kind == RA.SetRole then
 		if typeof(payload.role) ~= "string" then
@@ -660,4 +709,10 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 end)
 
-print(("[Motel] Server ready. %d rooms, %d nights, timeScale %.2f"):format(Config.roomCount, #Config.nights, timeScale))
+print(
+	("[Motel] Server ready. %d rooms, %d scripted nights then endless, timeScale %.2f"):format(
+		Config.roomCount,
+		#Config.nights,
+		timeScale
+	)
+)
