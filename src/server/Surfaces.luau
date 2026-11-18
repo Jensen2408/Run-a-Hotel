@@ -6,10 +6,15 @@
 
 	Runs after MapBuilder has built and scaled the map: texture sizes are in
 	final studs, decal hosts are placed from scale-1 coordinates times the
-	map scale. Parts keep their colours underneath (the texture covers the
-	top face); fancy materials are flattened so their normal maps do not
-	fight the painted texture.
+	map scale.
+
+	Ground surfaces use MaterialVariants (MaterialService.Motel_*) made from
+	the same images: Roblox stops drawing Texture / Decal objects at a
+	distance, but materials render at any zoom. When a variant cannot be
+	created, the surface falls back to a Texture on its top face.
 ]]
+
+local MaterialService = game:GetService("MaterialService")
 
 local Surfaces = {}
 
@@ -35,7 +40,20 @@ local DECAL = {
 	manhole = "rbxassetid://71939509266990",
 }
 
--- {path under Motel.Map, texture, studs per tile at scale 1}
+-- MaterialVariant per texture: base material (physics / footsteps) and
+-- studs per tile at scale 1 (one size per image).
+local VARIANT = {
+	asphalt = { Enum.Material.Asphalt, 10 },
+	concrete = { Enum.Material.Concrete, 6 },
+	grass = { Enum.Material.Grass, 10 },
+	gravel = { Enum.Material.Pebble, 6 },
+	wood = { Enum.Material.WoodPlanks, 6 },
+	carpet = { Enum.Material.Fabric, 5 },
+	checker = { Enum.Material.Marble, 16 }, -- 8 x 8 tiles of 2 studs
+	water = { Enum.Material.SmoothPlastic, 8 },
+}
+
+-- {path under Motel.Map, texture, studs per tile at scale 1 (Texture fallback)}
 local TEXTURED = {
 	{ "Decor.Road.Asphalt", "asphalt", 10 },
 	{ "ParkingLot", "asphalt", 10 },
@@ -61,7 +79,36 @@ local TEXTURED = {
 	{ "Decor.SupplyShopBuilding.Floor", "wood", 6 },
 	{ "Decor.KitchenBuilding.Floor", "checker", 16 }, -- 8 x 8 tiles of 2 studs (as before)
 	{ "Decor.Pool.Water", "water", 8 },
+	{ "Room1.Floor", "carpet", 5 },
+	{ "Room2.Floor", "carpet", 5 },
+	{ "Room3.Floor", "carpet", 5 },
 }
+
+-- MaterialService.Motel_<key>, created once (kept if the place is saved).
+local function variant(key: string, scale: number): MaterialVariant?
+	local name = "Motel_" .. key
+	local v = MaterialService:FindFirstChild(name)
+	if v and v:IsA("MaterialVariant") then
+		return v
+	end
+	local spec = VARIANT[key]
+	local made
+	local ok = pcall(function()
+		made = Instance.new("MaterialVariant")
+		made.Name = name
+		made.BaseMaterial = spec[1]
+		made.ColorMap = TEX[key]
+		made.StudsPerTile = spec[2] * scale
+		made.Parent = MaterialService
+	end)
+	if not ok then
+		if made then
+			made:Destroy()
+		end
+		return nil
+	end
+	return made
+end
 
 local function find(map: Instance, path: string): Instance?
 	local node = map
@@ -129,7 +176,20 @@ function Surfaces.apply(root: Instance, scale: number)
 	for _, item in ipairs(TEXTURED) do
 		local part = find(map, item[1])
 		if part and part:IsA("BasePart") then
-			texture(part, TEX[item[2]], item[3] * scale)
+			local v = variant(item[2], scale)
+			if v then
+				-- Material variant: visible at any distance; the image is
+				-- tinted by the part colour, so the part goes white.
+				local old = part:FindFirstChild("SurfaceTexture")
+				if old then
+					old:Destroy()
+				end
+				part.Material = v.BaseMaterial
+				part.MaterialVariant = v.Name
+				part.Color = Color3.new(1, 1, 1)
+			else
+				texture(part, TEX[item[2]], item[3] * scale)
+			end
 		end
 	end
 	-- The checker texture replaces the kitchen's red tile parts.
