@@ -905,12 +905,15 @@ local function buildGroundAndRoad(decor)
 	for _, z in ipairs({ -72.4, -55.6 }) do
 		detail(road, "EdgeLine", Vector3.new(1200, 0.04, 0.35), Vector3.new(10, 0.29, z), Color3.fromRGB(240, 240, 240))
 	end
-	for k = 0, 5 do
+	-- Zebra crossing: stripes run along the road (X) and are stacked across
+	-- it (Z) between the edge lines, centred on the office path (x 22),
+	-- ~0.1 above the centre lines.
+	for k = 0, 6 do
 		detail(
 			road,
 			"Crosswalk",
-			Vector3.new(1.4, 0.04, 15),
-			Vector3.new(16.5 + k * 2.2, 0.38, -64), -- centred on the office path (x 22), above the centre lines
+			Vector3.new(10, 0.04, 1.3),
+			Vector3.new(22, 0.38, -64 + (k - 3) * 2.3),
 			Color3.fromRGB(245, 245, 245)
 		)
 	end
@@ -949,7 +952,7 @@ local function buildGroundAndRoad(decor)
 			Color3.fromRGB(240, 200, 70)
 		)
 	end
-	for _, x in ipairs({ -30, -14, 2, 18 }) do
+	for _, x in ipairs({ -30, -14, 2, 13 }) do -- (13: clear of the crosswalk at x 17..27)
 		lampPost(decor, Vector3.new(x, 0, -57.5), 12)
 	end
 	-- Mailbox on the lawn beside the office path (clear of the new sidewalk).
