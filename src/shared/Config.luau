@@ -197,7 +197,7 @@ Config.kitchen = {
 export type RoleDef = { id: string, label: string, icon: string, perk: string }
 local roles: { RoleDef } = {
 	{ id = "Receptionist", label = "Receptionist", icon = "bell", perk = "Change hints at the front desk" },
-	{ id = "Housekeeper", label = "Housekeeper", icon = "broom", perk = "Carry 1 extra item" },
+	{ id = "Housekeeper", label = "Housekeeper", icon = "broom", perk = "Carry 1 extra item, easier bed making" },
 	{ id = "Chef", label = "Chef", icon = "chefHat", perk = "Cooks 25% faster, food burns later" },
 	{
 		id = "Maintenance",
@@ -355,9 +355,9 @@ Config.interaction = {
 	breakerHoldDuration = 0,
 }
 
--- Repair minigames (AC: connect the wires; breaker: flip the tripped
--- switches, then pull the main lever in the green zone). Maintenance (and
--- solo players) get the easy version.
+-- Minigames (AC: connect the wires; breaker: flip the tripped switches,
+-- then pull the main lever in the green zone; bed: strip and smooth the
+-- sheet). Maintenance / Housekeeper (and solo players) get the easy version.
 Config.minigame = {
 	minSeconds = 1.5, -- the server refuses a win reported faster than this
 	wires = 4,
@@ -367,6 +367,10 @@ Config.minigame = {
 	zone = 0.16, -- green zone width (fraction of the lever bar)
 	zoneEasy = 0.26,
 	needleSpeed = 0.9, -- bar sweeps per second
+	-- Bed: pull the 4 corners of the dirty sheet, then smooth the wrinkles
+	-- (Housekeeper and solo players get fewer wrinkles).
+	wrinkles = 5,
+	wrinklesEasy = 3,
 }
 
 Config.npc = {

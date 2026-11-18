@@ -207,7 +207,9 @@ local CORE = {
 	{
 		id = "bed",
 		text = function(_, ctx)
-			return ("Change the sheets on the bed in Room %d (E). The room becomes READY again."):format(ctx.room or 1)
+			return ("Change the sheets on the bed in Room %d (E): pull off the dirty sheet and smooth the clean one."):format(
+				ctx.room or 1
+			)
 		end,
 		target = function(_, ctx)
 			return interactable(("Room%dBed"):format(ctx.room or 1))

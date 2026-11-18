@@ -7,6 +7,8 @@
 
 	AC: connect each loose wire to the socket of the same colour (tap the
 	    wire, then the socket).
+	Sheets: tap the 4 corners to pull off the dirty sheet, then tap the
+	    wrinkles away on the clean one.
 	Breaker: flip the tripped (red) switches up, then press PULL while the
 	    needle is inside the green zone.
 
@@ -18,6 +20,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local UiKit = require(script.Parent:WaitForChild("UiKit"))
+local Icons = require(script.Parent:WaitForChild("Icons"))
 
 local make, label, chunk, tween = UiKit.make, UiKit.label, UiKit.chunk, UiKit.tween
 
@@ -52,9 +55,17 @@ function FixGame.new(playerGui: PlayerGui, deps, config)
 
 	local screen = UiKit.screen(playerGui, "FixGame", 9, true)
 	self.screen = screen
-	local holder, body = screen:modal("Fix", PANEL, "REPAIR", "wrench")
+	local holder, body = screen:modal("Fix", PANEL, "REPAIR")
 	self.panel = holder
-	self.title = holder:FindFirstChild("Ribbon"):FindFirstChild("Body"):FindFirstChildOfClass("TextLabel")
+	local ribbon = holder:FindFirstChild("Ribbon"):FindFirstChild("Body")
+	self.title = ribbon:FindFirstChildOfClass("TextLabel")
+	self.titleIcon = Icons.create("wrench", {
+		Parent = ribbon,
+		Size = UDim2.fromOffset(36, 36),
+		Position = UDim2.new(0, 10, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		ZIndex = 2,
+	})
 	self.hint = label({
 		Parent = body,
 		Size = UDim2.new(1, -60, 0, 50),
@@ -140,7 +151,7 @@ function FixGame:stop(cancel: boolean)
 end
 
 function FixGame:open(info)
-	if typeof(info) ~= "table" or (info.fix ~= "AC" and info.fix ~= "Breaker") then
+	if typeof(info) ~= "table" or (info.fix ~= "AC" and info.fix ~= "Breaker" and info.fix ~= "Sheets") then
 		return
 	end
 	if self.session then
@@ -158,8 +169,14 @@ function FixGame:open(info)
 	}
 	if info.fix == "AC" then
 		self.title.Text = "FIX THE AC"
+		self.titleIcon:set("wrench")
 		self:buildWires(self.session)
+	elseif info.fix == "Sheets" then
+		self.title.Text = "MAKE THE BED"
+		self.titleIcon:set("bed")
+		self:buildBed(self.session)
 	else
+		self.titleIcon:set("lightning")
 		self.title.Text = "POWER PANEL"
 		self:buildBreaker(self.session)
 	end
@@ -173,7 +190,11 @@ function FixGame:win(s)
 	end
 	s.won = true
 	UiKit.play("success")
-	self.hint.Text = if s.fix == "AC" then "The AC is running again!" else "Power restored!"
+	self.hint.Text = if s.fix == "AC"
+		then "The AC is running again!"
+		elseif s.fix == "Sheets" then "Fresh sheets, the bed is ready!"
+		else "Power restored!"
+	self.stamp.Text = if s.fix == "Sheets" then "CLEAN!" else "FIXED!"
 	self.stamp.Visible = true
 	local sc = UiKit.scaleOf(self.stamp)
 	sc.Value = 0.3
@@ -502,6 +523,190 @@ function FixGame:buildBreaker(s)
 end
 
 ------------------------------------------------------------------------
+-- Bed: strip the dirty sheet, smooth the clean one
+------------------------------------------------------------------------
+
+local WOOD = Color3.fromRGB(150, 96, 56)
+local WOOD_DARK = Color3.fromRGB(112, 70, 40)
+local MATTRESS = Color3.fromRGB(246, 236, 214)
+local CLEAN = Color3.fromRGB(236, 244, 255)
+local DIRTY = Color3.fromRGB(196, 184, 150)
+local STAIN = Color3.fromRGB(150, 118, 70)
+local WRINKLE = Color3.fromRGB(196, 210, 234)
+
+local function box(parent, name, pos: Vector2, size: Vector2, color: Color3, z: number, radius: number?)
+	local f = make("Frame", {
+		Name = name,
+		BackgroundColor3 = color,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(pos.X, pos.Y),
+		Size = UDim2.fromOffset(size.X, size.Y),
+		ZIndex = z,
+		Parent = parent,
+	})
+	UiKit.corner(f, UDim.new(0, radius or 10))
+	UiKit.outline(f, 3)
+	return f
+end
+
+function FixGame:buildBed(s)
+	local cfg = self.config.minigame
+	local wrinkles = math.max(1, if s.easy then cfg.wrinklesEasy else cfg.wrinkles)
+	self.hint.Text = "Tap the 4 corners to pull off the dirty sheet."
+	local area = self.area
+	-- Bed seen from above, headboard on the left.
+	box(area, "Frame", Vector2.new(20, 6), Vector2.new(460, 238), WOOD, 2, 16)
+	box(area, "Headboard", Vector2.new(20, 6), Vector2.new(34, 238), WOOD_DARK, 3, 12)
+	box(area, "Mattress", Vector2.new(60, 18), Vector2.new(410, 214), MATTRESS, 3, 12)
+	box(area, "Pillow", Vector2.new(72, 50), Vector2.new(70, 150), UiKit.WHITE, 4, 22)
+	local sheetPos, sheetSize = Vector2.new(154, 22), Vector2.new(306, 206)
+	local clean = box(area, "CleanSheet", sheetPos, sheetSize, CLEAN, 5, 10)
+	clean.Visible = false
+	local dirty = box(area, "DirtySheet", sheetPos, sheetSize, DIRTY, 6, 10)
+	for i, st in ipairs({ { 70, 50, 46 }, { 190, 120, 34 }, { 120, 150, 24 } }) do
+		local stain = make("Frame", {
+			Name = "Stain" .. i,
+			BackgroundColor3 = STAIN,
+			BackgroundTransparency = 0.45,
+			BorderSizePixel = 0,
+			Position = UDim2.fromOffset(st[1], st[2]),
+			Size = UDim2.fromOffset(st[3], st[3] * 0.7),
+			ZIndex = 7,
+			Parent = dirty,
+		})
+		UiKit.corner(stain, UDim.new(1, 0))
+	end
+
+	local function smoothPhase()
+		self.hint.Text = "Smooth out the wrinkles on the clean sheet!"
+		clean.Visible = true
+		clean.Size = UDim2.fromOffset(0, sheetSize.Y)
+		tween(clean, 0.3, { Size = UDim2.fromOffset(sheetSize.X, sheetSize.Y) }, Enum.EasingStyle.Back)
+		UiKit.play("sweep")
+		local left = wrinkles
+		local placed = {}
+		for i = 1, wrinkles do
+			-- Spread out: retry a few times to keep lumps apart.
+			local p
+			for _ = 1, 12 do
+				p = Vector2.new(math.random(14, sheetSize.X - 74), math.random(14, sheetSize.Y - 44))
+				local clear = true
+				for _, q in ipairs(placed) do
+					if (q - p).Magnitude < 64 then
+						clear = false
+					end
+				end
+				if clear then
+					break
+				end
+			end
+			table.insert(placed, p)
+			local lump = make("TextButton", {
+				Name = "Wrinkle" .. i,
+				Text = "",
+				AutoButtonColor = false,
+				BackgroundColor3 = WRINKLE,
+				BorderSizePixel = 0,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromOffset(p.X + 30, p.Y + 15),
+				Size = UDim2.fromOffset(60, 30),
+				Rotation = math.random(-25, 25),
+				ZIndex = 7,
+				Parent = clean,
+			})
+			UiKit.corner(lump, UDim.new(1, 0))
+			UiKit.outline(lump, 2, Color3.fromRGB(120, 138, 172))
+			-- Crease line across the lump.
+			local crease = make("Frame", {
+				BackgroundColor3 = Color3.fromRGB(120, 138, 172),
+				BorderSizePixel = 0,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.new(0.7, 0, 0, 3),
+				ZIndex = 8,
+				Parent = lump,
+			})
+			UiKit.corner(crease, UDim.new(1, 0))
+			local sc = UiKit.scaleOf(lump)
+			sc.Value = 0
+			tween(sc, 0.25, { Value = 1 }, Enum.EasingStyle.Back)
+			local smoothed = false
+			lump.Activated:Connect(function()
+				if self.session ~= s or s.won or smoothed then
+					return
+				end
+				smoothed = true
+				UiKit.play("pop")
+				tween(sc, 0.15, { Value = 0 }).Completed:Once(function()
+					lump:Destroy()
+				end)
+				left -= 1
+				if left <= 0 then
+					self:win(s)
+				else
+					self.hint.Text = ("%d wrinkle%s left."):format(left, if left == 1 then "" else "s")
+				end
+			end)
+		end
+	end
+
+	-- Corner tabs of the dirty sheet.
+	local corners = 4
+	local tabSize = 46
+	for i, c in ipairs({ Vector2.new(0, 0), Vector2.new(1, 0), Vector2.new(0, 1), Vector2.new(1, 1) }) do
+		local center = sheetPos + sheetSize * c
+		local tab = make("TextButton", {
+			Name = "Corner" .. i,
+			Text = "",
+			AutoButtonColor = false,
+			BackgroundColor3 = Color3.fromRGB(236, 122, 40),
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(center.X, center.Y),
+			Size = UDim2.fromOffset(tabSize, tabSize),
+			Rotation = 45,
+			ZIndex = 9,
+			Parent = area,
+		})
+		UiKit.corner(tab, UDim.new(0, 8))
+		UiKit.outline(tab, 3)
+		tab.Activated:Connect(function()
+			if self.session ~= s or s.won or not tab.Visible then
+				return
+			end
+			UiKit.play("click")
+			local sc = UiKit.scaleOf(tab)
+			tween(sc, 0.12, { Value = 0 }).Completed:Once(function()
+				tab.Visible = false
+			end)
+			UiKit.wiggle(dirty, 2, 0.2)
+			corners -= 1
+			if corners <= 0 then
+				self.hint.Text = "Dirty sheet off!"
+				UiKit.play("whooshOut")
+				tween(dirty, 0.35, {
+					Position = UDim2.fromOffset(sheetPos.X + 380, sheetPos.Y + 30),
+					Rotation = 18,
+					BackgroundTransparency = 1,
+				}).Completed:Once(function()
+					dirty:Destroy()
+					if self.session == s then
+						smoothPhase()
+					end
+				end)
+				for _, st in ipairs(dirty:GetChildren()) do
+					if st:IsA("Frame") then
+						tween(st, 0.3, { BackgroundTransparency = 1 })
+					end
+				end
+			else
+				self.hint.Text = ("%d corner%s left."):format(corners, if corners == 1 then "" else "s")
+			end
+		end)
+	end
+end
+
+------------------------------------------------------------------------
 -- State: close when it no longer needs fixing or the player walked off
 ------------------------------------------------------------------------
 
@@ -521,7 +726,11 @@ function FixGame:setState(snapshot)
 				room = r
 			end
 		end
-		needed = room ~= nil and room.acBroken == true
+		if s.fix == "Sheets" then
+			needed = room ~= nil and room.sheetsDirty == true and not room.occupied
+		else
+			needed = room ~= nil and room.acBroken == true
+		end
 	end
 	if not active or not needed then
 		self:stop(true)

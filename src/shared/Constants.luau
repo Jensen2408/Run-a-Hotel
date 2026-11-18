@@ -60,7 +60,7 @@ Constants.RemoteAction = {
 	CollectDish = "CollectDish", -- { slot }
 	DiscardDish = "DiscardDish", -- { slot }
 	SetRole = "SetRole", -- { role }
-	FinishFix = "FinishFix", -- { fix = "AC" | "Breaker", roomId? }: repair minigame won
+	FinishFix = "FinishFix", -- { fix = "AC" | "Breaker" | "Sheets", roomId? }: minigame won
 	CancelFix = "CancelFix", -- repair minigame closed
 }
 

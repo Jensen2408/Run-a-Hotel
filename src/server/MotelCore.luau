@@ -1434,6 +1434,17 @@ function MotelCore:startFix(pid, kind: string, roomId: number?, now: number): (b
 		if self.power then
 			return false, "The power is already on."
 		end
+	elseif kind == "Sheets" then
+		local room = roomId and self.rooms[roomId]
+		if not room or not room.sheetsDirty then
+			return false, "The sheets are already clean."
+		end
+		if room.occupant then
+			return false, "A guest is staying here."
+		end
+		if not table.find(self:getCarry(pid), self.C.Item.Sheet) then
+			return false, "Bring a clean sheet from the linen room."
+		end
 	else
 		return false, "Nothing to fix."
 	end
@@ -1453,6 +1464,8 @@ function MotelCore:finishFix(pid, kind: string, roomId: number?, now: number): (
 	self.fixes[pid] = nil
 	if kind == "AC" then
 		return self:repairAC(pid, roomId)
+	elseif kind == "Sheets" then
+		return self:changeSheets(pid, roomId)
 	end
 	return self:resetBreaker(pid)
 end

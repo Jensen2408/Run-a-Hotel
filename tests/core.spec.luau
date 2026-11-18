@@ -1028,6 +1028,20 @@ test("Repair minigame: win applies only for an open session after the minimum ti
 	eq(core:startFix("A", "Breaker", nil, 23), false, "power already on")
 end)
 
+test("Bed minigame: needs a clean sheet in hand, win changes the sheets", function()
+	local core = newCore()
+	core:update(0)
+	core.rooms[2].sheetsDirty = true
+	eq(core:startFix("A", "Sheets", 2, 5), false, "no sheet carried")
+	assert(core:takeSupply("A", Constants.Item.Sheet))
+	assert(core:startFix("A", "Sheets", 2, 5))
+	eq(core:finishFix("A", "Sheets", 2, 5.5), false, "too fast")
+	assert(core:finishFix("A", "Sheets", 2, 8))
+	eq(core.rooms[2].sheetsDirty, false, "sheets changed")
+	eq(#core:getCarry("A"), 0, "sheet used")
+	eq(core:startFix("A", "Sheets", 2, 9), false, "already clean")
+end)
+
 print(("\n%d passed, %d failed"):format(passed, failed))
 if failed > 0 then
 	error("tests failed")

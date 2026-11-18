@@ -231,7 +231,7 @@ local function openFix(player: Player, kind: string, roomId: number?, prompt: Pr
 	openFixRemote:FireClient(player, {
 		fix = kind,
 		roomId = roomId,
-		easy = core:hasRole(player.UserId, "Maintenance"),
+		easy = core:hasRole(player.UserId, if kind == "Sheets" then "Housekeeper" else "Maintenance"),
 	})
 	return nil, nil -- no toast; the client opens the minigame
 end
@@ -279,8 +279,8 @@ local promptHandlers = {
 	[PA.CollectTrash] = function(player, roomId)
 		return core:collectTrash(player.UserId, roomId)
 	end,
-	[PA.ChangeSheets] = function(player, roomId)
-		return core:changeSheets(player.UserId, roomId)
+	[PA.ChangeSheets] = function(player, roomId, prompt)
+		return openFix(player, "Sheets", roomId, prompt)
 	end,
 	[PA.Deliver] = function(player, roomId)
 		return core:deliver(player.UserId, roomId, now())
@@ -404,7 +404,7 @@ actionRemote.OnServerEvent:Connect(function(player: Player, payload)
 		return
 	elseif kind == RA.FinishFix then
 		local fix = payload.fix
-		if fix ~= "AC" and fix ~= "Breaker" then
+		if fix ~= "AC" and fix ~= "Breaker" and fix ~= "Sheets" then
 			return
 		end
 		local roomId = payload.roomId
