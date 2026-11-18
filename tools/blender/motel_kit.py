@@ -1142,7 +1142,7 @@ def _size(axis, su, sv, sz):
     return (su, sv, sz) if axis == "x" else (sv, su, sz)
 
 
-def wall(axis, a, b, c, height, colour, openings=(), t=1.0):
+def wall(axis, a, b, c, height, colour, openings=(), t=1.0, bevel=0.05):
     """Wall run a..b with rectangular openings (o1, o2, bottom, top)."""
     parts = []
 
@@ -1150,7 +1150,7 @@ def wall(axis, a, b, c, height, colour, openings=(), t=1.0):
         if p2 - p1 < 0.05 or z2 - z1 < 0.05:
             return
         parts.append(
-            box(_size(axis, p2 - p1, t, z2 - z1), _along(axis, (p1 + p2) / 2, c, 1, z=(z1 + z2) / 2), colour, bevel=0.05, segments=1)
+            box(_size(axis, p2 - p1, t, z2 - z1), _along(axis, (p1 + p2) / 2, c, 1, z=(z1 + z2) / 2), colour, bevel=bevel, segments=1)
         )
 
     cursor = a
@@ -1198,11 +1198,13 @@ def corner_boards(x1, x2, y1, y2, height, colour):
     ]
 
 
-def window(axis, p, c, out, w, h, zc, shutters=True, flowers=False, seed=0):
+def window(axis, p, c, out, w, h, zc, shutters=True, flowers=False, seed=0, glass_colour=None, flower_step=1.0):
     """Framed window through a wall: glass pane (own mesh), frame, cross
     mullion, sill, shutters and an optional flower box."""
     trim, glass = [], []
-    glass.append(box(_size(axis, w, 0.12, h), _along(axis, p, c, out, z=zc), GLASS_BLUE, bevel=0.02, segments=1))
+    pane_colour = glass_colour or GLASS_BLUE
+    glass = []
+    glass.append(box(_size(axis, w, 0.12, h), _along(axis, p, c, out, z=zc), pane_colour, bevel=0.02, segments=1))
     for s in (-1, 1):
         trim.append(box(_size(axis, 0.4, 1.3, h + 0.8), _along(axis, p, c, out, u=s * (w / 2 + 0.2), z=zc), TEAL, bevel=0.1, segments=1))
         trim.append(box(_size(axis, w + 0.8, 1.3, 0.4), _along(axis, p, c, out, z=zc + s * (h / 2 + 0.2)), TEAL, bevel=0.1, segments=1))
@@ -1219,11 +1221,13 @@ def window(axis, p, c, out, w, h, zc, shutters=True, flowers=False, seed=0):
     if flowers:
         zb = zc - h / 2 - 1.0
         trim.append(box(_size(axis, w + 0.6, 0.9, 0.75), _along(axis, p, c, out, v=1.05, z=zb), WOOD, bevel=0.12, segments=1))
-        n = max(3, int(w / 1.0))
+        n = max(3, int(w / flower_step))
         for i in range(n):
             u = -w / 2 + (i + 0.5) * w / n
-            trim.append(blob(0.34, _along(axis, p, c, out, u=u, v=1.05, z=zb + 0.45), LEAF, lump=0.2, seed=seed + i, segs=6, rings=4))
-            trim.append(blob(0.2, _along(axis, p, c, out, u=u + 0.1, v=1.3, z=zb + 0.75), PETALS[(i + seed) % len(PETALS)], lump=0, segs=6, rings=4))
+            leaf_segs, leaf_rings = (6, 4) if flower_step <= 1.0 else (5, 3)
+            trim.append(blob(0.34, _along(axis, p, c, out, u=u, v=1.05, z=zb + 0.45), LEAF, lump=0.2, seed=seed + i, segs=leaf_segs, rings=leaf_rings))
+            petal = 0.2 if flower_step <= 1.0 else 0.3
+            trim.append(blob(petal, _along(axis, p, c, out, u=u + 0.1, v=1.3, z=zb + 0.75), PETALS[(i + seed) % len(PETALS)], lump=0, segs=6, rings=4))
     return trim, glass
 
 
@@ -1238,10 +1242,10 @@ def awning(axis, p, c, out, w, ztop, depth=2.6, angle=24.0, scallops=True):
         u = -w / 2 + (i + 0.5) * sw
         col = RED if i % 2 == 0 else CREAM
         centre = _along(axis, p, c, out, u=u, v=0.5 + depth * math.cos(a) / 2, z=ztop - depth * math.sin(a) / 2)
-        parts.append(box(_size(axis, sw + 0.01, depth, 0.18), centre, col, bevel=0.05, segments=1, rot=rot))
+        parts.append(box(_size(axis, sw + 0.01, depth, 0.18), centre, col, bevel=0.0, rot=rot))
         if scallops:
             edge = _along(axis, p, c, out, u=u, v=0.5 + depth * math.cos(a), z=ztop - depth * math.sin(a) - 0.25)
-            parts.append(blob(sw * 0.5, edge, col, squash=(1, 0.35, 0.7) if axis == "x" else (0.35, 1, 0.7), lump=0, segs=8, rings=4))
+            parts.append(blob(sw * 0.5, edge, col, squash=(1, 0.35, 0.7) if axis == "x" else (0.35, 1, 0.7), lump=0, segs=6, rings=3))
     # Side cheeks and a wall batten.
     parts.append(box(_size(axis, w + 0.3, 0.3, 0.35), _along(axis, p, c, out, v=0.6, z=ztop + 0.05), RED, bevel=0.08, segments=1))
     return parts
@@ -1766,6 +1770,367 @@ def motel_sign():
     return out({"Sign": S, "Trim": T, "Glow": L}, "MotelSign", {"Trim": "Hull"}, dict(place=[[-46, 0, -50]]))
 
 
+# ======================================================================
+# Office v2 (batch "office"): matches the 4-view reference art
+# (front / left / right / back). Same gameplay footprint as batch 3's
+# office (36 x 26, walls 14), but narrower real doorways, and every door
+# leaf is its own mesh group with the origin ON THE HINGE so it can swing
+# in Roblox (manifest: hinge position + swing angle).
+#
+# Blender local frame: office centre on the floor, +Y = front (Roblox -Z).
+# ======================================================================
+GLASS_WARM = srgb(255, 224, 156)
+MORTAR = srgb(150, 80, 62)
+BRICK_LIGHT = srgb(214, 116, 80)
+STONE = srgb(214, 204, 186)
+POT = srgb(206, 104, 62)
+TOPIARY = srgb(92, 168, 70)
+WELCOME = srgb(204, 52, 46)
+EMBLEM_SNOW = srgb(246, 248, 252)
+EMBLEM_ROCK = srgb(150, 160, 176)
+EMBLEM_PINE = srgb(58, 140, 74)
+LAUREL = srgb(210, 186, 96)
+STRING_COLOURS = [srgb(255, 92, 92), srgb(255, 212, 84), srgb(110, 230, 140), srgb(110, 180, 255), srgb(250, 130, 220)]
+DOOR_TOP_V2 = 8.4  # visible doorway height (the gameplay lintel collider stays at 9)
+
+# Door hinges (Blender local) and canonical turn: a leaf is built extending
+# +X from its hinge; `turn` rotates it into place. `swing` = Roblox degrees
+# about +Y that open it inward.
+OFFICE_DOORS = {
+    "OfficeDoorFL": dict(hinge=(1.05, 12.75, 0.0), turn=0.0, width=2.9, glass=True, swing=-95),
+    "OfficeDoorFR": dict(hinge=(6.95, 12.75, 0.0), turn=math.pi, width=2.9, glass=True, swing=95),
+    "OfficeDoorSide": dict(hinge=(17.75, -1.05, 0.0), turn=-math.pi / 2, width=3.9, glass=False, swing=-95),
+    "OfficeDoorBack": dict(hinge=(-7.95, -12.75, 0.0), turn=0.0, width=3.9, glass=False, swing=95),
+}
+
+
+def extrude_xz(points_uz, cx, cy, thickness, colour, bevel=0.05):
+    """Flat shape from a closed (u, z) outline in the XZ plane (u along X),
+    extruded along Y and centred on (cx, cy): upright signs facing +Y."""
+    bm = bmesh.new()
+    front = [bm.verts.new((cx + u, cy + thickness / 2, z)) for u, z in points_uz]
+    back = [bm.verts.new((cx + u, cy - thickness / 2, z)) for u, z in points_uz]
+    bm.faces.new(front)
+    bm.faces.new(list(reversed(back)))
+    n = len(points_uz)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((front[i], back[i], back[j], front[j]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new("xz")
+    bm.to_mesh(mesh)
+    bm.free()
+    o = bpy.data.objects.new("xz", mesh)
+    scene.collection.objects.link(o)
+    return finish(o, colour, bevel=bevel, segments=2)
+
+
+def segment(a, b, r, colour, verts=8):
+    """Round bar from point a to point b."""
+    a, b = Vector(a), Vector(b)
+    seg = b - a
+    o = cyl(r, seg.length, (a + b) / 2, colour, verts=verts, bevel=0.0)
+    o.rotation_euler = seg.to_track_quat("Z", "Y").to_euler()
+    return o
+
+
+def gooseneck(base, height, reach, direction, glow_parts, trim_parts, shade_colour=IRON):
+    """Gooseneck lamp: post up from `base`, curved arm reaching `reach`
+    along `direction` (unit XY), cone shade pointing down, glowing bulb."""
+    bx, by, bz = base
+    dx, dy = direction
+    top = Vector((bx, by, bz + height))
+    trim_parts.append(segment((bx, by, bz), top, 0.09, shade_colour, verts=6))
+    pts = [top]
+    for i in range(1, 4):
+        t = i / 3
+        ang = t * math.pi / 2
+        pts.append(top + Vector((dx * reach * math.sin(ang), dy * reach * math.sin(ang), 0.55 * math.sin(ang * 2) - 0.25 * t)))
+    for p, q in zip(pts, pts[1:]):
+        trim_parts.append(segment(p, q, 0.08, shade_colour, verts=6))
+    end = pts[-1]
+    trim_parts.append(cyl(0.12, 0.25, end + Vector((0, 0, -0.05)), shade_colour, verts=8))
+    trim_parts.append(cyl(0.5, 0.42, end + Vector((0, 0, -0.35)), shade_colour, verts=10, radius2=0.16))
+    glow_parts.append(blob(0.24, end + Vector((0, 0, -0.55)), GLOW, lump=0, segs=10, rings=6))
+
+
+def lantern(pos, glow_parts, trim_parts, facing=(0, 1)):
+    """Wall lantern: bracket, cage posts, pyramid cap, glowing core."""
+    x, y, z = pos
+    fx, fy = facing
+    trim_parts.append(box((0.3 if fy else 0.6, 0.6 if fy else 0.3, 0.9), (x - fx * 0.15, y - fy * 0.15, z + 0.35), IRON, bevel=0.05, segments=1))
+    trim_parts.append(segment((x, y, z + 0.6), (x + fx * 0.55, y + fy * 0.55, z + 0.6), 0.06, IRON))
+    cx, cy = x + fx * 0.7, y + fy * 0.7
+    trim_parts.append(cyl(0.38, 0.14, (cx, cy, z - 0.55), IRON, verts=4, rot=(0, 0, math.pi / 4)))
+    for a in range(4):
+        ang = a * math.pi / 2 + math.pi / 4
+        trim_parts.append(box((0.07, 0.07, 1.0), (cx + math.cos(ang) * 0.3, cy + math.sin(ang) * 0.3, z - 0.02), IRON, bevel=0.0))
+    trim_parts.append(cyl(0.48, 0.45, (cx, cy, z + 0.66), IRON, verts=4, radius2=0.05, rot=(0, 0, math.pi / 4)))
+    glow_parts.append(box((0.42, 0.42, 0.85), (cx, cy, z - 0.02), GLOW, bevel=0.06, segments=1))
+
+
+def topiary(pos, trim_parts, seed):
+    x, y, z = pos
+    trim_parts.append(lathe([(0.0, 0), (0.55, 0), (0.6, 0.1), (0.78, 1.15), (0.86, 1.2), (0.86, 1.38), (0.0, 1.38)], (x, y, z), POT, verts=16))
+    trim_parts.append(cyl(0.7, 0.12, (x, y, z + 1.34), SOIL, verts=14))
+    trim_parts.append(blob(0.95, (x, y, z + 2.25), TOPIARY, squash=(1, 1, 1.05), lump=0.14, seed=seed, segs=10, rings=7))
+
+
+def mortar_lines(x, y, z0, h, w, trim_parts, step=0.62):
+    z = z0 + 0.45
+    while z < z0 + h - 0.2:
+        trim_parts.append(box((w + 0.04, w + 0.04, 0.07), (x, y, z), MORTAR, bevel=0.0))
+        z += step
+
+
+def gable_siding(x, out, base, rise, d, half_wall, trim_parts, step=1.2):
+    """Siding lines on a gable triangle (wall plane at x, facing out)."""
+    z = base + 0.8
+    while z < base + rise - 0.8:
+        half = min(half_wall, d * (1 - (z - base) / rise)) - 0.25
+        if half > 0.4:
+            trim_parts.append(box((0.14, half * 2, 0.16), (x + out * 0.56, 0, z), WALL_LINE, bevel=0.0))
+        z += step
+
+
+def office_door_leaf(name, spec):
+    """One door leaf, hinge at the origin (built extending +X, then turned).
+    Glass doors: wooden frame, lower panel, 2 x 3 warm panes (glow mesh),
+    brass bar handle and kick plate. Solid doors: 4 raised panels, knob."""
+    w, h, t = spec["width"], 7.9, 0.28
+    z0 = 0.42
+    wood, glow = [], []
+    if spec["glass"]:
+        wood.append(box((0.42, t, h), (0.21, 0, z0 + h / 2), WOOD, bevel=0.06, segments=1))
+        wood.append(box((0.42, t, h), (w - 0.21, 0, z0 + h / 2), WOOD, bevel=0.06, segments=1))
+        for zc, hh in ((z0 + 0.25, 0.5), (z0 + 2.6, 0.36), (z0 + h - 0.22, 0.44)):
+            wood.append(box((w, t, hh), (w / 2, 0, zc), WOOD, bevel=0.05, segments=1))
+        wood.append(box((w - 0.84, t * 0.7, 1.9), (w / 2, 0, z0 + 1.45), WOOD_PANEL, bevel=0.08, segments=1))
+        for side in (-1, 1):
+            wood.append(box((w - 1.2, 0.06, 1.4), (w / 2, side * (t * 0.35 + 0.02), z0 + 1.45), WOOD_LIGHT, bevel=0.04, segments=1))
+        gx0, gz0, gz1 = 0.42, z0 + 2.8, z0 + h - 0.45
+        pw, ph = (w - 0.84) / 2, (gz1 - gz0) / 3
+        for i in range(2):
+            for j in range(3):
+                glow.append(box((pw - 0.12, 0.08, ph - 0.12), (gx0 + pw * (i + 0.5), 0, gz0 + ph * (j + 0.5)), GLASS_WARM, bevel=0.0))
+        wood.append(box((0.1, t * 0.9, gz1 - gz0), (w / 2, 0, (gz0 + gz1) / 2), WOOD, bevel=0.0))
+        for j in (1, 2):
+            wood.append(box((w - 0.84, t * 0.9, 0.1), (w / 2, 0, gz0 + ph * j), WOOD, bevel=0.0))
+        for side in (-1, 1):
+            wood.append(cyl(0.06, 1.6, (w - 0.45, side * (t / 2 + 0.16), z0 + 3.6), BRASS, verts=8))
+            for dz in (-0.7, 0.7):
+                wood.append(segment((w - 0.45, side * t / 2, z0 + 3.6 + dz), (w - 0.45, side * (t / 2 + 0.17), z0 + 3.6 + dz), 0.05, BRASS, verts=6))
+            wood.append(box((w - 0.4, 0.04, 0.42), (w / 2, side * (t / 2 + 0.02), z0 + 0.3), BRASS, bevel=0.02, segments=1))
+    else:
+        wood.append(box((w, t, h), (w / 2, 0, z0 + h / 2), WOOD, bevel=0.08, segments=1))
+        pw = (w - 0.9) / 2
+        for side in (-1, 1):
+            for i in range(2):
+                for zc, hh in ((z0 + 1.9, 2.6), (z0 + 5.6, 3.2)):
+                    u = 0.3 + pw * (i + 0.5) + 0.15 * i
+                    wood.append(box((pw - 0.1, 0.1, hh), (u, side * (t / 2 + 0.03), zc), WOOD_LIGHT, bevel=0.07, segments=1))
+                    wood.append(box((pw - 0.5, 0.06, hh - 0.4), (u, side * (t / 2 + 0.09), zc), WOOD_PANEL, bevel=0.05, segments=1))
+            wood.append(blob(0.17, (w - 0.42, side * (t / 2 + 0.2), z0 + 3.6), BRASS, lump=0, segs=10, rings=7))
+            wood.append(box((0.32, 0.06, 0.62), (w - 0.42, side * (t / 2 + 0.04), z0 + 3.6), BRASS, bevel=0.03, segments=1))
+    for x in (0.0,):
+        for zc in (z0 + 0.9, z0 + h - 0.9):
+            wood.append(cyl(0.09, 0.6, (x + 0.02, 0, zc), METAL, verts=8))
+    parts = {"wood": wood, "glow": glow}
+    # Turn into place around the hinge (origin).
+    for group in parts.values():
+        for o in group:
+            o.matrix_world = Matrix.Rotation(spec["turn"], 4, "Z") @ o.matrix_world
+            _activate(o)
+            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    hx, hy, hz = spec["hinge"]
+    info = dict(collision="None", hinge=[hx, hz, -hy], swing=spec["swing"], place=[[22, 0, -19]])
+    res = {f"SM_Bld_OfficeV2_{name[6:]}": (build_mesh(f"SM_Bld_OfficeV2_{name[6:]}", wood), dict(info))}
+    if glow:
+        gname = f"SM_Bld_OfficeV2_{name[6:]}_Glass"
+        res[gname] = (build_mesh(gname, glow, "glow"), dict(info, glow=True))
+    return res
+
+
+def office_door_fl():
+    return office_door_leaf("OfficeDoorFL", OFFICE_DOORS["OfficeDoorFL"])
+
+
+def office_door_fr():
+    return office_door_leaf("OfficeDoorFR", OFFICE_DOORS["OfficeDoorFR"])
+
+
+def office_door_side():
+    return office_door_leaf("OfficeDoorSide", OFFICE_DOORS["OfficeDoorSide"])
+
+
+def office_door_back():
+    return office_door_leaf("OfficeDoorBack", OFFICE_DOORS["OfficeDoorBack"])
+
+
+def office_v2():
+    """Office shell matching the reference: walls + siding + gables, teal
+    trims and plinths, warm windows with awnings and flower boxes, porch
+    with canopy / posts / lanterns / topiaries / mat / string lights, arched
+    OFFICE sign with emblem, laurels, bulbs and three gooseneck lamps, roof
+    with brick chimney and metal vent, eave downlights, door frames."""
+    H = 14
+    X1, X2, Y1, Y2 = -18.0, 18.0, -13.0, 13.0
+    W, T, G, R, A, S, L, P = [], [], [], [], [], [], [], []
+    dt = DOOR_TOP_V2
+    front_open = [(1.0, 7.0, 0, dt), (-15.0, -9.0, 3.2, 7.4), (12.0, 17.0, 3.2, 7.4)]
+    back_open = [(-15.0, -11.0, 3.2, 7.2), (-8.0, -4.0, 0, dt), (-1.0, 3.0, 3.2, 7.2)]
+    east_open = [(-5.0, -1.0, 0, dt), (3.0, 8.0, 3.2, 7.2)]
+    west_open = [(-2.5, 2.5, 3.2, 7.2)]
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y2, H, WALL_CREAM, front_open, bevel=0.0)
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y1, H, WALL_CREAM, back_open, bevel=0.0)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X1, H, WALL_CREAM, west_open, bevel=0.0)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X2, H, WALL_CREAM, east_open, bevel=0.0)
+    W += siding("x", X1, X2, Y2, 1, H, WALL_LINE, front_open, step=1.3)
+    W += siding("x", X1, X2, Y1, -1, H, WALL_LINE, back_open, step=1.3)
+    W += siding("y", Y1, Y2, X1, -1, H, WALL_LINE, west_open, step=1.3)
+    W += siding("y", Y1, Y2, X2, 1, H, WALL_LINE, east_open, step=1.3)
+    W += ceiling(X1 + 0.5, X2 - 0.5, Y1 + 0.5, Y2 - 0.5, H)
+    # Teal base band, corner boards and chunky plinth blocks (reference).
+    T += base_trim("x", X1, X2, Y2, 1, TEAL, front_open, h=1.1)
+    T += base_trim("x", X1, X2, Y1, -1, TEAL, back_open, h=1.1)
+    T += base_trim("y", Y1, Y2, X1, -1, TEAL, west_open, h=1.1)
+    T += base_trim("y", Y1, Y2, X2, 1, TEAL, east_open, h=1.1)
+    T += corner_boards(X1, X2, Y1, Y2, H, CREAM)
+    for x in (X1 - 0.42, X2 + 0.42):
+        for y in (Y1 - 0.42, Y2 + 0.42):
+            T.append(box((1.35, 1.35, 1.5), (x, y, 0.75), TEAL_DARK, bevel=0.14, segments=2))
+            T.append(box((1.1, 1.1, 0.5), (x, y, H - 0.6), TEAL, bevel=0.1, segments=1))
+    # Cream fascia band under the eaves, front and back.
+    for y, o in ((Y2, 1), (Y1, -1)):
+        T.append(box((X2 - X1 + 2.0, 0.4, 0.7), (0, y + o * 0.7, H - 0.45), CREAM, bevel=0.08, segments=1))
+    # Door frames (teal) and gold thresholds.
+    T += door_frame("x", 1.0, 7.0, Y2, dt)
+    T += door_frame("x", -8.0, -4.0, Y1, dt)
+    T += door_frame("y", -5.0, -1.0, X2, dt)
+    for axis, a, b, c in (("x", 1.0, 7.0, Y2), ("x", -8.0, -4.0, Y1), ("y", -5.0, -1.0, X2)):
+        T.append(box(_size(axis, b - a, 1.2, 0.12), _along(axis, (a + b) / 2, c, 1, z=0.06), BRASS, bevel=0.03, segments=1))
+    # Windows: teal frames, 2 x 2 warm panes, awnings and flower boxes.
+    wins = [
+        ("x", -12.0, Y2, 1, 6.0, 4.2, 5.3, 1),
+        ("x", 14.5, Y2, 1, 5.0, 4.2, 5.3, 2),
+        ("x", -13.0, Y1, -1, 4.0, 4.0, 5.2, 3),
+        ("x", 1.0, Y1, -1, 4.0, 4.0, 5.2, 4),
+        ("y", 5.5, X2, 1, 5.0, 4.0, 5.2, 5),
+        ("y", 0.0, X1, -1, 5.0, 4.0, 5.2, 6),
+    ]
+    for axis, p, c, o, w, h, zc, seed in wins:
+        t_, g_ = window(axis, p, c, o, w, h, zc, shutters=False, flowers=True, seed=seed, glass_colour=GLASS_WARM, flower_step=1.45)
+        T += t_
+        G += g_
+        if not (axis == "x" and c == Y1):  # the back windows have no awnings in the reference
+            A += awning(axis, p, c, o, w + 1.2, zc + h / 2 + 1.25, depth=2.2)
+    # Roof, gables with siding, brick chimney (left) and metal vent (right).
+    r, t = gable_roof(-19.5, 19.5, -14.5, 14.5, H, 7.0)
+    R += r
+    T += t
+    for x, o in ((X1, -1), (X2, 1)):
+        w_, t_ = gable_infill(x, Y1 - 0.5, Y2 + 0.5, 0.0, 14.5, H, 7.0, WALL_CREAM, vent=False)
+        W += w_
+        gable_siding(x, o, H, 7.0, 14.5, 13.0, T)
+    R += chimney(12.0, -6.5, 16.5, 7.0, colour=BRICK_LIGHT)
+    mortar_lines(12.0, -6.5, 16.5, 7.0, 2.6, R)
+    R.append(cyl(0.62, 3.2, (-12.0, -4.5, 20.0), STEEL, verts=16))
+    R.append(cyl(0.78, 0.25, (-12.0, -4.5, 21.65), STEEL_DARK, verts=16))
+    R.append(cyl(0.95, 0.5, (-12.0, -4.5, 22.05), STEEL, verts=16, radius2=0.35))
+    # Eave downlights (front five, back three) under the fascia.
+    for x in (-15.0, -9.0, 4.0, 13.0, 17.0):
+        L.append(cyl(0.26, 0.12, (x, Y2 + 0.72, H - 0.86), GLOW, verts=8))
+    for x in (-13.0, -6.0, 1.0):
+        L.append(cyl(0.26, 0.12, (x, Y1 - 0.72, H - 0.86), GLOW, verts=8))
+    # Side gooseneck lamps near the front top corner (left / right views).
+    gooseneck((X2 + 0.55, 9.0, 11.2), 1.0, 1.2, (1, 0), L, T)
+    gooseneck((X1 - 0.55, 9.0, 11.2), 1.0, 1.2, (-1, 0), L, T)
+    # ------------------------------------------------------------ porch
+    P.append(box((15.6, 6.2, 0.36), (4.0, 16.0, 0.18), STONE, bevel=0.1))
+    P.append(box((4.6, 1.8, 0.06), (4.0, 14.6, 0.39), WELCOME, bevel=0.02, segments=1))
+    P.append(box((4.0, 1.3, 0.07), (4.0, 14.6, 0.4), srgb(232, 80, 60), bevel=0.02, segments=1))
+    a = math.atan2(1.0, 5.6)
+    for x in (-3.4, 11.4):
+        P.append(box((0.85, 0.85, 9.4), (x, 18.3, 4.9), CREAM, bevel=0.1, segments=1))
+        P.append(box((1.3, 1.3, 1.1), (x, 18.3, 0.55), TEAL_DARK, bevel=0.12, segments=1))
+        P.append(box((1.15, 1.15, 0.45), (x, 18.3, 9.45), TEAL, bevel=0.1, segments=1))
+    P.append(box((15.6, 5.9, 0.5), (4.0, 16.15, 10.3), RED, bevel=0.15, rot=(-a, 0, 0)))
+    for i in range(1, 4):
+        tt = i / 4
+        P.append(box((15.6, 0.4, 0.14), (4.0, 13.4 + 5.5 * tt, 11.09 - 0.98 * tt), ROOF_LINE, bevel=0.0, rot=(-a, 0, 0)))
+    P.append(box((15.9, 0.35, 0.8), (4.0, 19.05, 9.55), RED, bevel=0.1, segments=1))
+    P.append(box((15.9, 0.38, 0.18), (4.0, 19.07, 9.1), CREAM, bevel=0.04, segments=1))
+    for i in range(10):
+        P.append(blob(0.8, (-3.2 + i * 1.6 + 0.8 - 0.8, 19.1, 9.05), RED if i % 2 == 0 else CREAM, squash=(1, 0.2, 0.42), lump=0, segs=8, rings=4))
+    for i in range(12):
+        tt = (i + 0.5) / 12
+        x = -3.3 + 14.6 * tt
+        L.append(bulb((x, 19.3, 8.75 - 0.35 * 4 * tt * (1 - tt)), 0.2, STRING_COLOURS[i % len(STRING_COLOURS)]))
+    for i in range(12):
+        x0 = -3.3 + 14.6 * i / 12
+        x1 = -3.3 + 14.6 * (i + 1) / 12
+        z0 = 8.95 - 0.35 * 4 * (i / 12) * (1 - i / 12)
+        z1 = 8.95 - 0.35 * 4 * ((i + 1) / 12) * (1 - (i + 1) / 12)
+        T.append(segment((x0, 19.3, z0), (x1, 19.3, z1), 0.03, IRON, verts=4))
+    lantern((0.0, Y2 + 0.5, 5.6), L, T)
+    lantern((8.0, Y2 + 0.5, 5.6), L, T)
+    topiary((-1.6, 15.3, 0.36), P, 1.0)
+    topiary((9.6, 15.3, 0.36), P, 2.0)
+    # ------------------------------------------------------------ sign
+    sx, sy, sz = 4.0, 13.1, 15.0
+    outline = arch_outline(14.8, 3.5, 1.9, steps=14)
+    inner = arch_outline(13.8, 3.0, 1.55, steps=14)
+    S.append(extrude_xz([(u, sz - 0.25 + z) for u, z in outline], sx, sy - 0.06, 0.5, CREAM, bevel=0.08))
+    S.append(extrude_xz([(u, sz + z) for u, z in inner], sx, sy + 0.12, 0.5, srgb(120, 66, 38), bevel=0.08))
+    for x in (-1.6, 9.6):
+        S.append(box((0.5, 0.5, 2.6), (x, sy - 0.5, sz - 0.2), IRON, bevel=0.06, segments=1))
+    # Marquee bulbs along the cream border.
+    pts = [(u, sz - 0.25 + z) for u, z in outline]
+    ring = pts + [pts[0]]
+    for p, q in zip(ring, ring[1:]):
+        seglen = math.hypot(q[0] - p[0], q[1] - p[1])
+        n = max(1, int(seglen / 1.4))
+        for k in range(n):
+            tt = k / n
+            L.append(bulb((sx + p[0] + (q[0] - p[0]) * tt, sy + 0.24, p[1] + (q[1] - p[1]) * tt), 0.17))
+    # Emblem on the arch: snowy peaks and two pines.
+    ez = sz + 3.0 + 0.45
+    for dx, hgt, r in ((-0.55, 1.0, 0.62), (0.45, 1.25, 0.72)):
+        S.append(cyl(r, hgt, (sx + dx, sy + 0.3, ez + hgt / 2), EMBLEM_ROCK, verts=4, radius2=0.0))
+        S.append(cyl(r * 0.44, hgt * 0.44, (sx + dx, sy + 0.3, ez + hgt * 0.78 + 0.01), EMBLEM_SNOW, verts=4, radius2=0.0))
+    for dx in (-1.25, 1.2):
+        S.append(cyl(0.3, 0.9, (sx + dx, sy + 0.62, ez + 0.4), EMBLEM_PINE, verts=6, radius2=0.0))
+    # Laurel sprigs either side of the word.
+    for side in (-1, 1):
+        cxl, czl, rad = sx + side * 4.55, sz + 1.45, 1.05
+        stem = []
+        for k in range(6):
+            ang = math.radians(-80 + k * 30)
+            stem.append((cxl + side * rad * math.cos(ang), czl + rad * math.sin(ang)))
+        for (x0, z0), (x1, z1) in zip(stem, stem[1:]):
+            S.append(segment((x0, sy + 0.42, z0), (x1, sy + 0.42, z1), 0.05, LAUREL, verts=5))
+        for k, (x0, z0) in enumerate(stem[1:]):
+            ang = math.radians(-80 + (k + 1) * 30)
+            nx, nz = side * math.cos(ang), math.sin(ang)  # outward normal of the arc
+            tx, tz = -nz, nx
+            for sgn in (-1, 1):
+                lx = x0 + nx * 0.22 * sgn + tx * 0.08
+                lz = z0 + nz * 0.22 * sgn + tz * 0.08
+                S.append(blob(0.22, (lx, sy + 0.44, lz), LAUREL, squash=(0.75, 0.25, 0.75), lump=0, segs=6, rings=4))
+    L.append(text3d("OFFICE", 2.25, (sx, sy + 0.44, sz + 1.45), "+y", LETTER_WHITE, depth=0.18))
+    # Three gooseneck lamps over the sign, rooted in the roof behind it.
+    for dx, hgt in ((-5.2, 5.3), (0.0, 6.1), (5.2, 5.3)):
+        base = (sx + dx, 11.6, 14.0 + 7.0 * (1 - 11.6 / 14.5) - 0.3)
+        gooseneck(base, hgt, 1.9, (0, 1), L, T)
+    res = out(
+        {"Walls": W, "Trim": T, "Roof": R, "Glass": G, "Awning": A, "Porch": P, "Sign": S, "Glow": L},
+        "OfficeV2",
+        {"Walls": "Precise", "Roof": "Hull"},
+        dict(place=[[22, 0, -19]]),
+    )
+    return res
+
+
 BATCHES = {
     "batch1": [
         ("Bed", bed, "hero"),
@@ -1810,9 +2175,16 @@ BATCHES = {
         ("Kitchen", kitchen, "building"),
         ("MotelSign", motel_sign, "sign"),
     ],
+    "office": [
+        ("OfficeV2", office_v2, "hero_building"),
+        ("OfficeDoorFL", office_door_fl, "door"),
+        ("OfficeDoorFR", office_door_fr, "door"),
+        ("OfficeDoorSide", office_door_side, "door"),
+        ("OfficeDoorBack", office_door_back, "door"),
+    ],
 }
 # Triangle budget per object group (prop-artist tiers, mobile-adjusted).
-BUDGET = {"hero": 8000, "standard": 3000, "tree": 4000, "vehicle": 8000, "building": 12000, "sign": 8000}
+BUDGET = {"hero": 8000, "standard": 3000, "tree": 4000, "vehicle": 8000, "building": 12000, "sign": 8000, "hero_building": 20000, "door": 2500}
 
 
 # ======================================================================
@@ -1882,6 +2254,8 @@ for group, builder, tier in BATCHES[BATCH]:
             "collision": info.get("collision", "Box"),
             "glass": bool(info.get("glass")),
             "place": info.get("place"),
+            "hinge": info.get("hinge"),
+            "swing": info.get("swing"),
             "tris": tris,
         }
         report[name] = validate(obj)
@@ -2045,7 +2419,7 @@ for g, yaw in PREVIEW_YAW.items():
 bpy.context.view_layer.update()
 names = [g for g, _b, _t in BATCHES[BATCH]]
 sheets = [names[i : i + 6] for i in range(0, len(names), 6)]
-for k, sheet in enumerate(sheets):
+for k, sheet in enumerate(sheets if BATCH != "office" else []):
     # Hide everything, then lay this sheet out in two rows of three.
     for o in built:
         o.hide_render = True
@@ -2108,4 +2482,32 @@ if BATCH == "batch3":
     sun.rotation_euler = (math.radians(48), 0, math.radians(-30))
     scene.render.filepath = os.path.join(OUT, "previews", f"motel_kit_{BATCH}_layout.png")
     bpy.ops.render.render(write_still=True)
+# Office: assembled with the doors on their hinges (front pair half open),
+# rendered from the same four sides as the reference art.
+if BATCH == "office":
+    for o in built:
+        o.hide_render = False
+        o.matrix_world = orig_matrix[o.name]
+        g = manifest[o.name]["group"]
+        if g in OFFICE_DOORS:
+            spec = OFFICE_DOORS[g]
+            ajar = 0.6 if g in ("OfficeDoorFL", "OfficeDoorFR") else 0.0
+            o.matrix_world = (
+                Matrix.Translation(spec["hinge"]) @ Matrix.Rotation(math.radians(spec["swing"]) * ajar, 4, "Z") @ orig_matrix[o.name]
+            )
+    bpy.context.view_layer.update()
+    ground.location = (0, 0, 0)
+    ground.scale = (300, 300, 1)
+    fov = 2 * math.atan(cam_data.sensor_width / (2 * cam_data.lens))
+    views = {"front": (0, 1), "left": (1, 0), "right": (-1, 0), "back": (0, -1)}
+    for name, (vx, vy) in views.items():
+        elev = math.radians(12)
+        span = 64.0 if vy else 60.0
+        dist = (span / 2) / math.tan(fov / 2)
+        look = Vector((0, 0, 9.6))
+        cam.location = look + Vector((vx * math.cos(elev), vy * math.cos(elev), math.sin(elev))) * dist
+        cam.rotation_euler = (look - cam.location).to_track_quat("-Z", "Y").to_euler()
+        sun.rotation_euler = (math.radians(-50), 0, math.atan2(-vx, vy) + math.radians(-28))
+        scene.render.filepath = os.path.join(OUT, "previews", f"motel_kit_office_{name}.png")
+        bpy.ops.render.render(write_still=True)
 print("[kit] previews done")

@@ -1,0 +1,534 @@
+{
+  "batch": "office",
+  "units": "studs",
+  "axes": "roblox",
+  "meshes": {
+    "SM_Bld_OfficeV2_Walls": {
+      "group": "OfficeV2",
+      "size": [
+        37.26,
+        20.95,
+        27.26
+      ],
+      "center": [
+        -0.0,
+        10.475,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Precise",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 1280
+    },
+    "SM_Bld_OfficeV2_Trim": {
+      "group": "OfficeV2",
+      "size": [
+        40.414,
+        21.771,
+        34.391
+      ],
+      "center": [
+        0.0,
+        10.886,
+        -2.134
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 7424
+    },
+    "SM_Bld_OfficeV2_Roof": {
+      "group": "OfficeV2",
+      "size": [
+        39.6,
+        10.535,
+        29.986
+      ],
+      "center": [
+        0.0,
+        18.983,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 1512
+    },
+    "SM_Bld_OfficeV2_Glass": {
+      "group": "OfficeV2",
+      "size": [
+        36.12,
+        4.2,
+        26.12
+      ],
+      "center": [
+        0.0,
+        5.3,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": true,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 264
+    },
+    "SM_Bld_OfficeV2_Awning": {
+      "group": "OfficeV2",
+      "size": [
+        41.252,
+        1.88,
+        18.896
+      ],
+      "center": [
+        -0.0,
+        7.935,
+        -6.198
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 1220
+    },
+    "SM_Bld_OfficeV2_Porch": {
+      "group": "OfficeV2",
+      "size": [
+        16.1,
+        11.038,
+        6.36
+      ],
+      "center": [
+        4.0,
+        5.519,
+        -16.08
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 2060
+    },
+    "SM_Bld_OfficeV2_Sign": {
+      "group": "OfficeV2",
+      "size": [
+        14.8,
+        6.65,
+        1.735
+      ],
+      "center": [
+        4.0,
+        16.825,
+        -13.218
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 1988
+    },
+    "SM_Bld_OfficeV2_Glow": {
+      "group": "OfficeV2",
+      "size": [
+        39.957,
+        15.485,
+        33.478
+      ],
+      "center": [
+        0.0,
+        12.898,
+        -2.761
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 4112
+    },
+    "SM_Bld_OfficeV2_DoorFL": {
+      "group": "OfficeDoorFL",
+      "size": [
+        2.965,
+        7.9,
+        0.713
+      ],
+      "center": [
+        1.418,
+        4.37,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": [
+        1.05,
+        0.0,
+        -12.75
+      ],
+      "swing": -95,
+      "tris": 1308
+    },
+    "SM_Bld_OfficeV2_DoorFL_Glass": {
+      "group": "OfficeDoorFL",
+      "size": [
+        1.94,
+        4.53,
+        0.08
+      ],
+      "center": [
+        1.45,
+        5.545,
+        -0.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": [
+        1.05,
+        0.0,
+        -12.75
+      ],
+      "swing": -95,
+      "tris": 72
+    },
+    "SM_Bld_OfficeV2_DoorFR": {
+      "group": "OfficeDoorFR",
+      "size": [
+        2.965,
+        7.9,
+        0.713
+      ],
+      "center": [
+        -1.418,
+        4.37,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": [
+        6.95,
+        0.0,
+        -12.75
+      ],
+      "swing": 95,
+      "tris": 1308
+    },
+    "SM_Bld_OfficeV2_DoorFR_Glass": {
+      "group": "OfficeDoorFR",
+      "size": [
+        1.94,
+        4.53,
+        0.08
+      ],
+      "center": [
+        -1.45,
+        5.545,
+        -0.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": [
+        6.95,
+        0.0,
+        -12.75
+      ],
+      "swing": 95,
+      "tris": 72
+    },
+    "SM_Bld_OfficeV2_DoorSide": {
+      "group": "OfficeDoorSide",
+      "size": [
+        1.011,
+        7.9,
+        3.965
+      ],
+      "center": [
+        0.0,
+        4.37,
+        1.918
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": [
+        17.75,
+        0.0,
+        1.05
+      ],
+      "swing": -95,
+      "tris": 1452
+    },
+    "SM_Bld_OfficeV2_DoorBack": {
+      "group": "OfficeDoorBack",
+      "size": [
+        3.965,
+        7.9,
+        1.011
+      ],
+      "center": [
+        1.918,
+        4.37,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "hinge": [
+        -7.95,
+        0.0,
+        12.75
+      ],
+      "swing": 95,
+      "tris": 1452
+    }
+  },
+  "validation": {
+    "SM_Bld_OfficeV2_Walls": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 34,
+      "scale_applied": true
+    },
+    "SM_Bld_OfficeV2_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 144,
+      "scale_applied": true
+    },
+    "SM_Bld_OfficeV2_Roof": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_OfficeV2_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_OfficeV2_Awning": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_OfficeV2_Porch": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_OfficeV2_Sign": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_OfficeV2_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_OfficeV2": {
+      "tris": 19860,
+      "budget": 20000,
+      "status": "OK"
+    },
+    "SM_Bld_OfficeV2_DoorFL": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_OfficeV2_DoorFL_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_OfficeDoorFL": {
+      "tris": 1380,
+      "budget": 2500,
+      "status": "OK"
+    },
+    "SM_Bld_OfficeV2_DoorFR": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_OfficeV2_DoorFR_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_OfficeDoorFR": {
+      "tris": 1380,
+      "budget": 2500,
+      "status": "OK"
+    },
+    "SM_Bld_OfficeV2_DoorSide": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_OfficeDoorSide": {
+      "tris": 1452,
+      "budget": 2500,
+      "status": "OK"
+    },
+    "SM_Bld_OfficeV2_DoorBack": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_OfficeDoorBack": {
+      "tris": 1452,
+      "budget": 2500,
+      "status": "OK"
+    }
+  }
+}

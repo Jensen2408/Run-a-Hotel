@@ -973,13 +973,23 @@ local function buildMotelSign(decor)
 	end
 end
 
+-- Office v2 doors (Blender kit, hinged; see Kit.door and client DoorFX).
+local OFFICE_DOORS = { "OfficeDoorFL", "OfficeDoorFR", "OfficeDoorSide", "OfficeDoorBack" }
+
 local function buildLobby(decor, rng)
 	local lobby = folder(decor, "LobbyShell")
+	-- The v2 office (reference art) has real doorways: the (invisible)
+	-- collider walls get the same narrower gaps. NPC routes stay inside
+	-- them: queue / entrance at x 26, desk side to hall at x 16.
+	local v2 = Kit.has("OfficeV2")
+	local frontGap = if v2 then { 23, 29 } else { 19, 33 }
+	local hallGap = if v2 then { 14, 18 } else { 10, 22 }
+	local sideGap = if v2 then { -18, -14 } else { -24, -14 }
 	wallZ(lobby, "WestWall", -32, -6, 4, LOBBY_H, nil)
-	wallX(lobby, "NorthWall", 4, 40, -6, LOBBY_H, { { 10, 22 } })
-	wallX(lobby, "SouthWall", 4, 40, -32, LOBBY_H, { { 19, 33 } })
-	wallZ(lobby, "EastWall", -32, -6, 40, LOBBY_H, { { -24, -14 } })
-	sidingX(lobby, 4, 40, -32, -1, LOBBY_H, { { 19, 33 } })
+	wallX(lobby, "NorthWall", 4, 40, -6, LOBBY_H, { hallGap })
+	wallX(lobby, "SouthWall", 4, 40, -32, LOBBY_H, { frontGap })
+	wallZ(lobby, "EastWall", -32, -6, 40, LOBBY_H, { sideGap })
+	sidingX(lobby, 4, 40, -32, -1, LOBBY_H, { frontGap })
 	for _, x in ipairs({ 10, 37 }) do
 		block(lobby, "Window", Vector3.new(6, 4, 0.3), Vector3.new(x, 4.8, -32.6), GLASS, {
 			Material = Enum.Material.Glass,
@@ -1035,8 +1045,10 @@ local function buildLobby(decor, rng)
 		cylY(lobby, "CanopyPost", 9.8, 0.7, Vector3.new(x, 4.9, -37.5), WALL)
 	end
 	stringLights(lobby, Vector3.new(18.8, 9.4, -38), Vector3.new(33.2, 9.4, -38), 10)
-	pottedPlant(lobby, Vector3.new(17, 0.2, -34.5), rng)
-	pottedPlant(lobby, Vector3.new(35, 0.2, -34.5), rng)
+	if not v2 then -- the v2 porch has its own topiaries
+		pottedPlant(lobby, Vector3.new(17, 0.2, -34.5), rng)
+		pottedPlant(lobby, Vector3.new(35, 0.2, -34.5), rng)
+	end
 	bench(lobby, Vector3.new(10, 0.2, -35.5), 0)
 
 	-- Interior.
@@ -1066,7 +1078,16 @@ local function buildLobby(decor, rng)
 			Color3.fromRGB(240, 200, 80)
 		)
 	end
-	if Kit.place("Office", lobby, CFrame.new(22, 0, -19)) then
+	local officeMeshes
+	if v2 then
+		officeMeshes = Kit.place("OfficeV2", lobby, CFrame.new(22, 0, -19))
+		for _, door in ipairs(OFFICE_DOORS) do
+			Kit.door(door, lobby, CFrame.new(22, 0, -19))
+		end
+	else
+		officeMeshes = Kit.place("Office", lobby, CFrame.new(22, 0, -19))
+	end
+	if officeMeshes then
 		Kit.retireNamed(lobby, {
 			"WestWall.*",
 			"NorthWall.*",

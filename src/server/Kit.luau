@@ -59,7 +59,7 @@ function Kit.load()
 		local t = folder and folder:FindFirstChild(name)
 		if t and t:IsA("MeshPart") then
 			templates[name] = t
-		else
+		elseif m.id then -- (meshes not imported yet have no id: group stays unavailable)
 			pending += 1
 			task.spawn(function()
 				local ok, result = pcall(function()
@@ -153,6 +153,42 @@ function Kit.place(group: string, parent: Instance, pivot: CFrame, opts)
 		end
 	end
 	return out
+end
+
+--[[
+	Hinged door (manifest groups with `hinge` / `swing`): a Model named after
+	the group whose PrimaryPart "Hinge" (invisible, anchored) sits on the
+	hinge line, with the leaf meshes as children. Rotating the model about
+	its pivot opens the door: in Studio rotate the Model, in game the client
+	DoorFX swings it (attributes KitDoor and Swing = degrees about +Y).
+	buildingPivot is the pivot of the building the door belongs to.
+]]
+function Kit.door(group: string, parent: Instance, buildingPivot: CFrame)
+	if not Kit.has(group) then
+		return nil
+	end
+	local first = Manifest[groups[group][1]]
+	local h = first.hinge
+	local hingeCF = buildingPivot * CFrame.new(h[1], h[2], h[3])
+	local model = Instance.new("Model")
+	model.Name = group
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	local hinge = Instance.new("Part")
+	hinge.Name = "Hinge"
+	hinge.Size = Vector3.new(0.3, 0.3, 0.3)
+	hinge.Transparency = 1
+	hinge.Anchored = true
+	hinge.CanCollide = false
+	hinge.CanQuery = false
+	hinge.CanTouch = false
+	hinge.CFrame = hingeCF
+	hinge.Parent = model
+	model.PrimaryPart = hinge
+	Kit.place(group, model, hingeCF)
+	model:SetAttribute("KitDoor", true)
+	model:SetAttribute("Swing", first.swing or 90)
+	model.Parent = parent
+	return model
 end
 
 -- Pivot that puts the group's bbox bottom-centre at `cf` (for parts whose

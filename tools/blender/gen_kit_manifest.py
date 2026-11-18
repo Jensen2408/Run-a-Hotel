@@ -26,13 +26,19 @@ lines = [
     "return {",
 ]
 missing = []
-for batch in ("batch1", "batch2", "batch3"):
+for batch in ("batch1", "batch2", "batch3", "office"):
     data = json.load(open(os.path.join(KIT, f"motel_kit_{batch}.json"), encoding="utf-8"))
     for name, m in data["meshes"].items():
-        if name not in ids:
+        # Meshes not imported yet get no id: the game uses them only once a
+        # template with that name is in ServerStorage.MotelKit.
+        fields = [f'group = "{m["group"]}"', f"c = {v3(m['center'])}", f"s = {v3(m['size'])}"]
+        if name in ids:
+            fields.insert(0, f'id = "{ids[name]}"')
+        else:
             missing.append(name)
-            continue
-        fields = [f'id = "{ids[name]}"', f'group = "{m["group"]}"', f"c = {v3(m['center'])}", f"s = {v3(m['size'])}"]
+        if m.get("hinge"):
+            fields.append(f"hinge = {v3(m['hinge'])}")
+            fields.append(f"swing = {m['swing']:g}")
         for flag in ("tint", "glow", "glass"):
             if m.get(flag):
                 fields.append(f"{flag} = true")
