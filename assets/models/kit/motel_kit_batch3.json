@@ -26,6 +26,8 @@
           -19
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 1384
     },
     "SM_Bld_Office_Trim": {
@@ -51,7 +53,9 @@
           -19
         ]
       ],
-      "tris": 4600
+      "hinge": null,
+      "swing": null,
+      "tris": 4648
     },
     "SM_Bld_Office_Roof": {
       "group": "Office",
@@ -76,6 +80,8 @@
           -19
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 816
     },
     "SM_Bld_Office_Glass": {
@@ -101,17 +107,19 @@
           -19
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 132
     },
     "SM_Bld_Office_Awning": {
       "group": "Office",
       "size": [
-        38.865,
+        38.83,
         3.295,
         18.63
       ],
       "center": [
-        -1.583,
+        -1.565,
         8.652,
         -9.965
       ],
@@ -126,7 +134,9 @@
           -19
         ]
       ],
-      "tris": 2968
+      "hinge": null,
+      "swing": null,
+      "tris": 1524
     },
     "SM_Bld_Office_Sign": {
       "group": "Office",
@@ -151,6 +161,8 @@
           -19
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 292
     },
     "SM_Bld_Office_Glow": {
@@ -176,6 +188,8 @@
           -19
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 1748
     },
     "SM_Bld_Room_Walls": {
@@ -211,18 +225,20 @@
           30
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 864
     },
     "SM_Bld_Room_Trim": {
       "group": "RoomUnit",
       "size": [
         15.59,
-        12.0,
+        11.95,
         18.6
       ],
       "center": [
         0.0,
-        6.0,
+        5.975,
         -0.2
       ],
       "tint": false,
@@ -246,7 +262,9 @@
           30
         ]
       ],
-      "tris": 1200
+      "hinge": null,
+      "swing": null,
+      "tris": 1232
     },
     "SM_Bld_Room_Glass": {
       "group": "RoomUnit",
@@ -281,6 +299,8 @@
           30
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 88
     },
     "SM_Bld_Room_Glow": {
@@ -316,6 +336,8 @@
           30
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 100
     },
     "SM_Bld_RoomRoof_Walls": {
@@ -341,6 +363,8 @@
           28
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 208
     },
     "SM_Bld_RoomRoof_Trim": {
@@ -366,6 +390,8 @@
           28
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 2496
     },
     "SM_Bld_RoomRoof_Roof": {
@@ -391,6 +417,8 @@
           28
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 876
     },
     "SM_Bld_RoomRoof_Glow": {
@@ -416,6 +444,8 @@
           28
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 1296
     },
     "SM_Bld_LinenShed_Walls": {
@@ -441,6 +471,8 @@
           -16
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 908
     },
     "SM_Bld_LinenShed_Trim": {
@@ -466,7 +498,9 @@
           -16
         ]
       ],
-      "tris": 2064
+      "hinge": null,
+      "swing": null,
+      "tris": 2096
     },
     "SM_Bld_LinenShed_Roof": {
       "group": "LinenShed",
@@ -491,6 +525,8 @@
           -16
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 564
     },
     "SM_Bld_LinenShed_Glass": {
@@ -516,17 +552,19 @@
           -16
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 88
     },
     "SM_Bld_LinenShed_Awning": {
       "group": "LinenShed",
       "size": [
-        2.578,
+        2.54,
         1.838,
         9.9
       ],
       "center": [
-        -8.739,
+        -8.72,
         9.106,
         0.0
       ],
@@ -541,7 +579,9 @@
           -16
         ]
       ],
-      "tris": 1056
+      "hinge": null,
+      "swing": null,
+      "tris": 420
     },
     "SM_Bld_LinenShed_Sign": {
       "group": "LinenShed",
@@ -566,6 +606,8 @@
           -16
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 204
     },
     "SM_Bld_LinenShed_Glow": {
@@ -591,6 +633,8 @@
           -16
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 996
     },
     "SM_Bld_Shop_Walls": {
@@ -616,6 +660,8 @@
           -36
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 1220
     },
     "SM_Bld_Shop_Trim": {
@@ -641,7 +687,9 @@
           -36
         ]
       ],
-      "tris": 2064
+      "hinge": null,
+      "swing": null,
+      "tris": 2128
     },
     "SM_Bld_Shop_Roof": {
       "group": "Shop",
@@ -666,6 +714,8 @@
           -36
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 588
     },
     "SM_Bld_Shop_Glass": {
@@ -691,17 +741,19 @@
           -36
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 176
     },
     "SM_Bld_Shop_Awning": {
       "group": "Shop",
       "size": [
-        2.936,
+        2.9,
         1.987,
         10.3
       ],
       "center": [
-        -11.918,
+        -11.9,
         8.932,
         0.0
       ],
@@ -716,7 +768,9 @@
           -36
         ]
       ],
-      "tris": 1148
+      "hinge": null,
+      "swing": null,
+      "tris": 454
     },
     "SM_Bld_Shop_Sign": {
       "group": "Shop",
@@ -741,6 +795,8 @@
           -36
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 204
     },
     "SM_Bld_Shop_Glow": {
@@ -766,6 +822,8 @@
           -36
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 1708
     },
     "SM_Bld_Shop_OpenSign": {
@@ -791,6 +849,8 @@
           -36
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 300
     },
     "SM_Bld_Kitchen_Walls": {
@@ -816,6 +876,8 @@
           3
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 860
     },
     "SM_Bld_Kitchen_Trim": {
@@ -841,7 +903,9 @@
           3
         ]
       ],
-      "tris": 1904
+      "hinge": null,
+      "swing": null,
+      "tris": 1936
     },
     "SM_Bld_Kitchen_Roof": {
       "group": "Kitchen",
@@ -866,6 +930,8 @@
           3
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 1056
     },
     "SM_Bld_Kitchen_Glass": {
@@ -891,17 +957,19 @@
           3
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 88
     },
     "SM_Bld_Kitchen_Awning": {
       "group": "Kitchen",
       "size": [
-        2.565,
+        2.53,
         1.813,
         5.9
       ],
       "center": [
-        8.733,
+        8.715,
         8.919,
         0.0
       ],
@@ -916,7 +984,9 @@
           3
         ]
       ],
-      "tris": 688
+      "hinge": null,
+      "swing": null,
+      "tris": 284
     },
     "SM_Bld_Kitchen_Sign": {
       "group": "Kitchen",
@@ -941,6 +1011,8 @@
           3
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 204
     },
     "SM_Bld_Kitchen_Glow": {
@@ -966,6 +1038,8 @@
           3
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 1024
     },
     "SM_Bld_MotelSign_Sign": {
@@ -991,6 +1065,8 @@
           -50
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 596
     },
     "SM_Bld_MotelSign_Trim": {
@@ -1016,6 +1092,8 @@
           -50
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 572
     },
     "SM_Bld_MotelSign_Glow": {
@@ -1041,6 +1119,8 @@
           -50
         ]
       ],
+      "hinge": null,
+      "swing": null,
       "tris": 2604
     }
   },
@@ -1056,7 +1136,7 @@
       "loose_verts": 0,
       "loose_edges": 0,
       "zero_area_faces": 0,
-      "non_manifold_edges": 72,
+      "non_manifold_edges": 0,
       "scale_applied": true
     },
     "SM_Bld_Office_Roof": {
@@ -1077,7 +1157,7 @@
       "loose_verts": 0,
       "loose_edges": 0,
       "zero_area_faces": 0,
-      "non_manifold_edges": 0,
+      "non_manifold_edges": 88,
       "scale_applied": true
     },
     "SM_Bld_Office_Sign": {
@@ -1095,7 +1175,7 @@
       "scale_applied": true
     },
     "_group_Office": {
-      "tris": 11940,
+      "tris": 10544,
       "budget": 12000,
       "status": "OK"
     },
@@ -1110,7 +1190,7 @@
       "loose_verts": 0,
       "loose_edges": 0,
       "zero_area_faces": 0,
-      "non_manifold_edges": 48,
+      "non_manifold_edges": 0,
       "scale_applied": true
     },
     "SM_Bld_Room_Glass": {
@@ -1128,7 +1208,7 @@
       "scale_applied": true
     },
     "_group_RoomUnit": {
-      "tris": 2252,
+      "tris": 2284,
       "budget": 12000,
       "status": "OK"
     },
@@ -1176,7 +1256,7 @@
       "loose_verts": 0,
       "loose_edges": 0,
       "zero_area_faces": 0,
-      "non_manifold_edges": 48,
+      "non_manifold_edges": 0,
       "scale_applied": true
     },
     "SM_Bld_LinenShed_Roof": {
@@ -1197,7 +1277,7 @@
       "loose_verts": 0,
       "loose_edges": 0,
       "zero_area_faces": 0,
-      "non_manifold_edges": 0,
+      "non_manifold_edges": 40,
       "scale_applied": true
     },
     "SM_Bld_LinenShed_Sign": {
@@ -1215,7 +1295,7 @@
       "scale_applied": true
     },
     "_group_LinenShed": {
-      "tris": 5880,
+      "tris": 5276,
       "budget": 12000,
       "status": "OK"
     },
@@ -1230,7 +1310,7 @@
       "loose_verts": 0,
       "loose_edges": 0,
       "zero_area_faces": 0,
-      "non_manifold_edges": 96,
+      "non_manifold_edges": 0,
       "scale_applied": true
     },
     "SM_Bld_Shop_Roof": {
@@ -1251,7 +1331,7 @@
       "loose_verts": 0,
       "loose_edges": 0,
       "zero_area_faces": 0,
-      "non_manifold_edges": 0,
+      "non_manifold_edges": 44,
       "scale_applied": true
     },
     "SM_Bld_Shop_Sign": {
@@ -1276,7 +1356,7 @@
       "scale_applied": true
     },
     "_group_Shop": {
-      "tris": 7408,
+      "tris": 6778,
       "budget": 12000,
       "status": "OK"
     },
@@ -1291,7 +1371,7 @@
       "loose_verts": 0,
       "loose_edges": 0,
       "zero_area_faces": 0,
-      "non_manifold_edges": 48,
+      "non_manifold_edges": 0,
       "scale_applied": true
     },
     "SM_Bld_Kitchen_Roof": {
@@ -1312,7 +1392,7 @@
       "loose_verts": 0,
       "loose_edges": 0,
       "zero_area_faces": 0,
-      "non_manifold_edges": 0,
+      "non_manifold_edges": 24,
       "scale_applied": true
     },
     "SM_Bld_Kitchen_Sign": {
@@ -1330,7 +1410,7 @@
       "scale_applied": true
     },
     "_group_Kitchen": {
-      "tris": 5824,
+      "tris": 5452,
       "budget": 12000,
       "status": "OK"
     },

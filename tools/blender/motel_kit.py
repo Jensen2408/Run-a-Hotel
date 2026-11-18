@@ -1163,21 +1163,23 @@ def wall(axis, a, b, c, height, colour, openings=(), t=1.0, bevel=0.05):
     return parts
 
 
-def _free_spans(a, b, openings, z):
+def _free_spans(a, b, openings, z, margin=0.15):
+    """Free stretches of a wall run at height z; `margin` keeps trims clear
+    of the frames around openings (frames stick out past the hole)."""
     spans, cursor = [], a
     for o1, o2, zb, zt in sorted(openings):
-        if zb - 0.2 <= z <= zt + 0.2:
-            spans.append((cursor, o1 - 0.15))
-            cursor = o2 + 0.15
+        if zb - max(0.2, margin) <= z <= zt + max(0.2, margin):
+            spans.append((cursor, o1 - margin))
+            cursor = o2 + margin
     spans.append((cursor, b))
     return [(s1, s2) for s1, s2 in spans if s2 - s1 > 0.4]
 
 
-def siding(axis, a, b, c, out, height, colour, openings=(), step=2.0):
+def siding(axis, a, b, c, out, height, colour, openings=(), step=2.0, margin=0.15):
     """Clapboard lines on the outside face (cartoon horizontal siding)."""
     parts, z = [], 2.2
     while z < height - 0.8:
-        for s1, s2 in _free_spans(a, b, openings, z):
+        for s1, s2 in _free_spans(a, b, openings, z, margin):
             parts.append(box(_size(axis, s2 - s1, 0.14, 0.16), _along(axis, (s1 + s2) / 2, c, out, v=0.56, z=z), colour, bevel=0.0))
         z += step
     return parts
@@ -1191,14 +1193,15 @@ def base_trim(axis, a, b, c, out, colour, openings=(), h=0.9):
 
 
 def corner_boards(x1, x2, y1, y2, height, colour):
+    h = height - 0.05  # top just under the wall top: no shared plane (z-fighting)
     return [
-        box((0.75, 0.75, height), (x, y, height / 2), colour, bevel=0.1, segments=1)
+        box((0.75, 0.75, h), (x, y, h / 2), colour, bevel=0.1, segments=1)
         for x in (x1 - 0.42, x2 + 0.42)
         for y in (y1 - 0.42, y2 + 0.42)
     ]
 
 
-def window(axis, p, c, out, w, h, zc, shutters=True, flowers=False, seed=0, glass_colour=None, flower_step=1.0, mullion=None):
+def window(axis, p, c, out, w, h, zc, shutters=True, flowers=False, seed=0, glass_colour=None, flower_step=1.0, mullion=None, sill=True):
     """Framed window through a wall: glass pane (own mesh), frame, cross
     mullion, sill, shutters and an optional flower box."""
     trim, glass = [], []
@@ -1206,12 +1209,14 @@ def window(axis, p, c, out, w, h, zc, shutters=True, flowers=False, seed=0, glas
     glass = []
     glass.append(box(_size(axis, w, 0.12, h), _along(axis, p, c, out, z=zc), pane_colour, bevel=0.02, segments=1))
     for s in (-1, 1):
-        trim.append(box(_size(axis, 0.4, 1.3, h + 0.8), _along(axis, p, c, out, u=s * (w / 2 + 0.2), z=zc), TEAL, bevel=0.1, segments=1))
-        trim.append(box(_size(axis, w + 0.8, 1.3, 0.4), _along(axis, p, c, out, z=zc + s * (h / 2 + 0.2)), TEAL, bevel=0.1, segments=1))
+        # Frame inset 0.03 into the hole so it never shares the wall's reveal plane.
+        trim.append(box(_size(axis, 0.4, 1.3, h + 0.8), _along(axis, p, c, out, u=s * (w / 2 + 0.17), z=zc), TEAL, bevel=0.1, segments=1))
+        trim.append(box(_size(axis, w + 0.8, 1.3, 0.4), _along(axis, p, c, out, z=zc + s * (h / 2 + 0.17)), TEAL, bevel=0.1, segments=1))
     bar = mullion or CREAM
-    trim.append(box(_size(axis, 0.2, 0.26, h), _along(axis, p, c, out, z=zc), bar, bevel=0.0))
-    trim.append(box(_size(axis, w, 0.26, 0.2), _along(axis, p, c, out, z=zc), bar, bevel=0.0))
-    trim.append(box(_size(axis, w + 1.3, 0.7, 0.28), _along(axis, p, c, out, v=0.75, z=zc - h / 2 - 0.42), CREAM, bevel=0.08, segments=1))
+    trim.append(box(_size(axis, 0.2, 0.26, h - 0.04), _along(axis, p, c, out, z=zc), bar, bevel=0.0))
+    trim.append(box(_size(axis, w - 0.04, 0.26, 0.2), _along(axis, p, c, out, z=zc), bar, bevel=0.0))
+    if sill:  # (a flower box below the window replaces the sill)
+        trim.append(box(_size(axis, w + 1.3, 0.7, 0.28), _along(axis, p, c, out, v=0.75, z=zc - h / 2 - 0.42), CREAM, bevel=0.08, segments=1))
     if shutters:
         sw = max(0.9, w * 0.42)
         for s in (-1, 1):
@@ -1243,7 +1248,7 @@ def awning(axis, p, c, out, w, ztop, depth=2.6, angle=24.0, scallops=True):
         u = -w / 2 + (i + 0.5) * sw
         col = RED if i % 2 == 0 else CREAM
         centre = _along(axis, p, c, out, u=u, v=0.5 + depth * math.cos(a) / 2, z=ztop - depth * math.sin(a) / 2)
-        parts.append(box(_size(axis, sw + 0.01, depth, 0.18), centre, col, bevel=0.0, rot=rot))
+        parts.append(box(_size(axis, sw, depth, 0.18), centre, col, bevel=0.0, rot=rot))  # abutting, not overlapping
         if scallops:
             edge = _along(axis, p, c, out, u=u, v=0.5 + depth * math.cos(a), z=ztop - depth * math.sin(a) - 0.25)
             parts.append(blob(sw * 0.5, edge, col, squash=(1, 0.35, 0.7) if axis == "x" else (0.35, 1, 0.7), lump=0, segs=6, rings=3))
@@ -1254,9 +1259,10 @@ def awning(axis, p, c, out, w, ztop, depth=2.6, angle=24.0, scallops=True):
 
 def door_frame(axis, p1, p2, c, top, colour=TEAL):
     return [
-        box(_size(axis, 0.7, 1.4, top), _along(axis, p1 - 0.35, c, 1, z=top / 2), colour, bevel=0.1, segments=1),
-        box(_size(axis, 0.7, 1.4, top), _along(axis, p2 + 0.35, c, 1, z=top / 2), colour, bevel=0.1, segments=1),
-        box(_size(axis, p2 - p1 + 1.6, 1.5, 0.6), _along(axis, (p1 + p2) / 2, c, 1, z=top + 0.3), colour, bevel=0.1, segments=1),
+        # Inset 0.03 into the opening: no face shares the wall's reveal plane (z-fighting).
+        box(_size(axis, 0.7, 1.4, top), _along(axis, p1 - 0.32, c, 1, z=top / 2), colour, bevel=0.1, segments=1),
+        box(_size(axis, 0.7, 1.4, top), _along(axis, p2 + 0.32, c, 1, z=top / 2), colour, bevel=0.1, segments=1),
+        box(_size(axis, p2 - p1 + 1.6, 1.5, 0.6), _along(axis, (p1 + p2) / 2, c, 1, z=top + 0.27), colour, bevel=0.1, segments=1),
     ]
 
 
@@ -1562,7 +1568,7 @@ def room_roof():
             W.append(box((x2 - x1 + 1.0, 1.0, 1.8), ((x1 + x2) / 2, y, 11.1), WALL_CREAM, bevel=0.05, segments=1))
     posts = (-25.5, -8.5, 9.5, 25.5)
     for x in posts:
-        T.append(cyl(0.42, 11.4, (x, 10.6, 5.7), CREAM, verts=12))
+        T.append(cyl(0.42, 11.3, (x, 10.6, 5.65), CREAM, verts=12))  # top inside the teal cap
         T.append(box((1.0, 1.0, 0.6), (x, 10.6, 0.3), TEAL, bevel=0.12, segments=1))
         T.append(box((1.1, 1.1, 0.4), (x, 10.6, 11.2), TEAL, bevel=0.1, segments=1))
     T.append(box((52.4, 0.6, 0.6), (0.0, 10.6, 11.7), TEAL, bevel=0.12, segments=1))
@@ -2039,7 +2045,7 @@ def tile_roof(x1, x2, y1, y2, base, rise, th=0.5):
         for x in (x1 - 0.2, x2 + 0.2):
             roof.append(box((0.6, L + 0.5, 1.0), mid + Vector((x - xc, 0, 0)) + n * 0.3, ROOF_V3_EDGE, bevel=0.2, segments=2, rot=rot))
             trim.append(box((0.42, L + 0.3, 0.55), mid + Vector((x - xc, 0, 0)) - n * 0.5, CREAM, bevel=0.08, segments=1, rot=rot))
-    roof.append(cyl(0.66, length + 1.0, (xc, yc, base + rise + th + 0.32), ROOF_V3_EDGE, verts=12, rot=(0, math.pi / 2, 0)))
+    roof.append(cyl(0.66, length + 0.8, (xc, yc, base + rise + th + 0.32), ROOF_V3_EDGE, verts=12, rot=(0, math.pi / 2, 0)))
     return roof, trim
 
 
@@ -2092,10 +2098,10 @@ def _office_v3():
     W += wall("x", X1 - 0.5, X2 + 0.5, Y1, H, WALL_CREAM, back_open, bevel=0.0)
     W += wall("y", Y1 + 0.5, Y2 - 0.5, X1, H, WALL_CREAM, west_open, bevel=0.0)
     W += wall("y", Y1 + 0.5, Y2 - 0.5, X2, H, WALL_CREAM, east_open, bevel=0.0)
-    W += siding("x", X1, X2, Y2, 1, H, WALL_LINE, front_open, step=1.3)
-    W += siding("x", X1, X2, Y1, -1, H, WALL_LINE, back_open, step=1.3)
-    W += siding("y", Y1, Y2, X1, -1, H, WALL_LINE, west_open, step=1.3)
-    W += siding("y", Y1, Y2, X2, 1, H, WALL_LINE, east_open, step=1.3)
+    W += siding("x", X1, X2, Y2, 1, H, WALL_LINE, front_open, step=1.3, margin=0.8)
+    W += siding("x", X1, X2, Y1, -1, H, WALL_LINE, back_open, step=1.3, margin=0.8)
+    W += siding("y", Y1, Y2, X1, -1, H, WALL_LINE, west_open, step=1.3, margin=0.8)
+    W += siding("y", Y1, Y2, X2, 1, H, WALL_LINE, east_open, step=1.3, margin=0.8)
     W += ceiling(X1 + 0.5, X2 - 0.5, Y1 + 0.5, Y2 - 0.5, H)
     # Teal base band, cream pilasters with teal plinths and capitals.
     T += base_trim("x", X1, X2, Y2, 1, TEAL, front_open, h=1.1)
@@ -2108,7 +2114,7 @@ def _office_v3():
             T.append(box((1.4, 1.4, 1.5), (x, y, 0.75), TEAL_DARK, bevel=0.14, segments=2))
             T.append(box((1.15, 1.15, 0.55), (x, y, H - 0.6), TEAL, bevel=0.1, segments=1))
     for y, o in ((Y2, 1), (Y1, -1)):
-        T.append(box((X2 - X1 + 2.2, 0.45, 0.75), (0, y + o * 0.72, H - 0.42), CREAM, bevel=0.08, segments=1))
+        T.append(box((X2 - X1 - 0.2, 0.45, 0.75), (0, y + o * 0.72, H - 0.42), CREAM, bevel=0.08, segments=1))
     # Door frames and gold thresholds.
     T += door_frame("x", -3.0, 3.0, Y2, dt, colour=TEAL)
     T += door_frame("x", -8.0, -4.0, Y1, dt, colour=TEAL)
@@ -2125,7 +2131,7 @@ def _office_v3():
         ("y", 0.0, X1, -1, 5.0, 4.0, 5.2, 6, True),
     ]
     for axis, p_, c_, o, w, h, zc, seed, has_awning in wins:
-        t_, g_ = window(axis, p_, c_, o, w, h, zc, shutters=False, flowers=False, glass_colour=WINDOW_GLOW, mullion=TEAL)
+        t_, g_ = window(axis, p_, c_, o, w, h, zc, shutters=False, flowers=False, glass_colour=WINDOW_GLOW, mullion=TEAL, sill=False)
         T += t_
         WIN += g_
         flower_box(axis, p_, c_, o, w, zc - h / 2 - 0.95, seed, F)
@@ -2207,7 +2213,8 @@ def _office_v3():
     ez = sz + 4.2
     for dx, hgt, r_ in ((-0.65, 1.3, 0.78), (0.6, 1.6, 0.9)):
         S.append(cyl(r_, hgt, (sx + dx, sy + 0.3, ez + hgt / 2), EMBLEM_ROCK, verts=4, radius2=0.0))
-        S.append(cyl(r_ * 0.44, hgt * 0.44, (sx + dx, sy + 0.3, ez + hgt * 0.78 + 0.01), EMBLEM_SNOW, verts=4, radius2=0.0))
+        # Snow cap a little fatter than the peak's slope so it sits proud (no shared planes).
+        S.append(cyl(r_ * 0.56, hgt * 0.44, (sx + dx, sy + 0.3, ez + hgt * 0.78 + 0.02), EMBLEM_SNOW, verts=4, radius2=0.0))
     for dx in (-1.7, 1.7):
         S.append(cyl(0.38, 1.25, (sx + dx, sy + 0.6, ez + 0.55), EMBLEM_PINE, verts=6, radius2=0.0))
     # Gold laurel sprigs either side of the word.

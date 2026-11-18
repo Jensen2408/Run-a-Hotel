@@ -28,7 +28,7 @@
       ],
       "hinge": null,
       "swing": null,
-      "tris": 1280
+      "tris": 1364
     },
     "SM_Bld_OfficeV2_Trim": {
       "group": "OfficeV2",
@@ -55,7 +55,7 @@
       ],
       "hinge": null,
       "swing": null,
-      "tris": 6108
+      "tris": 5940
     },
     "SM_Bld_OfficeV2_Roof": {
       "group": "OfficeV2",
@@ -82,7 +82,7 @@
       ],
       "hinge": null,
       "swing": null,
-      "tris": 4512
+      "tris": 4576
     },
     "SM_Bld_OfficeV2_Awning": {
       "group": "OfficeV2",
@@ -109,7 +109,7 @@
       ],
       "hinge": null,
       "swing": null,
-      "tris": 1256
+      "tris": 1204
     },
     "SM_Bld_OfficeV2_Porch": {
       "group": "OfficeV2",
@@ -445,7 +445,7 @@
       "loose_verts": 0,
       "loose_edges": 0,
       "zero_area_faces": 0,
-      "non_manifold_edges": 144,
+      "non_manifold_edges": 0,
       "scale_applied": true
     },
     "SM_Bld_OfficeV2_Roof": {
@@ -459,7 +459,7 @@
       "loose_verts": 0,
       "loose_edges": 0,
       "zero_area_faces": 0,
-      "non_manifold_edges": 0,
+      "non_manifold_edges": 104,
       "scale_applied": true
     },
     "SM_Bld_OfficeV2_Porch": {
@@ -498,7 +498,7 @@
       "scale_applied": true
     },
     "_group_OfficeV2": {
-      "tris": 26292,
+      "tris": 26220,
       "budget": 28000,
       "status": "OK"
     },
