@@ -157,7 +157,7 @@ function Surfaces.apply(root: Instance, scale: number)
 		folder,
 		"WelcomeMat",
 		DECAL.welcome,
-		{ pos = Vector3.new(22, 0.45, -33.4), size = { 4.2, 2.4 }, face = "Top", yaw = 0 },
+		{ pos = Vector3.new(22, 0.52, -33.4), size = { 4.2, 2.4 }, face = "Top", yaw = 0 },
 		scale
 	)
 	decal(
@@ -205,7 +205,7 @@ function Surfaces.apply(root: Instance, scale: number)
 		folder,
 		"Manhole",
 		DECAL.manhole,
-		{ pos = Vector3.new(46, 0.22, -60.5), size = { 2.4, 2.5 }, face = "Top" },
+		{ pos = Vector3.new(46, 0.32, -60.5), size = { 2.4, 2.5 }, face = "Top" },
 		scale
 	)
 end

@@ -42,7 +42,7 @@ local LOBBY_X = 22
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 22
+MapBuilder.VERSION = 23
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -209,7 +209,7 @@ function MapBuilder.build(config)
 		part({
 			Name = "SlotLine" .. i,
 			Size = Vector3.new(0.4, 0.04, 10),
-			Position = Vector3.new(x + 4, 0.25, -48),
+			Position = Vector3.new(x + 4, 0.32, -48), -- 0.1 above the lot (far-camera depth)
 			Color = Color3.new(1, 1, 1),
 			Parent = map,
 		})

@@ -878,13 +878,16 @@ end
 
 local function buildGroundAndRoad(decor)
 	local ground = folder(decor, "Ground")
-	-- Top at y = 0.12 so a default Baseplate texture (top at 0) cannot show through.
-	block(ground, "Grass", Vector3.new(1200, 1, 1200), Vector3.new(10, -0.38, -10), GRASS)
+	-- Ground layers keep >= ~0.14 studs between stacked tops: closer than that,
+	-- the textured layer underneath bleeds through when the camera is far
+	-- (depth precision). Grass top -0.06, motel lot top 0.08, then roads,
+	-- lawns, paths and the parking lot at 0.2+.
+	block(ground, "Grass", Vector3.new(1200, 1, 1200), Vector3.new(10, -0.56, -10), GRASS)
 	block(
 		ground,
 		"MotelLot",
-		Vector3.new(120, 0.18, 70 + SHIFT),
-		Vector3.new(20, 0.09, -6 + SHIFT / 2),
+		Vector3.new(120, 0.14, 70 + SHIFT),
+		Vector3.new(20, 0.01, -6 + SHIFT / 2),
 		Color3.fromRGB(176, 164, 140),
 		{
 			Material = Enum.Material.Concrete,
@@ -897,17 +900,17 @@ local function buildGroundAndRoad(decor)
 	local road = folder(decor, "Road")
 	block(road, "Asphalt", Vector3.new(1200, 0.2, 18), Vector3.new(10, 0.1, -64), Color3.fromRGB(70, 68, 76))
 	for _, z in ipairs({ -63.7, -64.3 }) do
-		detail(road, "CenterLine", Vector3.new(1200, 0.04, 0.3), Vector3.new(10, 0.22, z), Color3.fromRGB(244, 198, 60))
+		detail(road, "CenterLine", Vector3.new(1200, 0.04, 0.3), Vector3.new(10, 0.29, z), Color3.fromRGB(244, 198, 60))
 	end
 	for _, z in ipairs({ -72.4, -55.6 }) do
-		detail(road, "EdgeLine", Vector3.new(1200, 0.04, 0.35), Vector3.new(10, 0.22, z), Color3.fromRGB(240, 240, 240))
+		detail(road, "EdgeLine", Vector3.new(1200, 0.04, 0.35), Vector3.new(10, 0.29, z), Color3.fromRGB(240, 240, 240))
 	end
 	for k = 0, 5 do
 		detail(
 			road,
 			"Crosswalk",
 			Vector3.new(1.4, 0.04, 15),
-			Vector3.new(21 + k * 2.2, 0.23, -64),
+			Vector3.new(21 + k * 2.2, 0.3, -64),
 			Color3.fromRGB(245, 245, 245)
 		)
 	end
@@ -2069,7 +2072,7 @@ local function buildCourtyard(decor, rng)
 			yard,
 			"PathJoint",
 			Vector3.new(12, 0.04, 0.2),
-			Vector3.new(16, 0.28, z1 + 1.5 + k * 3),
+			Vector3.new(16, 0.35, z1 + 1.5 + k * 3),
 			Color3.fromRGB(170, 160, 140)
 		)
 	end
