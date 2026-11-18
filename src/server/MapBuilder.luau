@@ -41,7 +41,7 @@ local LOBBY_X = 22
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 18
+MapBuilder.VERSION = 19
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -321,10 +321,11 @@ function MapBuilder.build(config)
 	-- kitchen panel; cooking goes through validated remote actions.
 	local K = MapDecor.KITCHEN
 	local stoveX = K.x1 + 1.7
+	local stoveZ = (K.z1 + K.z2) / 2 - 1 -- burners at stoveZ - 2.5 / stoveZ, board at + 2.5
 	local stove = part({
 		Name = "KitchenStove",
 		Size = Vector3.new(2.4, 3, 9),
-		Position = Vector3.new(stoveX, 1.9, 2),
+		Position = Vector3.new(stoveX, 1.9, stoveZ),
 		Color = Color3.fromRGB(70, 74, 82),
 		Material = Enum.Material.Metal,
 		Parent = interact,
@@ -336,9 +337,9 @@ function MapBuilder.build(config)
 		offset = Vector3.new(1.6, 1, 0),
 	})
 	label(stove, "KITCHEN", 4.4, 5.4, "stove")
-	Kit.skin(stove, "Stove", CFrame.new(stoveX, 0.45, 2))
+	Kit.skin(stove, "Stove", CFrame.new(stoveX, 0.45, stoveZ))
 	for i, kind in ipairs(config.kitchen.slots) do
-		local z = -0.5 + (i - 1) * 2.5
+		local z = stoveZ - 2.5 + (i - 1) * 2.5
 		local slot
 		if kind == "Burner" then
 			slot = part({

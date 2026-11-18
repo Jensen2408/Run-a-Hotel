@@ -44,7 +44,9 @@ local SHOP_X, SHOP_Z = MapDecor.SHOP_X, MapDecor.SHOP_Z
 
 -- Kitchen building footprint on the courtyard's west lawn (scale-1, not
 -- moved with the rooms). The door in the east wall faces the courtyard path.
-MapDecor.KITCHEN = { x1 = -8, x2 = 6, z1 = -4, z2 = 10, doorZ1 = 1, doorZ2 = 5, pathX = 10 }
+-- z1 = -2: two studs clear of the office (its back-left window box and corner
+-- plinth touched the kitchen corner at z1 = -4).
+MapDecor.KITCHEN = { x1 = -8, x2 = 6, z1 = -2, z2 = 12, doorZ1 = 3, doorZ2 = 7, pathX = 10 }
 
 ------------------------------------------------------------------------
 -- Palette
@@ -1058,7 +1060,7 @@ local function buildLobby(decor, rng)
 	block(lobby, "CouchBack", Vector3.new(0.8, 2.6, 7), Vector3.new(5.2, 1.7, -24), Color3.fromRGB(60, 104, 132))
 	detail(lobby, "CoffeeTable", Vector3.new(2.4, 1, 3.6), Vector3.new(10, 0.9, -24), WOOD)
 	detail(lobby, "Magazine", Vector3.new(1, 0.1, 1.4), Vector3.new(10, 1.45, -24.5), Color3.fromRGB(240, 90, 90))
-	pottedPlant(lobby, Vector3.new(6.5, 0.4, -30), rng)
+	pottedPlant(lobby, Vector3.new(6.5, 0.4, -29.6), rng)
 	pottedPlant(lobby, Vector3.new(38, 0.4, -8.5), rng)
 	ball(
 		lobby,
@@ -1068,7 +1070,7 @@ local function buildLobby(decor, rng)
 		Color3.fromRGB(240, 200, 80),
 		merge(DETAIL, { Material = Enum.Material.Metal })
 	)
-	local rack = detail(lobby, "KeyRack", Vector3.new(6, 3, 0.3), Vector3.new(24, 7, -6.7), WOOD_DARK)
+	local rack = detail(lobby, "KeyRack", Vector3.new(6, 3, 0.3), Vector3.new(30, 7, -6.7), WOOD_DARK)
 	for k = 0, 5 do
 		detail(
 			lobby,
@@ -1116,11 +1118,11 @@ local function buildLobby(decor, rng)
 			"DeskBell",
 		}, { "OfficeSign" })
 	end
-	cylZ(lobby, "Clock", 0.2, 2, Vector3.new(19, 9, -6.6), Color3.fromRGB(250, 250, 245), DETAIL)
-	detail(lobby, "ClockHand", Vector3.new(0.12, 0.8, 0.05), Vector3.new(19, 9.3, -6.75), METAL_DARK)
-	detail(lobby, "CoffeeCounter", Vector3.new(2, 3, 5), Vector3.new(38.5, 1.9, -29), WOOD)
+	cylZ(lobby, "Clock", 0.2, 2, Vector3.new(30, 10.6, -6.6), Color3.fromRGB(250, 250, 245), DETAIL)
+	detail(lobby, "ClockHand", Vector3.new(0.12, 0.8, 0.05), Vector3.new(30, 10.9, -6.75), METAL_DARK)
+	detail(lobby, "CoffeeCounter", Vector3.new(2, 3, 3.6), Vector3.new(38.5, 1.9, -29.4), WOOD)
 	detail(lobby, "CoffeeMachine", Vector3.new(1.2, 1.4, 1.2), Vector3.new(38.5, 4.1, -30), Color3.fromRGB(40, 40, 44))
-	wallLamp(lobby, Vector3.new(4.6, 8, -16), 1, true)
+	wallLamp(lobby, Vector3.new(4.6, 8, -12.5), 1, true)
 end
 
 local function buildRoomBlock(decor)
@@ -1877,8 +1879,8 @@ local function buildGreenery(decor, rng)
 	local green = folder(decor, "Greenery")
 	local yard = decor:FindFirstChild("RoomYard") or folder(decor, "RoomYard")
 	for _, p in ipairs({
-		Vector3.new(6, 0, -35),
-		Vector3.new(38, 0, -35.5),
+		Vector3.new(0.5, 0, -37.5),
+		Vector3.new(47.5, 0, -38),
 		Vector3.new(-6, 0, 23),
 		Vector3.new(14, 0, 23),
 		Vector3.new(32, 0, 23),
