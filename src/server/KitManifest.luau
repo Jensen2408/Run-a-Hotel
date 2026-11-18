@@ -382,8 +382,8 @@ return {
 	SM_Bld_Office_Awning = {
 		id = "rbxassetid://85628775100785",
 		group = "Office",
-		c = { -1.583, 8.652, -9.965 },
-		s = { 38.865, 3.295, 18.63 },
+		c = { -1.565, 8.652, -9.965 },
+		s = { 38.83, 3.295, 18.63 },
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_Office_Sign = {
@@ -411,8 +411,8 @@ return {
 	SM_Bld_Room_Trim = {
 		id = "rbxassetid://91338292521810",
 		group = "RoomUnit",
-		c = { 0, 6, -0.2 },
-		s = { 15.59, 12, 18.6 },
+		c = { 0, 5.975, -0.2 },
+		s = { 15.59, 11.95, 18.6 },
 		place = { { 2, 0, 30 }, { 20, 0, 30 }, { 38, 0, 30 } },
 	},
 	SM_Bld_Room_Glass = {
@@ -492,8 +492,8 @@ return {
 	SM_Bld_LinenShed_Awning = {
 		id = "rbxassetid://109618591207484",
 		group = "LinenShed",
-		c = { -8.739, 9.106, 0 },
-		s = { 2.578, 1.838, 9.9 },
+		c = { -8.72, 9.106, 0 },
+		s = { 2.54, 1.838, 9.9 },
 		place = { { 60, 0, -16 } },
 	},
 	SM_Bld_LinenShed_Sign = {
@@ -543,8 +543,8 @@ return {
 	SM_Bld_Shop_Awning = {
 		id = "rbxassetid://137088917971546",
 		group = "Shop",
-		c = { -11.918, 8.932, 0 },
-		s = { 2.936, 1.987, 10.3 },
+		c = { -11.9, 8.932, 0 },
+		s = { 2.9, 1.987, 10.3 },
 		place = { { 100, 0, -36 } },
 	},
 	SM_Bld_Shop_Sign = {
@@ -602,8 +602,8 @@ return {
 	SM_Bld_Kitchen_Awning = {
 		id = "rbxassetid://120313638160799",
 		group = "Kitchen",
-		c = { 8.733, 8.919, 0 },
-		s = { 2.565, 1.813, 5.9 },
+		c = { 8.715, 8.919, 0 },
+		s = { 2.53, 1.813, 5.9 },
 		place = { { -1, 0, 3 } },
 	},
 	SM_Bld_Kitchen_Sign = {
@@ -692,12 +692,11 @@ return {
 		s = { 19.8, 7.6, 3.439 },
 		place = { { 22, 0, -19 } },
 	},
-	SM_Bld_OfficeV2_Windows = {
-		id = "rbxassetid://95537066630154",
+	SM_Bld_OfficeV2_Glass = {
 		group = "OfficeV2",
 		c = { 0, 5.6, -0 },
 		s = { 36.12, 5.4, 26.12 },
-		glow = true,
+		glass = true,
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_Glow = {
@@ -724,7 +723,7 @@ return {
 		s = { 1.94, 4.53, 0.08 },
 		hinge = { -2.95, 0, -12.75 },
 		swing = -95,
-		glow = true,
+		glass = true,
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_DoorFR = {
@@ -743,7 +742,7 @@ return {
 		s = { 1.94, 4.53, 0.08 },
 		hinge = { 2.95, 0, -12.75 },
 		swing = 95,
-		glow = true,
+		glass = true,
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_DoorSide = {

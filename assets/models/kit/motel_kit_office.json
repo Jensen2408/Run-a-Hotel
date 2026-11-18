@@ -192,7 +192,7 @@
       "swing": null,
       "tris": 2576
     },
-    "SM_Bld_OfficeV2_Windows": {
+    "SM_Bld_OfficeV2_Glass": {
       "group": "OfficeV2",
       "size": [
         36.12,
@@ -205,9 +205,9 @@
         -0.0
       ],
       "tint": false,
-      "glow": true,
+      "glow": false,
       "collision": "None",
-      "glass": false,
+      "glass": true,
       "place": [
         [
           22,
@@ -290,9 +290,9 @@
         -0.0
       ],
       "tint": false,
-      "glow": true,
+      "glow": false,
       "collision": "None",
-      "glass": false,
+      "glass": true,
       "place": [
         [
           22,
@@ -352,9 +352,9 @@
         -0.0
       ],
       "tint": false,
-      "glow": true,
+      "glow": false,
       "collision": "None",
-      "glass": false,
+      "glass": true,
       "place": [
         [
           22,
@@ -483,7 +483,7 @@
       "non_manifold_edges": 52,
       "scale_applied": true
     },
-    "SM_Bld_OfficeV2_Windows": {
+    "SM_Bld_OfficeV2_Glass": {
       "loose_verts": 0,
       "loose_edges": 0,
       "zero_area_faces": 0,

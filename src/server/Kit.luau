@@ -139,7 +139,7 @@ function Kit.place(group: string, parent: Instance, pivot: CFrame, opts)
 				p:SetAttribute("Bulb", true)
 			elseif m.glass then
 				p.Material = Enum.Material.Glass
-				p.Transparency = 0.35
+				p.Transparency = 0.6 -- clear window glass: rooms stay visible inside
 				p.CastShadow = false
 			else
 				p.Material = Enum.Material.SmoothPlastic

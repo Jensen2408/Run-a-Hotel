@@ -1920,7 +1920,7 @@ def office_door_leaf(name, spec):
         pw, ph = (w - 0.84) / 2, (gz1 - gz0) / 3
         for i in range(2):
             for j in range(3):
-                glow.append(box((pw - 0.12, 0.08, ph - 0.12), (gx0 + pw * (i + 0.5), 0, gz0 + ph * (j + 0.5)), GLASS_WARM, bevel=0.0))
+                glow.append(box((pw - 0.12, 0.08, ph - 0.12), (gx0 + pw * (i + 0.5), 0, gz0 + ph * (j + 0.5)), GLASS_BLUE, bevel=0.0))
         wood.append(box((0.1, t * 0.9, gz1 - gz0), (w / 2, 0, (gz0 + gz1) / 2), WOOD, bevel=0.0))
         for j in (1, 2):
             wood.append(box((w - 0.84, t * 0.9, 0.1), (w / 2, 0, gz0 + ph * j), WOOD, bevel=0.0))
@@ -1955,7 +1955,7 @@ def office_door_leaf(name, spec):
     res = {f"SM_Bld_OfficeV2_{name[6:]}": (build_mesh(f"SM_Bld_OfficeV2_{name[6:]}", wood), dict(info))}
     if glow:
         gname = f"SM_Bld_OfficeV2_{name[6:]}_Glass"
-        res[gname] = (build_mesh(gname, glow, "glow"), dict(info, glow=True))
+        res[gname] = (build_mesh(gname, glow), dict(info, glass=True))  # clear glass (transparent in game)
     return res
 
 
@@ -2131,7 +2131,7 @@ def _office_v3():
         ("y", 0.0, X1, -1, 5.0, 4.0, 5.2, 6, True),
     ]
     for axis, p_, c_, o, w, h, zc, seed, has_awning in wins:
-        t_, g_ = window(axis, p_, c_, o, w, h, zc, shutters=False, flowers=False, glass_colour=WINDOW_GLOW, mullion=TEAL, sill=False)
+        t_, g_ = window(axis, p_, c_, o, w, h, zc, shutters=False, flowers=False, glass_colour=GLASS_BLUE, mullion=TEAL, sill=False)
         T += t_
         WIN += g_
         flower_box(axis, p_, c_, o, w, zc - h / 2 - 0.95, seed, F)
@@ -2236,7 +2236,7 @@ def _office_v3():
         zb = sz - 0.3 + sign_top(u, bw, bh, br, bc, bcw)
         gooseneck((sx + u, sy - 0.1, zb - 0.1), 1.0, 1.1, (0, 1), L, T, size=0.95)
     return out(
-        {"Walls": W, "Trim": T, "Roof": R, "Awning": A, "Porch": P, "Flowers": F, "Sign": S, "Windows": WIN, "Glow": L},
+        {"Walls": W, "Trim": T, "Roof": R, "Awning": A, "Porch": P, "Flowers": F, "Sign": S, "Glass": WIN, "Glow": L},
         "OfficeV2",
         {"Walls": "Precise", "Roof": "Hull"},
         dict(place=[[22, 0, -19]]),

@@ -1082,9 +1082,7 @@ local function buildLobby(decor, rng)
 	end
 	local officeMeshes
 	if v2 then
-		-- Glowing windows stay a little see-through (Neon + transparency).
-		officeMeshes =
-			Kit.place("OfficeV2", lobby, CFrame.new(22, 0, -19), { transparency = { SM_Bld_OfficeV2_Windows = 0.3 } })
+		officeMeshes = Kit.place("OfficeV2", lobby, CFrame.new(22, 0, -19))
 		for _, door in ipairs(OFFICE_DOORS) do
 			Kit.door(door, lobby, CFrame.new(22, 0, -19))
 		end
