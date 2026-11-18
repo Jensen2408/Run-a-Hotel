@@ -39,6 +39,17 @@ for batch in ("batch1", "batch2", "batch3"):
         if m.get("place"):
             fields.append("place = {%s}" % ", ".join(v3(p) for p in m["place"]))
         lines.append(f"\t{name} = {{ {', '.join(fields)} }},")
+# Meshes from other Blender scripts (not in a kit batch manifest).
+# Centres are measured from the import (trunk base = origin), in the
+# intended frame (the importer's 180-degree turn undone).
+EXTRA = {
+    # tools/blender/pine_tree.py -> assets/models/pine_tree.fbx
+    "PineTrunk": {"group": "PineTree", "center": [0, 3.2, 0], "size": [2.804, 6.4, 2.948]},
+    "PineLeaves": {"group": "PineTree", "center": [-0.294, 14.023, 0], "size": [14.108, 19.755, 14.253]},
+}
+for name, m in EXTRA.items():
+    fields = [f'id = "{ids[name]}"', f'group = "{m["group"]}"', f"c = {v3(m['center'])}", f"s = {v3(m['size'])}"]
+    lines.append(f"	{name} = {{ {', '.join(fields)} }},")
 lines.append("}")
 open(os.path.join(ROOT, "src", "server", "KitManifest.luau"), "w", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")
 print("meshes:", len(lines) - 9, "missing ids:", missing)

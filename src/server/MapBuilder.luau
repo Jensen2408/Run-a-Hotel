@@ -36,7 +36,7 @@ local DOOR_COLORS = { Color3.fromRGB(64, 150, 146), Color3.fromRGB(230, 120, 70)
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 13
+MapBuilder.VERSION = 14
 
 local function part(props)
 	local p = Instance.new("Part")

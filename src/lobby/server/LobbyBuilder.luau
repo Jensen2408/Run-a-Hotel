@@ -19,6 +19,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local UiAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiAssets"))
+-- Blender kit (meshes in ServerStorage.MotelKit); the game server's module.
+local Kit = require(game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Kit"))
 
 local LobbyBuilder = {}
 
@@ -339,13 +341,25 @@ function LobbyBuilder.build(scale: number)
 	local wg = surface(map:FindFirstChild("Welcome"), Enum.NormalId.Back, 40)
 	text(wg, { Size = UDim2.fromScale(1, 1), Text = "WELCOME", TextColor3 = Color3.fromRGB(255, 232, 140) })
 
-	-- Outside: a ring of pines through the front opening.
+	-- Outside: a ring of pines through the front opening (the Blender pine
+	-- when the kit is available, else a trunk + wedge).
 	local rng = Random.new(77)
+	Kit.load()
+	local kitPines = Kit.has("PineTree")
 	for k = 1, 40 do
 		local a = rng:NextNumber(0, math.pi * 2)
 		local r = rng:NextNumber(70, 130)
 		local x, z = math.cos(a) * r, math.sin(a) * r
 		local h = rng:NextNumber(22, 34)
+		if kitPines then
+			Kit.place(
+				"PineTree",
+				map,
+				CFrame.new(x, 0, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
+				{ scale = h / 23.9 }
+			)
+			continue
+		end
 		block(map, "Trunk", Vector3.new(1.6, h * 0.25, 1.6), Vector3.new(x, h * 0.125, z), Color3.fromRGB(104, 72, 50))
 		block(
 			map,

@@ -643,4 +643,16 @@ return {
 		glow = true,
 		place = { { -46, 0, -50 } },
 	},
+	PineTrunk = {
+		id = "rbxassetid://107706139557831",
+		group = "PineTree",
+		c = { 0, 3.2, 0 },
+		s = { 2.804, 6.4, 2.948 },
+	},
+	PineLeaves = {
+		id = "rbxassetid://80751553046587",
+		group = "PineTree",
+		c = { -0.294, 14.023, 0 },
+		s = { 14.108, 19.755, 14.253 },
+	},
 }

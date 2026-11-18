@@ -517,7 +517,35 @@ local PINE_GREENS = {
 	Color3.fromRGB(58, 116, 84),
 }
 
+-- Blender pine (tools/blender/pine_tree.py) used for every tree when the kit
+-- has it: one Model "Pine" with an invisible trunk collider and the two
+-- meshes, scaled to `height`, random turn and a slight leaf tint.
+local PINE_HEIGHT = 23.9 -- mesh height (trunk base to tip)
+local function kitPine(parent, x: number, z: number, height: number, rng: Random): boolean
+	if not Kit.has("PineTree") then
+		return false
+	end
+	local model = Instance.new("Model")
+	model.Name = "Pine"
+	local k = height / PINE_HEIGHT
+	cylY(model, "Trunk", 6.4 * k, 1.6 * k, Vector3.new(x, 3.2 * k, z), Color3.fromRGB(104, 72, 50), {
+		Transparency = 1,
+		CastShadow = false,
+	})
+	Kit.place("PineTree", model, CFrame.new(x, 0, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0), {
+		scale = k,
+		tint = {
+			PineLeaves = Color3.fromRGB(240, 240, 240):Lerp(Color3.fromRGB(196, 228, 170), rng:NextNumber(0, 0.7)),
+		},
+	})
+	model.Parent = parent
+	return true
+end
+
 local function pine(parent, x: number, z: number, height: number, rng: Random, tiers: number)
+	if kitPine(parent, x, z, height, rng) then
+		return
+	end
 	local model = Instance.new("Model")
 	model.Name = "Pine"
 	local trunkH = height * 0.24
@@ -563,6 +591,9 @@ local function roundTreeParts(parent, x: number, z: number, rng: Random, scale: 
 end
 
 local function birch(parent, x: number, z: number, rng: Random)
+	if kitPine(parent, x, z, rng:NextNumber(18, 24), rng) then
+		return
+	end
 	local model = Instance.new("Model")
 	model.Name = "Birch"
 	local h = rng:NextNumber(14, 20)
@@ -735,6 +766,9 @@ local function bush(parent, pos: Vector3, rng: Random, flowers: boolean?)
 end
 
 local function roundTree(parent, x: number, z: number, rng: Random, scale: number?)
+	if kitPine(parent, x, z, 16 * (scale or 1) * rng:NextNumber(0.9, 1.1), rng) then
+		return
+	end
 	skinned(parent, "RoundTree", function()
 		roundTreeParts(parent, x, z, rng, scale)
 	end, function()
