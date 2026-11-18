@@ -2243,6 +2243,512 @@ def _office_v3():
     )
 
 
+# ======================================================================
+# Batch 4: interior furniture, lamps, pool / yard / road props
+# (prop-artist + cartoon-style). Sizes follow the part-built decor they
+# replace (MapDecor / MapBuilder); front = +Y (Roblox -Z), origin noted
+# per builder (floor contact unless "wall" or "ceiling").
+# ======================================================================
+FABRIC_BLUE = srgb(70, 134, 168)
+FABRIC_DARK = srgb(50, 104, 138)
+RUG_RED = srgb(178, 58, 60)
+RUG_GOLD = srgb(234, 190, 92)
+RUG_CREAM = srgb(244, 226, 190)
+COPPER = srgb(208, 122, 74)
+CANVAS = srgb(150, 162, 178)
+RECYCLE_BLUE = srgb(62, 128, 208)
+STOP_YELLOW = srgb(246, 206, 72)
+POOL_WHITE = srgb(246, 248, 250)
+FLOATIE_PINK = srgb(255, 118, 170)
+CYAN_GLOW = srgb(130, 226, 255)
+POLE_WOOD = srgb(122, 84, 56)
+SCREEN_GLOW = srgb(110, 170, 230)
+PAPER = srgb(250, 246, 232)
+INK = srgb(70, 70, 80)
+SKY = srgb(150, 210, 245)
+HILL = srgb(110, 180, 90)
+HILL_DARK = srgb(80, 150, 80)
+SUN = srgb(255, 214, 90)
+FLOWER_MIX = [srgb(255, 110, 150), srgb(255, 212, 80), srgb(190, 130, 255), srgb(255, 255, 255), srgb(255, 150, 90)]
+
+
+def extrude_up(points_xy, z0, h, colour, bevel=0.0):
+    """Closed (x, y) outline extruded straight up from z0 by h (curtains)."""
+    bm = bmesh.new()
+    bot = [bm.verts.new((x, y, z0)) for x, y in points_xy]
+    top = [bm.verts.new((x, y, z0 + h)) for x, y in points_xy]
+    bm.faces.new(list(reversed(bot)))
+    bm.faces.new(top)
+    n = len(points_xy)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((bot[i], bot[j], top[j], top[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new("up")
+    bm.to_mesh(mesh)
+    bm.free()
+    o = bpy.data.objects.new("up", mesh)
+    scene.collection.objects.link(o)
+    return finish(o, colour, bevel=bevel, segments=1, smooth_angle=60)
+
+
+def torus_arc(R, r, a0, a1, loc, colour, segs=4, rsegs=8):
+    """Section of a torus (axis Z) from angle a0 to a1: striped rings."""
+    bm = bmesh.new()
+    rings = []
+    for i in range(segs + 1):
+        a = a0 + (a1 - a0) * i / segs
+        cx, cy = math.cos(a), math.sin(a)
+        ring = []
+        for k in range(rsegs):
+            b = k * 2 * math.pi / rsegs
+            rr = R + r * math.cos(b)
+            ring.append(bm.verts.new((loc[0] + cx * rr, loc[1] + cy * rr, loc[2] + r * math.sin(b))))
+        rings.append(ring)
+    for i in range(segs):
+        for k in range(rsegs):
+            kk = (k + 1) % rsegs
+            bm.faces.new((rings[i][k], rings[i + 1][k], rings[i + 1][kk], rings[i][kk]))
+    bm.faces.new(list(reversed(rings[0])))
+    bm.faces.new(rings[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new("torus")
+    bm.to_mesh(mesh)
+    bm.free()
+    o = bpy.data.objects.new("torus", mesh)
+    scene.collection.objects.link(o)
+    return finish(o, colour, smooth_angle=70)
+
+
+def wave_panel(x0, x1, y, depth, z0, h, folds, colour):
+    """Curtain panel: wavy cross-section (folds) between x0 and x1."""
+    n = folds * 4
+    front = [(x0 + (x1 - x0) * i / n, y + depth * 0.5 * math.sin(i / n * folds * 2 * math.pi)) for i in range(n + 1)]
+    back = [(x, yy + 0.08) for x, yy in reversed(front)]
+    return extrude_up(front + back, z0, h, colour)
+
+
+# ---------------------------------------------------------------- lobby
+def couch():
+    """Lobby sofa 7 wide x 3.2 deep (old seat 2.6 x 7 + back), seat ~1.5.
+    Origin floor, back at -Y. Placed facing +X (yaw -90)."""
+    W, D = 7.0, 3.2
+    frame = [
+        box((W, D, 0.9), (0, 0, 0.75), FABRIC_DARK, bevel=0.25),
+        box((W, 0.9, 2.2), (0, -D / 2 + 0.45, 1.75), FABRIC_DARK, bevel=0.35),
+    ]
+    for s in (-1, 1):
+        frame.append(box((0.8, D + 0.1, 1.5), (s * (W / 2 - 0.4), 0, 1.15), FABRIC_DARK, bevel=0.32))  # arms stand proud of the base
+        frame.append(cyl(0.42, D + 0.1, (s * (W / 2 - 0.4), 0, 1.9), FABRIC_DARK, verts=12, rot=(math.pi / 2, 0, 0)))
+    cushions = []
+    for x in (-1.45, 1.45):
+        cushions.append(box((2.8, D - 1.1, 0.55), (x, 0.4, 1.45), FABRIC_BLUE, bevel=0.24, segments=2))
+        cushions.append(box((2.7, 0.6, 1.5), (x, -D / 2 + 1.05, 2.25), FABRIC_BLUE, bevel=0.26, segments=2, rot=(-0.12, 0, 0)))
+    cushions.append(blob(0.5, (-2.6, 0.0, 2.0), RUG_GOLD, squash=(0.7, 0.4, 0.75), lump=0.05))
+    cushions.append(blob(0.5, (2.6, 0.0, 2.0), RUG_RED, squash=(0.7, 0.4, 0.75), lump=0.05))
+    legs = [cyl(0.14, 0.32, (x, y, 0.16), WOOD_DARK, verts=10, radius2=0.1) for x in (-3.1, 3.1) for y in (-1.3, 1.3)]
+    return {"SM_Prop_Couch": (build_mesh("SM_Prop_Couch", frame + cushions + legs), dict(collision="Box"))}
+
+
+def coffee_table():
+    """Coffee table 3.6 x 2.4, top at 1.0 above the floor, magazine and mug."""
+    parts = [
+        box((3.6, 2.4, 0.22), (0, 0, 0.9), WOOD, bevel=0.1),
+        box((3.3, 2.1, 0.1), (0, 0, 0.35), WOOD_DARK, bevel=0.04),
+    ]
+    for x in (-1.55, 1.55):
+        for y in (-0.95, 0.95):
+            parts.append(cyl(0.13, 0.82, (x, y, 0.4), WOOD_DARK, verts=10, radius2=0.1))
+    parts += [
+        box((1.0, 1.4, 0.08), (0.4, -0.3, 1.05), RED, bevel=0.03, rot=(0, 0, 0.2)),
+        box((0.9, 1.3, 0.08), (0.45, -0.25, 1.13), TEAL, bevel=0.03, rot=(0, 0, -0.1)),
+        lathe([(0.0, 0), (0.2, 0), (0.22, 0.32), (0.18, 0.34), (0.0, 0.34)], (-0.9, 0.4, 1.01), CREAM, verts=12),
+        cyl(0.08, 0.2, (-0.66, 0.4, 1.18), CREAM, verts=8, rot=(math.pi / 2, 0, 0)),
+    ]
+    return {"SM_Prop_CoffeeTable": (build_mesh("SM_Prop_CoffeeTable", parts), dict(collision="Box"))}
+
+
+def lobby_rug():
+    """Lobby runner 6 x 12 (old rug + border): gold border, red field, cream motifs."""
+    parts = [
+        box((6.6, 12.6, 0.05), (0, 0, 0.025), RUG_GOLD, bevel=0.02, segments=1),
+        box((5.8, 11.8, 0.06), (0, 0, 0.035), RUG_RED, bevel=0.02, segments=1),
+    ]
+    for y in (-4.0, 0.0, 4.0):
+        parts.append(box((1.6, 1.6, 0.04), (0, y, 0.07), RUG_CREAM, bevel=0.0, rot=(0, 0, math.pi / 4)))
+        parts.append(box((0.8, 0.8, 0.04), (0, y, 0.08), RUG_GOLD, bevel=0.0, rot=(0, 0, math.pi / 4)))
+    for x in (-2.5, 2.5):
+        parts.append(box((0.18, 11.2, 0.04), (x, 0, 0.07), RUG_CREAM, bevel=0.0))
+    for y in (-6.45, 6.45):
+        for k in range(12):
+            parts.append(box((0.12, 0.35, 0.03), (-3.0 + k * 0.55, y + (0.12 if y > 0 else -0.12), 0.02), RUG_CREAM, bevel=0.0))
+    return {"SM_Prop_LobbyRug": (build_mesh("SM_Prop_LobbyRug", parts), dict(collision="None"))}
+
+
+def key_rack():
+    """Wall key rack 6 x 3 (origin board centre), six hooks with tagged keys."""
+    parts = [
+        box((6.0, 0.3, 3.0), (0, 0, 0), WOOD_DARK, bevel=0.1),
+        box((5.4, 0.12, 2.4), (0, 0.18, 0), WOOD, bevel=0.06, segments=1),
+        box((2.2, 0.1, 0.5), (0, 0.26, 1.0), BRASS, bevel=0.04, segments=1),
+    ]
+    tags = [TEAL, RED, RUG_GOLD, TEAL, RED, RUG_GOLD]
+    for k in range(6):
+        x = -2.5 + k
+        parts.append(segment((x, 0.24, 0.35), (x, 0.55, 0.45), 0.05, BRASS, verts=6))
+        parts.append(cyl(0.12, 0.06, (x, 0.5, 0.15), BRASS, verts=10, rot=(math.pi / 2, 0, 0)))
+        parts.append(box((0.08, 0.04, 0.45), (x, 0.5, -0.17), BRASS, bevel=0.0))
+        parts.append(box((0.32, 0.06, 0.5), (x, 0.42, -0.62), tags[k], bevel=0.05, segments=1))
+    return {"SM_Prop_KeyRack": (build_mesh("SM_Prop_KeyRack", parts), dict(collision="None"))}
+
+
+def wall_clock():
+    """Wall clock, 2 across (origin face centre at the wall)."""
+    parts = [
+        cyl(1.0, 0.24, (0, 0.12, 0), TEAL, verts=24, rot=(math.pi / 2, 0, 0)),
+        cyl(0.86, 0.06, (0, 0.27, 0), PAPER, verts=24, rot=(math.pi / 2, 0, 0)),
+        cyl(0.09, 0.08, (0, 0.33, 0), IRON, verts=10, rot=(math.pi / 2, 0, 0)),
+        box((0.1, 0.04, 0.55), (0, 0.33, 0.25), IRON, bevel=0.0),
+        box((0.38, 0.04, 0.08), (0.17, 0.34, 0.0), IRON, bevel=0.0, rot=(0, -0.5, 0)),
+    ]
+    for k in range(12):
+        a = k * math.pi / 6
+        long = k % 3 == 0
+        parts.append(box((0.06, 0.03, 0.2 if long else 0.1), (math.sin(a) * 0.72, 0.31, math.cos(a) * 0.72), INK, bevel=0.0, rot=(0, -a, 0)))
+    return {"SM_Prop_WallClock": (build_mesh("SM_Prop_WallClock", parts), dict(collision="None"))}
+
+
+def coffee_bar():
+    """Coffee counter 3.6 wide x 2 deep x 3 tall + machine, cups, jar."""
+    parts = [
+        box((3.6, 2.0, 2.7), (0, 0, 1.35), WOOD, bevel=0.12),
+        box((3.8, 2.2, 0.2), (0, 0, 2.8), CREAM, bevel=0.07),
+        box((3.4, 0.08, 1.8), (0, 1.02, 1.3), WOOD_PANEL, bevel=0.05, segments=1),
+        box((3.7, 0.25, 0.3), (0, 0.95, 0.15), TEAL, bevel=0.06, segments=1),
+        box((1.2, 1.1, 1.4), (-0.6, -0.3, 3.6), IRON, bevel=0.15),
+        box((1.0, 0.1, 0.5), (-0.6, 0.27, 4.0), RED, bevel=0.04, segments=1),
+        cyl(0.18, 0.4, (-0.6, 0.15, 3.25), METAL, verts=10),
+        lathe([(0.0, 0), (0.28, 0), (0.32, 0.5), (0.2, 0.62), (0.08, 0.7), (0.0, 0.7)], (0.4, -0.4, 2.9), srgb(120, 200, 230), verts=14),
+    ]
+    for x in (0.9, 1.3):
+        parts.append(lathe([(0.0, 0), (0.15, 0), (0.18, 0.28), (0.0, 0.28)], (x, 0.4, 2.9), PAPER, verts=10))
+    return {"SM_Prop_CoffeeBar": (build_mesh("SM_Prop_CoffeeBar", parts), dict(collision="Box"))}
+
+
+def wall_sconce():
+    """Wall sconce (origin at the wall plate centre), brass arm, glowing shade."""
+    metal = [
+        box((0.5, 0.12, 0.9), (0, 0.06, 0), BRASS, bevel=0.06, segments=1),
+        segment((0, 0.1, -0.1), (0, 0.55, 0.15), 0.06, BRASS, verts=8),
+        cyl(0.18, 0.12, (0, 0.6, 0.2), BRASS, verts=12),
+    ]
+    shade = [lathe([(0.12, 0.25), (0.34, 0.3), (0.38, 0.75), (0.2, 0.85), (0.0, 0.86)], (0, 0.6, 0), GLOW_SHADE, verts=16)]
+    return {
+        "SM_Prop_WallSconce": (build_mesh("SM_Prop_WallSconce", metal), dict(collision="None")),
+        "SM_Prop_WallSconce_Shade": (build_mesh("SM_Prop_WallSconce_Shade", shade, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+# ---------------------------------------------------------------- rooms
+def dresser_tv():
+    """Dresser 4 wide x 1.4 deep x 2.4 tall with a retro TV (glowing screen)."""
+    body = [
+        box((4.0, 1.4, 2.2), (0, 0, 1.25), WOOD, bevel=0.1),
+        box((4.2, 1.55, 0.18), (0, 0, 2.42), WOOD_DARK, bevel=0.06),
+    ]
+    for s in (-1, 1):
+        for y in (-0.55, 0.55):
+            body.append(cyl(0.1, 0.18, (s * 1.8, y, 0.09), WOOD_DARK, verts=8, radius2=0.07))
+    for row, z in enumerate((0.75, 1.45)):
+        for x in (-0.98, 0.98):
+            body.append(box((1.85, 0.08, 0.6), (x, 0.72, z), WOOD_LIGHT, bevel=0.05, segments=1))
+            body.append(blob(0.08, (x, 0.82, z), BRASS, lump=0, segs=8, rings=6))
+    tv = [
+        box((2.6, 1.5, 1.8), (0, -0.05, 3.5), srgb(66, 58, 70), bevel=0.3, segments=3),
+        box((2.2, 0.08, 1.45), (0, 0.72, 3.5), IRON, bevel=0.1, segments=2),
+        box((1.2, 0.8, 0.12), (0, 0, 2.57), IRON, bevel=0.04, segments=1),
+        cyl(0.07, 0.6, (0.6, 0.1, 4.6), METAL, verts=6, rot=(0, 0.5, 0)),
+        cyl(0.07, 0.6, (-0.6, 0.1, 4.6), METAL, verts=6, rot=(0, -0.5, 0)),
+        blob(0.09, (0.95, 0.73, 2.95), BRASS, lump=0, segs=8, rings=6),
+    ]
+    screen = [box((1.9, 0.06, 1.2), (0, 0.77, 3.52), SCREEN_GLOW, bevel=0.12, segments=2)]
+    return {
+        "SM_Prop_Dresser": (build_mesh("SM_Prop_Dresser", body + tv), dict(collision="Box")),
+        "SM_Prop_Dresser_Screen": (build_mesh("SM_Prop_Dresser_Screen", screen, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+def painting():
+    """Framed landscape 3.8 x 2.8 (origin back centre on the wall)."""
+    parts = [
+        box((3.8, 0.16, 2.8), (0, 0.08, 0), RUG_GOLD, bevel=0.08),
+        box((3.3, 0.06, 2.3), (0, 0.18, 0), SKY, bevel=0.0),
+        cyl(0.35, 0.04, (1.0, 0.22, 0.55), SUN, verts=16, rot=(math.pi / 2, 0, 0)),
+    ]
+    for cx, r, col in ((-0.9, 1.3, HILL_DARK), (0.8, 1.6, HILL)):
+        parts.append(cyl(r, 0.05, (cx, 0.2 + (0.01 if col == HILL else 0), -1.15), col, verts=14, rot=(math.pi / 2, 0, 0)))
+    parts.append(box((3.3, 0.07, 0.45), (0, 0.24, -0.92), HILL, bevel=0.0))
+    for x in (-1.2, -0.7, 0.3):
+        parts.append(cyl(0.18, 0.55, (x, 0.27, -0.45), EMBLEM_PINE, verts=6, radius2=0.0, rot=(0, 0, 0)))
+    return {"SM_Prop_Painting": (build_mesh("SM_Prop_Painting", parts), dict(collision="None"))}
+
+
+def room_rug():
+    """Oval room rug 4 x 3."""
+    parts = [
+        cyl(1.0, 0.04, (0, 0, 0.02), RUG_GOLD, verts=28),
+        cyl(0.86, 0.05, (0, 0, 0.03), RUG_CREAM, verts=28),
+        cyl(0.55, 0.06, (0, 0, 0.035), RUG_RED, verts=24),
+    ]
+    for o in parts:
+        o.scale = (2.0, 1.5, 1.0)
+        _activate(o)
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    return {"SM_Prop_RoomRug": (build_mesh("SM_Prop_RoomRug", parts), dict(collision="None"))}
+
+
+def curtains():
+    """Window curtains for a 3-wide window: rod, two folded panels, tie-backs.
+    Origin = window centre on the inner wall face; panels hang toward +Y."""
+    parts = [cyl(0.06, 3.9, (0, 0.3, 1.85), BRASS, verts=8, rot=(0, math.pi / 2, 0))]
+    for s in (-1, 1):
+        parts.append(blob(0.11, (s * 1.98, 0.3, 1.85), BRASS, lump=0, segs=8, rings=6))
+        parts.append(wave_panel(s * 1.85, s * 0.95, 0.3, 0.16, -1.8, 3.55, 3, srgb(240, 214, 140)))
+        parts.append(box((0.9, 0.2, 0.14), (s * 1.55, 0.36, -0.3), RED, bevel=0.05, segments=1))
+    return {"SM_Prop_Curtains": (build_mesh("SM_Prop_Curtains", parts), dict(collision="None"))}
+
+
+# ---------------------------------------------------------------- kitchen
+def pot_rack():
+    """Pot rail 7 long (origin rail centre), wall brackets at -Y, 3 pots."""
+    parts = [cyl(0.1, 7.0, (0, 0, 0), STEEL_DARK, verts=10, rot=(0, math.pi / 2, 0))]
+    for x in (-3.2, 3.2):
+        parts.append(box((0.2, 0.7, 0.2), (x, -0.35, 0), STEEL_DARK, bevel=0.05, segments=1))
+    for k, x in enumerate((-2.2, 0.0, 2.2)):
+        parts.append(segment((x, 0, -0.05), (x, 0, -0.45), 0.04, STEEL, verts=6))
+        if k == 1:
+            parts.append(cyl(0.65, 0.12, (x, 0, -1.2), COPPER, verts=18, rot=(math.pi / 2, 0, 0)))
+            parts.append(box((0.12, 0.08, 0.7), (x, 0, -0.5), IRON, bevel=0.03, segments=1))
+        else:
+            parts.append(lathe([(0.0, 0), (0.5, 0), (0.58, 0.15), (0.6, 0.75), (0.66, 0.8), (0.0, 0.8)], (x, 0, -1.35), COPPER, verts=16))
+            parts.append(segment((x - 0.6, 0, -0.6), (x + 0.6, 0, -0.6), 0.04, IRON, verts=6))
+    return {"SM_Prop_PotRack": (build_mesh("SM_Prop_PotRack", parts), dict(collision="None"))}
+
+
+def ticket_rail():
+    """Order ticket rail 6 long (origin rail centre) with three tickets."""
+    parts = [box((6.0, 0.3, 0.3), (0, 0, 0), STEEL, bevel=0.08)]
+    for k, x in enumerate((-1.8, -0.2, 1.4)):
+        parts.append(box((0.8, 0.05, 1.05), (x, 0.18, -0.55), PAPER, bevel=0.0, rot=(0, (k - 1) * 0.08, 0)))
+        for j in range(4):
+            parts.append(box((0.55, 0.02, 0.05), (x, 0.21, -0.25 - j * 0.2), INK, bevel=0.0))
+    return {"SM_Prop_TicketRail": (build_mesh("SM_Prop_TicketRail", parts), dict(collision="None"))}
+
+
+# ---------------------------------------------------------------- lamps
+def ceiling_lamp():
+    """Flush ceiling lamp 2 across (origin at the ceiling, hangs to -Z)."""
+    metal = [
+        cyl(0.55, 0.12, (0, 0, -0.06), BRASS, verts=18),
+        cyl(0.08, 0.3, (0, 0, -0.25), BRASS, verts=8),
+        lathe([(0.0, -0.4), (1.0, -0.4), (1.05, -0.46), (0.0, -0.46)], (0, 0, 0), BRASS, verts=24),
+    ]
+    dome = [lathe([(1.0, -0.46), (0.92, -0.75), (0.62, -1.0), (0.0, -1.08)], (0, 0, 0), GLOW_SHADE, verts=24)]
+    return {
+        "SM_Prop_CeilingLamp": (build_mesh("SM_Prop_CeilingLamp", metal), dict(collision="None")),
+        "SM_Prop_CeilingLamp_Glow": (build_mesh("SM_Prop_CeilingLamp_Glow", dome, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+def desk_lamp():
+    """Banker's desk lamp: brass base and stem, green shade, glowing bulb."""
+    metal = [
+        cyl(0.4, 0.12, (0, 0, 0.06), BRASS, verts=16),
+        cyl(0.06, 0.8, (0, 0, 0.5), BRASS, verts=8),
+        segment((0, 0, 0.9), (0, 0.25, 1.0), 0.05, BRASS, verts=6),
+    ]
+    shade = [box((1.0, 0.5, 0.18), (0, 0.32, 1.08), srgb(40, 130, 90), bevel=0.08, rot=(0.25, 0, 0))]
+    glow = [box((0.8, 0.36, 0.06), (0, 0.33, 0.97), GLOW, bevel=0.02, rot=(0.25, 0, 0))]
+    return {
+        "SM_Prop_DeskLamp": (build_mesh("SM_Prop_DeskLamp", metal + shade), dict(collision="None")),
+        "SM_Prop_DeskLamp_Glow": (build_mesh("SM_Prop_DeskLamp_Glow", glow, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+# ---------------------------------------------------------------- laundry
+def washer():
+    """Front-loading washer 3 x 3 x 3.4, door at the front (+Y)."""
+    body = [
+        box((3.0, 3.0, 3.4), (0, 0, 1.7), POOL_WHITE, bevel=0.25, segments=3),
+        box((2.9, 0.7, 0.55), (0, -1.0, 3.6), POOL_WHITE, bevel=0.15),
+        box((1.0, 0.08, 0.3), (0.6, -0.63, 3.62), INK, bevel=0.04, segments=1),
+        cyl(1.05, 0.14, (0, 1.5, 1.7), METAL, verts=24, rot=(math.pi / 2, 0, 0)),
+        box((0.25, 0.2, 0.5), (0.95, 1.55, 1.7), METAL, bevel=0.06, segments=1),
+    ]
+    for x in (-0.9, -0.5):
+        body.append(cyl(0.14, 0.15, (x, -0.62, 3.62), TEAL, verts=10, rot=(math.pi / 2, 0, 0)))
+    glass = [cyl(0.82, 0.08, (0, 1.58, 1.7), srgb(150, 205, 240), verts=24, rot=(math.pi / 2, 0, 0))]
+    return {
+        "SM_Prop_Washer": (build_mesh("SM_Prop_Washer", body), dict(collision="Box")),
+        "SM_Prop_Washer_Glass": (build_mesh("SM_Prop_Washer_Glass", glass), dict(glass=True, collision="None")),
+    }
+
+
+def laundry_cart():
+    """Laundry cart 2.4 x 3.4 x 2: wheeled frame, canvas bin, folded towels."""
+    parts = [
+        box((2.4, 3.4, 1.2), (0, 0, 1.15), CANVAS, bevel=0.2),
+        box((2.5, 3.5, 0.14), (0, 0, 1.78), STEEL, bevel=0.05, segments=1),
+        box((2.2, 3.2, 0.1), (0, 0, 0.5), STEEL_DARK, bevel=0.03, segments=1),
+    ]
+    for x in (-1.0, 1.0):
+        for y in (-1.5, 1.5):
+            parts.append(cyl(0.18, 0.16, (x, y, 0.2), IRON, verts=10, rot=(0, math.pi / 2, 0)))
+            parts.append(box((0.08, 0.08, 0.3), (x, y, 0.42), STEEL, bevel=0.0))
+    for k, (y, col) in enumerate(((-0.8, LINEN), (0.2, srgb(110, 210, 200)), (1.1, LINEN))):
+        for j in range(2):
+            parts.append(box((1.5, 0.8, 0.22), (0, y, 1.95 + j * 0.24), col, bevel=0.08, segments=2))
+    return {"SM_Prop_LaundryCart": (build_mesh("SM_Prop_LaundryCart", parts), dict(collision="Box"))}
+
+
+# ---------------------------------------------------------------- shop yard
+def crate():
+    """Wooden crate 2 x 2 x 2 with slats and an X brace."""
+    parts = [box((1.9, 1.9, 1.9), (0, 0, 0.95), WOOD_PANEL, bevel=0.06)]
+    for s in (-1, 1):
+        for axis in ("x", "y"):
+            for z in (0.12, 1.78):
+                size = (2.0, 0.14, 0.24) if axis == "x" else (0.14, 2.0, 0.24)
+                pos = (0, s * 1.0, z) if axis == "x" else (s * 1.0, 0, z)
+                parts.append(box(size, pos, WOOD, bevel=0.04, segments=1))
+            r = (0, 0.785, 0) if axis == "x" else (0.785, 0, 0)
+            size = (2.3, 0.12, 0.22) if axis == "x" else (0.12, 2.3, 0.22)
+            pos = (0, s * 1.0, 0.95) if axis == "x" else (s * 1.0, 0, 0.95)
+            parts.append(box(size, pos, WOOD, bevel=0.03, segments=1, rot=r if axis == "x" else (-0.785, 0, 0)))
+    return {"SM_Prop_Crate": (build_mesh("SM_Prop_Crate", parts), dict(collision="Box"))}
+
+
+def barrel():
+    """Wooden barrel 2 across x 2.6 tall with iron hoops."""
+    parts = [lathe([(0.0, 0), (0.85, 0), (0.95, 0.3), (1.0, 1.3), (0.95, 2.3), (0.85, 2.6), (0.0, 2.6)], (0, 0, 0), WOOD, verts=16)]
+    for z, r in ((0.35, 0.97), (0.85, 1.0), (1.75, 1.0), (2.25, 0.97)):
+        parts.append(cyl(r + 0.08, 0.14, (0, 0, z), IRON, verts=16, bevel=0.0))  # hoops clear of the staves
+    parts.append(cyl(0.8, 0.06, (0, 0, 2.6), WOOD_DARK, verts=16))
+    return {"SM_Prop_Barrel": (build_mesh("SM_Prop_Barrel", parts), dict(collision="Hull"))}
+
+
+# ---------------------------------------------------------------- pool
+def diving_board():
+    """Diving board: stand at the origin, board reaching 4.6 toward +Y (over the water)."""
+    stand = [
+        box((1.4, 1.2, 0.9), (0, 0, 0.45), STEEL, bevel=0.15),
+        box((1.7, 0.4, 0.12), (0, 0, 0.95), STEEL_DARK, bevel=0.04, segments=1),
+    ]
+    for s in (-1, 1):
+        stand.append(segment((s * 0.75, -0.4, 0.0), (s * 0.75, -0.4, 2.0), 0.06, METAL, verts=8))
+        stand.append(segment((s * 0.75, -0.4, 2.0), (s * 0.75, 0.6, 2.0), 0.06, METAL, verts=8))
+        stand.append(segment((s * 0.75, 0.6, 2.0), (s * 0.75, 0.6, 1.0), 0.06, METAL, verts=8))
+    board = [box((1.6, 5.0, 0.25), (0, 2.1, 1.03), POOL_WHITE, bevel=0.1), box((1.4, 3.6, 0.04), (0, 2.6, 1.17), TEAL, bevel=0.0)]
+    return {"SM_Prop_DivingBoard": (build_mesh("SM_Prop_DivingBoard", stand + board), dict(collision="Box"))}
+
+
+def floatie():
+    """Pool ring 2.6 across, pink and white stripes (origin centre)."""
+    parts = [torus_arc(1.0, 0.3, i * math.pi / 4, (i + 1) * math.pi / 4, (0, 0, 0), FLOATIE_PINK if i % 2 == 0 else POOL_WHITE) for i in range(8)]
+    return {"SM_Prop_Floatie": (build_mesh("SM_Prop_Floatie", parts), dict(collision="None"))}
+
+
+def lounger():
+    """Pool lounger 2.4 x 5: white frame, tinted cushion (per lounger),
+    raised back at -Y (Roblox +Z), rolled towel."""
+    frame = [
+        box((2.4, 5.0, 0.18), (0, 0.2, 0.62), POOL_WHITE, bevel=0.07),
+        box((2.3, 2.2, 0.18), (0, -1.84, 1.41), POOL_WHITE, bevel=0.07, rot=(-0.7, 0, 0)),  # back rest rising toward -Y
+    ]
+    for x in (-1.0, 1.0):
+        for y in (-1.9, 2.3):
+            frame.append(cyl(0.09, 0.6, (x, y, 0.3), METAL, verts=8))
+        frame.append(cyl(0.16, 0.12, (x, 2.5, 0.16), IRON, verts=10, rot=(0, math.pi / 2, 0)))
+    cushion = [
+        box((2.2, 3.2, 0.24), (0, 0.9, 0.82), NEUTRAL, bevel=0.1, segments=3),
+        box((2.1, 1.9, 0.24), (0, -1.71, 1.56), NEUTRAL, bevel=0.1, segments=3, rot=(-0.7, 0, 0)),
+    ]
+    towel = [cyl(0.24, 1.8, (0, -0.55, 1.12), PAPER, verts=12, rot=(0, math.pi / 2, 0))]
+    return {
+        "SM_Prop_Lounger": (build_mesh("SM_Prop_Lounger", frame + towel), dict(collision="Box")),
+        "SM_Prop_Lounger_Cushion": (build_mesh("SM_Prop_Lounger_Cushion", cushion, "tint"), dict(tint=True, collision="None")),
+    }
+
+
+def pool_light():
+    """Underwater light: chrome ring and glowing lens, 1 across (origin centre)."""
+    ring = [cyl(0.55, 0.1, (0, 0, 0), METAL, verts=18)]
+    lens = [cyl(0.42, 0.12, (0, 0, 0.02), CYAN_GLOW, verts=18)]
+    return {
+        "SM_Prop_PoolLight": (build_mesh("SM_Prop_PoolLight", ring), dict(collision="None")),
+        "SM_Prop_PoolLight_Glow": (build_mesh("SM_Prop_PoolLight_Glow", lens, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+# ---------------------------------------------------------------- yard / road
+def recycle_bin():
+    """Recycle bin 1.8 across x 2.6 tall, lid, white recycle triangle."""
+    parts = [
+        lathe([(0.0, 0), (0.8, 0), (0.9, 2.3), (0.95, 2.35), (0.0, 2.35)], (0, 0, 0), RECYCLE_BLUE, verts=20),
+        lathe([(0.0, 2.32), (1.0, 2.32), (0.95, 2.5), (0.5, 2.6), (0.0, 2.62)], (0, 0, 0), mul(RECYCLE_BLUE, 0.8), verts=20),
+    ]
+    for k in range(3):
+        a = k * 2 * math.pi / 3
+        parts.append(box((0.5, 0.06, 0.12), (math.sin(a) * 0.22, 0.87, 1.3 + math.cos(a) * 0.22), POOL_WHITE, bevel=0.0, rot=(0, a + math.pi / 2, 0)))
+    return {"SM_Prop_RecycleBin": (build_mesh("SM_Prop_RecycleBin", parts), dict(collision="Hull"))}
+
+
+def wheel_stop():
+    """Parking wheel stop 3.6 x 0.7, rounded top, yellow with bolts."""
+    parts = [taper_box((3.6, 0.7, 0.35), (0, 0, 0.175), STOP_YELLOW, top=(0.96, 0.7), bevel=0.08)]
+    for x in (-1.3, 1.3):
+        parts.append(cyl(0.09, 0.06, (x, 0, 0.36), IRON, verts=8))
+    return {"SM_Prop_WheelStop": (build_mesh("SM_Prop_WheelStop", parts), dict(collision="Box"))}
+
+
+def guard_rail():
+    """Road guard rail section 8 long: post at x 0, W-beam toward +X (at +Y)."""
+    parts = [box((0.4, 0.4, 2.0), (0, 0, 1.0), STEEL_DARK, bevel=0.05, segments=1)]
+    parts.append(box((8.0, 0.18, 0.32), (4.0, 0.26, 1.85), STEEL, bevel=0.04, segments=1))
+    parts.append(box((8.0, 0.22, 0.22), (4.0, 0.3, 1.55), METAL, bevel=0.04, segments=1))
+    parts.append(box((8.0, 0.18, 0.32), (4.0, 0.26, 1.25), STEEL, bevel=0.04, segments=1))
+    parts.append(box((0.14, 0.06, 0.3), (0, 0.42, 1.55), RUG_GOLD, bevel=0.0))
+    return {"SM_Road_GuardRail": (build_mesh("SM_Road_GuardRail", parts), dict(collision="Box"))}
+
+
+def light_pole():
+    """String-light pole 7.2 tall: wooden pole, cross arm, cap, hook."""
+    parts = [
+        cyl(0.26, 7.2, (0, 0, 3.6), POLE_WOOD, verts=10),
+        box((1.6, 0.25, 0.25), (0, 0, 6.6), POLE_WOOD, bevel=0.05, segments=1),
+        cyl(0.32, 0.2, (0, 0, 7.3), IRON, verts=10, radius2=0.12),
+        cyl(0.4, 0.4, (0, 0, 0.2), CONCRETE, verts=10, radius2=0.3),
+    ]
+    for x in (-0.7, 0.7):
+        parts.append(segment((x, 0, 6.48), (x, 0, 6.15), 0.04, IRON, verts=6))
+    return {"SM_Yard_LightPole": (build_mesh("SM_Yard_LightPole", parts), dict(collision="Hull"))}
+
+
+def flower_bed():
+    """Courtyard flower bed 2 x 12 (long along Y): wooden border, soil,
+    foliage and mixed blooms."""
+    parts = [box((2.0, 12.0, 0.6), (0, 0, 0.3), WOOD_DARK, bevel=0.1), box((1.7, 11.7, 0.1), (0, 0, 0.62), SOIL, bevel=0.0)]
+    n = 13
+    for i in range(n):
+        y = -5.5 + i * 11.0 / (n - 1)
+        parts.append(blob(0.48, (0.25 * (1 if i % 2 else -1), y, 0.95), FOLIAGE if i % 2 else FOLIAGE_DARK, lump=0.24, seed=i * 3.1, segs=6, rings=4))
+    for i in range(16):
+        y = -5.6 + i * 11.2 / 15
+        x = 0.45 * math.sin(i * 1.7)
+        parts.append(blob(0.26, (x, y, 1.3 + 0.12 * (i % 3)), FLOWER_MIX[i % len(FLOWER_MIX)], lump=0, segs=6, rings=4))
+    return {"SM_Yard_FlowerBed": (build_mesh("SM_Yard_FlowerBed", parts), dict(collision="Box"))}
+
+
 BATCHES = {
     "batch1": [
         ("Bed", bed, "hero"),
@@ -2294,9 +2800,39 @@ BATCHES = {
         ("OfficeDoorSide", office_door_side, "door"),
         ("OfficeDoorBack", office_door_back, "door"),
     ],
+    "batch4": [
+        ("Couch", couch, "hero"),  # main lobby furniture, seen up close
+        ("CoffeeTable", coffee_table, "standard"),
+        ("LobbyRug", lobby_rug, "background"),
+        ("KeyRack", key_rack, "standard"),
+        ("WallClock", wall_clock, "background"),
+        ("CoffeeBar", coffee_bar, "standard"),
+        ("WallSconce", wall_sconce, "background"),
+        ("Dresser", dresser_tv, "standard"),
+        ("Painting", painting, "background"),
+        ("RoomRug", room_rug, "background"),
+        ("Curtains", curtains, "standard"),
+        ("PotRack", pot_rack, "standard"),
+        ("TicketRail", ticket_rail, "background"),
+        ("CeilingLamp", ceiling_lamp, "background"),
+        ("DeskLamp", desk_lamp, "background"),
+        ("Washer", washer, "standard"),
+        ("LaundryCart", laundry_cart, "standard"),
+        ("Crate", crate, "background"),
+        ("Barrel", barrel, "background"),
+        ("DivingBoard", diving_board, "standard"),
+        ("Floatie", floatie, "background"),
+        ("Lounger", lounger, "standard"),
+        ("PoolLight", pool_light, "background"),
+        ("RecycleBin", recycle_bin, "background"),
+        ("WheelStop", wheel_stop, "background"),
+        ("GuardRail", guard_rail, "background"),
+        ("LightPole", light_pole, "background"),
+        ("FlowerBed", flower_bed, "standard"),
+    ],
 }
 # Triangle budget per object group (prop-artist tiers, mobile-adjusted).
-BUDGET = {"hero": 8000, "standard": 3000, "tree": 4000, "vehicle": 8000, "building": 12000, "sign": 8000, "hero_building": 28000, "door": 2500}
+BUDGET = {"hero": 8000, "standard": 3000, "tree": 4000, "vehicle": 8000, "building": 12000, "sign": 8000, "hero_building": 28000, "door": 2500, "background": 1000}
 
 
 # ======================================================================

@@ -41,7 +41,7 @@ local LOBBY_X = 22
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 19
+MapBuilder.VERSION = 20
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -256,6 +256,7 @@ function MapBuilder.build(config)
 		Parent = map,
 	})
 	light(deskLamp, 14, 1)
+	Kit.skin(deskLamp, "DeskLamp", CFrame.new(LOBBY_X + 3, 3.22, -13.7))
 	local ceiling = part({
 		Name = "LobbyLamp",
 		Size = Vector3.new(2, 0.5, 2),
@@ -265,6 +266,7 @@ function MapBuilder.build(config)
 		Parent = map,
 	})
 	light(ceiling, 26, 0.9)
+	Kit.skin(ceiling, "CeilingLamp", CFrame.new(22, 13.9, -20))
 
 	-- Queue: slot 1 is in front of the desk, the line grows toward the entrance.
 	layout.queueSlots = {}
@@ -563,6 +565,7 @@ function MapBuilder.build(config)
 				transparency = { SM_Prop_TrashBag = trashBag.Transparency },
 			})
 			Kit.skin(ac, "ACUnit", CFrame.new(cx - 2, 6, 19.4), { follow = { SM_Prop_AC_Body = true } })
+			Kit.skin(lamp, "CeilingLamp", CFrame.new(cx, 11.85, 12), { scale = 0.8 })
 		end
 
 		local room = {

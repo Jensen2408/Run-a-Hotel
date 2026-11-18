@@ -1,0 +1,1129 @@
+{
+  "batch": "batch4",
+  "units": "studs",
+  "axes": "roblox",
+  "meshes": {
+    "SM_Prop_Couch": {
+      "group": "Couch",
+      "size": [
+        7.028,
+        2.999,
+        3.3
+      ],
+      "center": [
+        0.0,
+        1.5,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 3088
+    },
+    "SM_Prop_CoffeeTable": {
+      "group": "CoffeeTable",
+      "size": [
+        3.6,
+        1.36,
+        2.4
+      ],
+      "center": [
+        0.0,
+        0.67,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 1716
+    },
+    "SM_Prop_LobbyRug": {
+      "group": "LobbyRug",
+      "size": [
+        6.6,
+        0.1,
+        13.49
+      ],
+      "center": [
+        0.0,
+        0.05,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 472
+    },
+    "SM_Prop_KeyRack": {
+      "group": "KeyRack",
+      "size": [
+        6.0,
+        3.0,
+        0.715
+      ],
+      "center": [
+        0.0,
+        0.0,
+        -0.208
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 2308
+    },
+    "SM_Prop_WallClock": {
+      "group": "WallClock",
+      "size": [
+        2.0,
+        2.0,
+        0.37
+      ],
+      "center": [
+        0.0,
+        0.0,
+        -0.185
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 972
+    },
+    "SM_Prop_CoffeeBar": {
+      "group": "CoffeeBar",
+      "size": [
+        3.8,
+        4.3,
+        2.2
+      ],
+      "center": [
+        0.0,
+        2.15,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 884
+    },
+    "SM_Prop_WallSconce": {
+      "group": "WallSconce",
+      "size": [
+        0.5,
+        0.9,
+        0.78
+      ],
+      "center": [
+        0.0,
+        0.0,
+        -0.39
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 212
+    },
+    "SM_Prop_WallSconce_Shade": {
+      "group": "WallSconce",
+      "size": [
+        0.76,
+        0.61,
+        0.76
+      ],
+      "center": [
+        0.0,
+        0.555,
+        -0.6
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 126
+    },
+    "SM_Prop_Dresser": {
+      "group": "Dresser",
+      "size": [
+        4.2,
+        4.884,
+        1.7
+      ],
+      "center": [
+        0.0,
+        2.442,
+        -0.05
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 2276
+    },
+    "SM_Prop_Dresser_Screen": {
+      "group": "Dresser",
+      "size": [
+        1.9,
+        1.2,
+        0.06
+      ],
+      "center": [
+        0.0,
+        3.52,
+        -0.77
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 108
+    },
+    "SM_Prop_Painting": {
+      "group": "Painting",
+      "size": [
+        4.527,
+        4.15,
+        0.426
+      ],
+      "center": [
+        0.096,
+        -0.675,
+        -0.213
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 966
+    },
+    "SM_Prop_RoomRug": {
+      "group": "RoomRug",
+      "size": [
+        4.0,
+        0.065,
+        3.0
+      ],
+      "center": [
+        0.0,
+        0.032,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 948
+    },
+    "SM_Prop_Curtains": {
+      "group": "Curtains",
+      "size": [
+        4.18,
+        3.76,
+        0.27
+      ],
+      "center": [
+        0.0,
+        0.08,
+        -0.325
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 636
+    },
+    "SM_Prop_PotRack": {
+      "group": "PotRack",
+      "size": [
+        7.0,
+        1.95,
+        1.36
+      ],
+      "center": [
+        0.0,
+        -0.875,
+        0.02
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 936
+    },
+    "SM_Prop_TicketRail": {
+      "group": "TicketRail",
+      "size": [
+        6.0,
+        1.255,
+        0.37
+      ],
+      "center": [
+        0.0,
+        -0.478,
+        -0.035
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 288
+    },
+    "SM_Prop_CeilingLamp": {
+      "group": "CeilingLamp",
+      "size": [
+        2.1,
+        0.46,
+        2.1
+      ],
+      "center": [
+        0.0,
+        -0.23,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 496
+    },
+    "SM_Prop_CeilingLamp_Glow": {
+      "group": "CeilingLamp",
+      "size": [
+        2.0,
+        0.62,
+        2.0
+      ],
+      "center": [
+        0.0,
+        -0.77,
+        -0.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 142
+    },
+    "SM_Prop_DeskLamp": {
+      "group": "DeskLamp",
+      "size": [
+        1.0,
+        1.21,
+        0.966
+      ],
+      "center": [
+        0.0,
+        0.605,
+        -0.083
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 504
+    },
+    "SM_Prop_DeskLamp_Glow": {
+      "group": "DeskLamp",
+      "size": [
+        0.8,
+        0.138,
+        0.354
+      ],
+      "center": [
+        0.0,
+        0.97,
+        -0.33
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 108
+    },
+    "SM_Prop_Washer": {
+      "group": "Washer",
+      "size": [
+        3.0,
+        3.875,
+        3.15
+      ],
+      "center": [
+        0.0,
+        1.938,
+        -0.075
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 1140
+    },
+    "SM_Prop_Washer_Glass": {
+      "group": "Washer",
+      "size": [
+        1.64,
+        1.64,
+        0.08
+      ],
+      "center": [
+        0.0,
+        1.7,
+        -1.58
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": true,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 284
+    },
+    "SM_Prop_LaundryCart": {
+      "group": "LaundryCart",
+      "size": [
+        2.5,
+        2.271,
+        3.5
+      ],
+      "center": [
+        0.0,
+        1.164,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 1836
+    },
+    "SM_Prop_Crate": {
+      "group": "Crate",
+      "size": [
+        2.14,
+        1.9,
+        2.14
+      ],
+      "center": [
+        0.0,
+        0.95,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 636
+    },
+    "SM_Prop_Barrel": {
+      "group": "Barrel",
+      "size": [
+        2.16,
+        2.63,
+        2.16
+      ],
+      "center": [
+        0.0,
+        1.315,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 588
+    },
+    "SM_Prop_DivingBoard": {
+      "group": "DivingBoard",
+      "size": [
+        1.7,
+        2.06,
+        5.2
+      ],
+      "center": [
+        0.0,
+        1.03,
+        -2.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 440
+    },
+    "SM_Prop_Floatie": {
+      "group": "Floatie",
+      "size": [
+        2.6,
+        0.6,
+        2.6
+      ],
+      "center": [
+        0.0,
+        0.0,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 560
+    },
+    "SM_Prop_Lounger": {
+      "group": "Lounger",
+      "size": [
+        2.4,
+        2.168,
+        5.42
+      ],
+      "center": [
+        0.0,
+        1.084,
+        0.01
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 1660
+    },
+    "SM_Prop_Lounger_Cushion": {
+      "group": "Lounger",
+      "size": [
+        2.2,
+        1.532,
+        4.982
+      ],
+      "center": [
+        0.0,
+        1.466,
+        -0.009
+      ],
+      "tint": true,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 376
+    },
+    "SM_Prop_PoolLight": {
+      "group": "PoolLight",
+      "size": [
+        1.083,
+        0.1,
+        1.1
+      ],
+      "center": [
+        0.0,
+        0.0,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 212
+    },
+    "SM_Prop_PoolLight_Glow": {
+      "group": "PoolLight",
+      "size": [
+        0.827,
+        0.12,
+        0.84
+      ],
+      "center": [
+        0.0,
+        0.02,
+        -0.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 212
+    },
+    "SM_Prop_RecycleBin": {
+      "group": "RecycleBin",
+      "size": [
+        2.0,
+        2.62,
+        2.0
+      ],
+      "center": [
+        0.0,
+        1.31,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 276
+    },
+    "SM_Prop_WheelStop": {
+      "group": "WheelStop",
+      "size": [
+        3.568,
+        0.39,
+        0.662
+      ],
+      "center": [
+        0.0,
+        0.195,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 548
+    },
+    "SM_Road_GuardRail": {
+      "group": "GuardRail",
+      "size": [
+        8.2,
+        2.01,
+        0.65
+      ],
+      "center": [
+        3.9,
+        1.005,
+        -0.125
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 188
+    },
+    "SM_Yard_LightPole": {
+      "group": "LightPole",
+      "size": [
+        1.6,
+        7.4,
+        0.771
+      ],
+      "center": [
+        0.0,
+        3.7,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 752
+    },
+    "SM_Yard_FlowerBed": {
+      "group": "FlowerBed",
+      "size": [
+        2.0,
+        1.8,
+        12.042
+      ],
+      "center": [
+        0.0,
+        0.9,
+        -0.021
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 1164
+    }
+  },
+  "validation": {
+    "SM_Prop_Couch": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Couch": {
+      "tris": 3088,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Prop_CoffeeTable": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_CoffeeTable": {
+      "tris": 1716,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_LobbyRug": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_LobbyRug": {
+      "tris": 472,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_KeyRack": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_KeyRack": {
+      "tris": 2308,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_WallClock": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_WallClock": {
+      "tris": 972,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_CoffeeBar": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_CoffeeBar": {
+      "tris": 884,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_WallSconce": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_WallSconce_Shade": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_WallSconce": {
+      "tris": 338,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_Dresser": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_Dresser_Screen": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Dresser": {
+      "tris": 2384,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_Painting": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Painting": {
+      "tris": 966,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_RoomRug": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_RoomRug": {
+      "tris": 948,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_Curtains": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Curtains": {
+      "tris": 636,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_PotRack": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_PotRack": {
+      "tris": 936,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_TicketRail": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_TicketRail": {
+      "tris": 288,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_CeilingLamp": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_CeilingLamp_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_CeilingLamp": {
+      "tris": 638,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_DeskLamp": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_DeskLamp_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_DeskLamp": {
+      "tris": 612,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_Washer": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_Washer_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Washer": {
+      "tris": 1424,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_LaundryCart": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_LaundryCart": {
+      "tris": 1836,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_Crate": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Crate": {
+      "tris": 636,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_Barrel": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Barrel": {
+      "tris": 588,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_DivingBoard": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_DivingBoard": {
+      "tris": 440,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_Floatie": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 64,
+      "scale_applied": true
+    },
+    "_group_Floatie": {
+      "tris": 560,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_Lounger": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_Lounger_Cushion": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Lounger": {
+      "tris": 2036,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_PoolLight": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_PoolLight_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_PoolLight": {
+      "tris": 424,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_RecycleBin": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_RecycleBin": {
+      "tris": 276,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Prop_WheelStop": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_WheelStop": {
+      "tris": 548,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Road_GuardRail": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_GuardRail": {
+      "tris": 188,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Yard_LightPole": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_LightPole": {
+      "tris": 752,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Yard_FlowerBed": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_FlowerBed": {
+      "tris": 1164,
+      "budget": 3000,
+      "status": "OK"
+    }
+  }
+}

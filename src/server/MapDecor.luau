@@ -900,6 +900,16 @@ local function buildGroundAndRoad(decor)
 	if Kit.place("Mailbox", road, CFrame.new(31, 0, -54)) then
 		Kit.retireNamed(road, { "MailboxPost", "Mailbox", "MailFlag" })
 	end
+	-- Kit batch 4: wheel stops and guard rail sections (8 long, post at x).
+	if Kit.has("GuardRail") then
+		Kit.retireNamed(road, { "WheelStop", "RailPost", "GuardRail" })
+		for _, x in ipairs({ -26, -18, -10, -2, 6, 14 }) do
+			Kit.place("WheelStop", road, CFrame.new(x, 0.245, -42.8))
+		end
+		for x = -300, 312, 8 do
+			Kit.place("GuardRail", road, CFrame.new(x, 0.5, -78.2))
+		end
+	end
 end
 
 local function buildMotelSign(decor)
@@ -1121,6 +1131,32 @@ local function buildLobby(decor, rng)
 	detail(lobby, "CoffeeCounter", Vector3.new(2, 3, 3.6), Vector3.new(38.5, 1.9, -29.4), WOOD)
 	detail(lobby, "CoffeeMachine", Vector3.new(1.2, 1.4, 1.2), Vector3.new(38.5, 4.1, -30), Color3.fromRGB(40, 40, 44))
 	wallLamp(lobby, Vector3.new(4.6, 8, -12.5), 1, true)
+	-- Kit batch 4: lobby furniture (old parts stay as colliders / light).
+	if Kit.has("Couch") then
+		Kit.retireNamed(lobby, {
+			"CouchSeat",
+			"CouchBack",
+			"CoffeeTable",
+			"Magazine",
+			"RugBorder",
+			"Rug",
+			"KeyRack",
+			"Key",
+			"Clock",
+			"ClockHand",
+			"CoffeeCounter",
+			"CoffeeMachine",
+			"WallLampBack",
+			"WallLamp",
+		})
+		Kit.place("Couch", lobby, CFrame.new(6.2, 0.4, -24) * CFrame.Angles(0, -math.pi / 2, 0))
+		Kit.place("CoffeeTable", lobby, CFrame.new(10, 0.4, -24) * CFrame.Angles(0, -math.pi / 2, 0))
+		Kit.place("LobbyRug", lobby, CFrame.new(22, 0.4, -24))
+		Kit.place("KeyRack", lobby, CFrame.new(30, 7, -6.7))
+		Kit.place("WallClock", lobby, CFrame.new(30, 10.6, -6.5))
+		Kit.place("CoffeeBar", lobby, CFrame.new(38.5, 0.4, -29.4) * CFrame.Angles(0, math.pi / 2, 0))
+		Kit.place("WallSconce", lobby, CFrame.new(4.5, 8, -12.5) * CFrame.Angles(0, -math.pi / 2, 0))
+	end
 end
 
 local function buildRoomBlock(decor)
@@ -1310,6 +1346,16 @@ local function buildRoomBlock(decor)
 		Kit.place("Vending", shell, CFrame.new(48.5, 0, 1.5))
 		Kit.place("IceMachine", shell, CFrame.new(52, 0, 1.5))
 	end
+	-- Kit batch 4: room furniture (dresser + TV, painting, rug, curtains).
+	if Kit.has("Dresser") then
+		Kit.retireNamed(shell, { "Dresser", "TV", "Screen", "Frame", "Painting", "Rug", "Curtain" })
+		for _, cx in ipairs({ 2, 20, 38 }) do
+			Kit.place("Dresser", shell, CFrame.new(cx - 5.7, 0.4, 13) * CFrame.Angles(0, -math.pi / 2, 0))
+			Kit.place("Painting", shell, CFrame.new(cx + 6.5, 6.5, 11) * CFrame.Angles(0, math.pi / 2, 0))
+			Kit.place("RoomRug", shell, CFrame.new(cx - 2.5, 0.4, 14))
+			Kit.place("Curtains", shell, CFrame.new(cx - 4.5, 4.8, 4.5) * CFrame.Angles(0, math.pi, 0))
+		end
+	end
 end
 
 local function buildShedAndYard(decor)
@@ -1349,6 +1395,18 @@ local function buildShedAndYard(decor)
 	fenceLine(yard, Vector3.new(70, 0, 10.5), Vector3.new(70, 0, 1.5), 4)
 	for k = 0, 1 do
 		cylY(yard, "RecycleBin", 2.6, 1.8, Vector3.new(60 + k * 2.2, 1.6, 9.2), Color3.fromRGB(60, 120, 200))
+	end
+	-- Kit batch 4: washers, laundry cart, recycle bins.
+	if Kit.has("Washer") then
+		Kit.retireNamed(shed, { "Washer", "WasherDoor", "LaundryCart" })
+		for k = 0, 1 do
+			Kit.place("Washer", shed, CFrame.new(56 + k * 3.4, 0.4, -10.6))
+		end
+		Kit.place("LaundryCart", shed, CFrame.new(64.5, 0.4, -12))
+		Kit.retireNamed(yard, { "RecycleBin" })
+		for k = 0, 1 do
+			Kit.place("RecycleBin", yard, CFrame.new(60 + k * 2.2, 0.3, 9.2))
+		end
 	end
 end
 
@@ -1546,6 +1604,20 @@ local function buildShopBuilding(decor, rng)
 		block(f, "Crate", Vector3.new(2, 2, 2), p + Vector3.new(0, 1.1, 0), if i == 3 then WOOD else WOOD_DARK)
 	end
 	cylY(f, "Barrel", 2.6, 2, Vector3.new(x1 - 2.6, 1.5, z2 - 1.2), Color3.fromRGB(120, 80, 50))
+	-- Kit batch 4: crates, barrel, back wall shelf (batch 2 shop shelf), lamp.
+	if Kit.has("Crate") then
+		Kit.retireNamed(f, { "Crate", "Barrel", "BackShelf", "BackGoods", "ShopLamp" })
+		for i, p in ipairs({
+			Vector3.new(x1 - 2.5, 0, z1 + 1),
+			Vector3.new(x1 - 2.5, 0, z1 + 3.2),
+			Vector3.new(x1 - 2.5, 2.2, z1 + 2.1),
+		}) do
+			Kit.place("Crate", f, CFrame.new(p.X, p.Y + 0.1, p.Z) * CFrame.Angles(0, (i - 2) * 0.12, 0))
+		end
+		Kit.place("Barrel", f, CFrame.new(x1 - 2.6, 0.2, z2 - 1.2))
+		Kit.place("ShopShelf", f, CFrame.new(x2 - 1.45, 0.4, SHOP_Z) * CFrame.Angles(0, math.pi / 2, 0))
+		Kit.place("CeilingLamp", f, CFrame.new(SHOP_X, 11.9, SHOP_Z), { scale = 1.2 })
+	end
 	pottedPlant(f, Vector3.new(x1 - 1.5, 0.2, SHOP_Z - 5.2), rng)
 	pottedPlant(f, Vector3.new(x1 - 1.5, 0.2, SHOP_Z + 5.2), rng)
 	lampPost(f, Vector3.new(x1 - 8, 0, SHOP_Z - 5), 11)
@@ -1711,6 +1783,13 @@ local function buildKitchenBuilding(decor, rng)
 	})
 	pointLight(lamp, 22, 1)
 	pottedPlant(f, Vector3.new(x2 + 1.5, 0.2, door[1] - 2.2), rng)
+	-- Kit batch 4: pot rack, ticket rail, ceiling lamp (rails face the room, +X).
+	if Kit.has("PotRack") then
+		Kit.retireNamed(f, { "HangingPot", "PotRail", "TicketRail", "Ticket", "KitchenLamp" })
+		Kit.place("PotRack", f, CFrame.new(x1 + 1.2, 8.3, cz + 0.2) * CFrame.Angles(0, -math.pi / 2, 0))
+		Kit.place("TicketRail", f, CFrame.new(x1 + 0.7, 6.3, cz - 1) * CFrame.Angles(0, -math.pi / 2, 0))
+		Kit.place("CeilingLamp", f, CFrame.new(cx, H - 0.1, cz), { scale = 1.2 })
+	end
 	if Kit.place("Kitchen", f, CFrame.new(cx, 0, cz)) then
 		Kit.retireNamed(f, {
 			"SouthWall.*",
@@ -1789,6 +1868,22 @@ local function buildPool(decor)
 	fenceLine(pool, Vector3.new(-31, 0, 21), Vector3.new(-9, 0, 21), 4)
 	fenceLine(pool, Vector3.new(-31, 0, -1), Vector3.new(-31, 0, 21), 4)
 	lampPost(pool, Vector3.new(-10, 0, 22.5), 10)
+	-- Kit batch 4: diving board, floatie, loungers (cushion tinted), lights.
+	if Kit.has("Lounger") then
+		Kit.retireNamed(
+			pool,
+			{ "DivingBoard", "BoardStand", "Floatie", "FloatieHole", "Lounger", "LoungerBack", "Towel", "PoolLight" }
+		)
+		Kit.place("DivingBoard", pool, CFrame.new(-20, 0.4, 17.6))
+		Kit.place("Floatie", pool, CFrame.new(-17, 0.55, 8) * CFrame.Angles(0, 0.4, 0))
+		for i, z in ipairs({ 4, 10, 16 }) do
+			local color = ({ Color3.fromRGB(240, 120, 90), Color3.fromRGB(90, 170, 230), Color3.fromRGB(250, 210, 80) })[i]
+			Kit.place("Lounger", pool, CFrame.new(-29.4, 0.4, z), { tint = { SM_Prop_Lounger_Cushion = color } })
+		end
+		for _, x in ipairs({ -24, -16 }) do
+			Kit.place("PoolLight", pool, CFrame.new(x, 0.5, 10))
+		end
+	end
 end
 
 local function buildCampfire(decor, rng)
@@ -1865,6 +1960,12 @@ local function buildCampfire(decor, rng)
 		end
 		Kit.place("PicnicTable", camp, CFrame.new(-16, 0, -32))
 	end
+	if Kit.has("LightPole") then
+		Kit.retireNamed(camp, { "LightPole" })
+		for _, p in ipairs({ Vector3.new(-36, 0, -34), Vector3.new(-14, 0, -16) }) do
+			Kit.place("LightPole", camp, CFrame.new(p))
+		end
+	end
 end
 
 local function buildGreenery(decor, rng)
@@ -1932,6 +2033,10 @@ local function buildCourtyard(decor, rng)
 				BULB_COLORS[rng:NextInteger(1, #BULB_COLORS)],
 				DETAIL
 			)
+		end
+		if Kit.has("FlowerBed") then
+			Kit.retireNamed(yard, { "FlowerBed", "Blossom" })
+			Kit.place("FlowerBed", yard, CFrame.new(x, 0.05, zc))
 		end
 	end
 	-- Benches facing the path and lamps.
