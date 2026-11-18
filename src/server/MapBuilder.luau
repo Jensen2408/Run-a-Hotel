@@ -691,6 +691,7 @@ function MapBuilder.build(config)
 	spawn.Neutral = true
 	spawn.Duration = 0
 	spawn.Color = Color3.fromRGB(196, 176, 150)
+	spawn.Transparency = 1 -- invisible pad (no beige square on the lobby floor)
 	spawn.TopSurface = Enum.SurfaceType.Smooth
 	spawn.Parent = map
 
