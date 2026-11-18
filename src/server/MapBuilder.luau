@@ -29,6 +29,7 @@ local MapDecor = require(script.Parent:WaitForChild("MapDecor"))
 local SHOP_X, SHOP_Z = MapDecor.SHOP_X, MapDecor.SHOP_Z
 local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
 local Kit = require(script.Parent:WaitForChild("Kit"))
+local Surfaces = require(script.Parent:WaitForChild("Surfaces"))
 
 -- Room door leaf colours (Blender kit door, one per room).
 local DOOR_COLORS = { Color3.fromRGB(64, 150, 146), Color3.fromRGB(230, 120, 70), Color3.fromRGB(110, 120, 200) }
@@ -41,7 +42,7 @@ local LOBBY_X = 22
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 21
+MapBuilder.VERSION = 22
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -706,6 +707,7 @@ function MapBuilder.build(config)
 	-- Everything above is authored at scale 1; enlarge it as a whole.
 	MapBuilder.scale(root, config.mapScale or 1)
 	LightingFX.dimLamps(root)
+	Surfaces.apply(root, config.mapScale or 1) -- textures + decals (final studs)
 	root:SetAttribute("MapScale", config.mapScale or 1)
 	return MapBuilder.collect(root, config)
 end
