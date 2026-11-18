@@ -101,7 +101,12 @@ return {
 		c = { 0, 0.37, -0 },
 		s = { 0.906, 0.74, 0.92 },
 	},
-	SM_Prop_LampPost = { id = "rbxassetid://118336167129506", group = "LampPost", c = { 0, 6, -0 }, s = { 1.9, 12, 1.9 } },
+	SM_Prop_LampPost = {
+		id = "rbxassetid://118336167129506",
+		group = "LampPost",
+		c = { 0, 6, -0 },
+		s = { 1.9, 12, 1.9 },
+	},
 	SM_Prop_LampPost_Glass = {
 		id = "rbxassetid://94750733907701",
 		group = "LampPost",
@@ -295,7 +300,12 @@ return {
 		c = { 0.07, 2.3, -0 },
 		s = { 1.34, 4.6, 2 },
 	},
-	SM_Yard_Vending = { id = "rbxassetid://129686534887046", group = "Vending", c = { 0, 3, -0.05 }, s = { 3.1, 6, 2.6 } },
+	SM_Yard_Vending = {
+		id = "rbxassetid://129686534887046",
+		group = "Vending",
+		c = { 0, 3, -0.05 },
+		s = { 3.1, 6, 2.6 },
+	},
 	SM_Yard_Vending_Window = {
 		id = "rbxassetid://96922932290437",
 		group = "Vending",
@@ -1009,11 +1019,16 @@ return {
 		glow = true,
 		place = { { -1, 0, 5 } },
 	},
-	SM_Prop_Couch = { id = "rbxassetid://100366057506499", group = "Couch", c = { 0, 1.5, -0 }, s = {
-		7.028,
-		2.999,
-		3.3,
-	} },
+	SM_Prop_Couch = {
+		id = "rbxassetid://100366057506499",
+		group = "Couch",
+		c = { 0, 1.5, -0 },
+		s = {
+			7.028,
+			2.999,
+			3.3,
+		},
+	},
 	SM_Prop_CoffeeTable = {
 		id = "rbxassetid://103495656179514",
 		group = "CoffeeTable",
@@ -1026,7 +1041,12 @@ return {
 		c = { 0, 0.05, -0 },
 		s = { 6.6, 0.1, 13.49 },
 	},
-	SM_Prop_KeyRack = { id = "rbxassetid://98276254620294", group = "KeyRack", c = { 0, 0, -0.208 }, s = { 6, 3, 0.715 } },
+	SM_Prop_KeyRack = {
+		id = "rbxassetid://98276254620294",
+		group = "KeyRack",
+		c = { 0, 0, -0.208 },
+		s = { 6, 3, 0.715 },
+	},
 	SM_Prop_WallClock = {
 		id = "rbxassetid://104795508352297",
 		group = "WallClock",
@@ -1071,11 +1091,16 @@ return {
 		c = { 0.096, -0.675, -0.213 },
 		s = { 4.527, 4.15, 0.426 },
 	},
-	SM_Prop_RoomRug = { id = "rbxassetid://117989966212135", group = "RoomRug", c = { 0, 0.032, -0 }, s = {
-		4,
-		0.065,
-		3,
-	} },
+	SM_Prop_RoomRug = {
+		id = "rbxassetid://117989966212135",
+		group = "RoomRug",
+		c = { 0, 0.032, -0 },
+		s = {
+			4,
+			0.065,
+			3,
+		},
+	},
 	SM_Prop_Curtains = {
 		id = "rbxassetid://84259981595427",
 		group = "Curtains",
@@ -1139,7 +1164,12 @@ return {
 		c = { 0, 1.164, -0 },
 		s = { 2.5, 2.271, 3.5 },
 	},
-	SM_Prop_Crate = { id = "rbxassetid://111513632048811", group = "Crate", c = { 0, 0.95, -0 }, s = { 2.14, 1.9, 2.14 } },
+	SM_Prop_Crate = {
+		id = "rbxassetid://111513632048811",
+		group = "Crate",
+		c = { 0, 0.95, -0 },
+		s = { 2.14, 1.9, 2.14 },
+	},
 	SM_Prop_Barrel = {
 		id = "rbxassetid://91197059200761",
 		group = "Barrel",
@@ -1273,7 +1303,12 @@ return {
 		s = { 10.017, 2.532, 8.142 },
 		tint = true,
 	},
-	PineTrunk = { id = "rbxassetid://107706139557831", group = "PineTree", c = { 0, 3.2, 0 }, s = { 2.804, 6.4, 2.948 } },
+	PineTrunk = {
+		id = "rbxassetid://107706139557831",
+		group = "PineTree",
+		c = { 0, 3.2, 0 },
+		s = { 2.804, 6.4, 2.948 },
+	},
 	PineLeaves = {
 		id = "rbxassetid://80751553046587",
 		group = "PineTree",

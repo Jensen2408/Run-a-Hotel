@@ -864,13 +864,15 @@ test("Roles: soft roles in Preparation; chef cooks faster; housekeeper carries m
 end)
 
 -- Simulates players doing every job through the normal actions.
-local function simulateRun(playerCount, competent, random)
+-- The run is endless: stops when the run ends or `maxNights` bills are paid.
+local function simulateRun(playerCount, competent, random, maxNights)
+	maxNights = maxNights or 3
 	local core = newCore({ playerCount = playerCount, random = random or midRandom })
 	local t = 0
 	local guard = 0
-	while core.phase ~= P.RunEnded do
+	while core.phase ~= P.RunEnded and core.nightsSurvived < maxNights do
 		guard += 1
-		assert(guard < 20000, "simulation did not finish")
+		assert(guard < 40000, "simulation did not finish")
 		t += 0.5
 		core:update(t)
 		if competent then
@@ -942,16 +944,16 @@ local function simulateRun(playerCount, competent, random)
 	return core
 end
 
-test("M3: competent solo team completes the 3-night prototype", function()
-	local core = simulateRun(1, true)
-	expect(core.complete, "prototype complete")
-	eq(core.nightsSurvived, 3, "3 nights")
+test("Endless: competent solo team survives 5 nights (into generated nights)", function()
+	local core = simulateRun(1, true, nil, 5)
+	eq(core.nightsSurvived, 5, "5 nights")
+	expect(core.phase ~= P.RunEnded, "run still going")
 	print(("      final cash $%d, served %d, walkouts %d"):format(core.cash, core.totals.served, core.totals.walkouts))
 end)
 
-test("M3: competent 4-player schedule is completable", function()
+test("M3: competent 4-player team survives the 3 scripted nights", function()
 	local core = simulateRun(4, true)
-	expect(core.complete, "prototype complete")
+	eq(core.nightsSurvived, 3, "3 nights")
 	print(("      final cash $%d, served %d, walkouts %d"):format(core.cash, core.totals.served, core.totals.walkouts))
 end)
 
@@ -964,10 +966,10 @@ local function seededRandom(seed)
 	end
 end
 
-test("Kitchen: competent solo team with room service completes 3 nights", function()
+test("Kitchen: competent solo team with room service survives 3 nights", function()
 	for _, seed in ipairs({ 7, 42, 2026 }) do
 		local core = simulateRun(1, true, seededRandom(seed))
-		expect(core.complete, "complete with seed " .. seed)
+		eq(core.nightsSurvived, 3, "3 nights with seed " .. seed)
 		print(
 			("      seed %d: cash $%d, meals $%d, served %d, walkouts %d"):format(
 				seed,
@@ -985,6 +987,19 @@ test("M3: idle team fails night 1 with score 0", function()
 	eq(core.complete, false, "not complete")
 	eq(core.nightsSurvived, 0, "score")
 	eq(core.lastReport.shortfall, 5, "shortfall $5")
+end)
+
+test("Endless: nights past the script grow and the run never completes", function()
+	local core = newCore({ random = seededRandom(5) })
+	local last = Config.nights[#Config.nights]
+	local n4 = core:nightConfig(#Config.nights + 1)
+	local n10 = core:nightConfig(#Config.nights + 7)
+	expect(n4.bill > last.bill, "bill grows")
+	expect(n10.bill > n4.bill, "bill keeps growing")
+	expect(n10.guests >= n4.guests and n10.guests <= Config.endless.maxGuests, "guests capped")
+	expect(type(n10.forecast) == "string" and #n10.forecast > 0, "forecast")
+	local plan = core:buildNightPlan(#Config.nights + 20, 1)
+	expect(plan.guestCount >= 1 and plan.bill > 0, "far night plan")
 end)
 
 print(("\n%d passed, %d failed"):format(passed, failed))

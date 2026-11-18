@@ -134,9 +134,49 @@ function MotelCore:setPlayerCount(n: number)
 	end
 end
 
+-- Scripted night from Config.nights, or a generated one past the last
+-- scripted night (endless run).
+function MotelCore:nightConfig(night: number)
+	local cfg = self.config
+	local scripted = cfg.nights[night]
+	if scripted then
+		return scripted
+	end
+	local e = cfg.endless
+	local last = cfg.nights[#cfg.nights]
+	local extra = night - #cfg.nights
+	local function chance(p: number): boolean
+		return self.random(0, 1) < p
+	end
+	local rain = chance(e.rainChance)
+	local events = {}
+	local notes = {}
+	if chance(e.acChance) then
+		table.insert(events, { type = "ACBreak", at = math.floor(self.random(20, 70)) })
+		if night >= 6 and chance(e.acSecondChance) then
+			table.insert(events, { type = "ACBreak", at = math.floor(self.random(80, 120)) })
+			table.insert(notes, "Two AC units may break.")
+		else
+			table.insert(notes, "An AC unit may break.")
+		end
+	end
+	if chance(e.powerChance) then
+		table.insert(events, { type = "PowerOutage", minAt = 40, queueAtLeast = 2, fallbackAt = 90 })
+		table.insert(notes, "Power may fail.")
+	end
+	local head = if rain then "Rainy night: guests are impatient." else "Busier night ahead."
+	return {
+		guests = math.min(e.maxGuests, last.guests + math.floor(extra * e.guestsPerNight)),
+		bill = last.bill + extra * e.billPerNight,
+		rain = rain,
+		forecast = table.concat({ head, table.unpack(notes) }, " "),
+		events = events,
+	}
+end
+
 function MotelCore:buildNightPlan(night: number, playerCount: number)
 	local cfg = self.config
-	local nightCfg = cfg.nights[night]
+	local nightCfg = self:nightConfig(night)
 	local n = math.clamp(playerCount, 1, cfg.coop.maxPlayers)
 	local guestCount = math.max(1, math.floor(nightCfg.guests * cfg.coop.guestMultiplier[n] + 0.5))
 	local bill = math.floor(nightCfg.bill * cfg.coop.billMultiplier[n] + 0.5)
@@ -381,7 +421,6 @@ function MotelCore:enterReport(now: number)
 		report.cashAfter = self.cash
 	end
 	report.nightsSurvived = self.nightsSurvived
-	report.isFinalNight = self.night >= #self.config.nights
 	self.lastReport = report
 	self.bestNights = math.max(self.bestNights, self.nightsSurvived)
 	self:setPhase(self.C.Phase.Report, now, self.config.phases.report)
@@ -389,11 +428,9 @@ end
 
 function MotelCore:endReport(now: number)
 	local report = self.lastReport
+	-- Endless: the run only ends when the bill can't be paid.
 	if not report.passed then
 		self.complete = false
-		self:setPhase(self.C.Phase.RunEnded, now, nil)
-	elseif self.night >= #self.config.nights then
-		self.complete = true
 		self:setPhase(self.C.Phase.RunEnded, now, nil)
 	else
 		self.night += 1
@@ -1795,7 +1832,6 @@ function MotelCore:snapshot(pid)
 		phaseStartedAt = self.phaseStartedAt,
 		phaseEndsAt = self.phaseEndsAt,
 		night = self.night,
-		totalNights = #self.config.nights,
 		nightsSurvived = self.nightsSurvived,
 		bestNights = self.bestNights,
 		complete = self.complete,

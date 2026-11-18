@@ -274,7 +274,9 @@ Config.player = {
 	walkSpeed = 20,
 }
 
--- One entry per night. Guest counts and bills are the solo values;
+-- Scripted opening nights. After the last one the run goes on forever
+-- (see `Config.endless`); the run only ends when a bill can't be paid.
+-- Guest counts and bills are the solo values;
 -- co-op scaling is applied from `Config.coop` using the player count at the
 -- moment Preparation starts.
 export type NightEvent = {
@@ -321,6 +323,18 @@ local nights: { NightConfig } = {
 	},
 }
 Config.nights = nights
+
+-- Nights after the scripted ones are generated: each night adds guests and
+-- raises the bill, and rain / AC / power events are rolled at random.
+Config.endless = {
+	guestsPerNight = 0.5, -- extra guests per night past the last scripted one
+	maxGuests = 10,
+	billPerNight = 15, -- bill increase per night past the last scripted one
+	rainChance = 0.35,
+	acChance = 0.55,
+	acSecondChance = 0.25, -- from night 6: chance of a second AC breakdown
+	powerChance = 0.35,
+}
 
 -- Index = number of players (1..4) when Preparation starts.
 Config.coop = {

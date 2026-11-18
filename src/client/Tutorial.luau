@@ -82,7 +82,7 @@ local CORE = {
 	{
 		id = "welcome",
 		info = true,
-		text = "Welcome to your motel! Survive 3 nights: earn enough cash each night to pay the bill at dawn.",
+		text = "Welcome to your motel! Earn enough cash each night to pay the bill at dawn. How many nights can you last?",
 	},
 	{
 		id = "hud",

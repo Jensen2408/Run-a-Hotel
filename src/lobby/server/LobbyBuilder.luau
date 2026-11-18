@@ -529,7 +529,7 @@ local HOWTO = {
 	{ "towel", "Bring towels when guests ask = tips" },
 	{ "wrench", "Fix broken AC, reset the breaker" },
 	{ "trolley", "Buy supplies at the SUPPLY SHOP" },
-	{ "coin", "Pay the bill at dawn. Survive 3 nights!" },
+	{ "coin", "Pay the bill at dawn. Survive as long as you can!" },
 }
 
 function LobbyBuilder.buildHowToGui(board: BasePart)

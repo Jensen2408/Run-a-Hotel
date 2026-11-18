@@ -490,7 +490,7 @@ function Hud:buildTopBar()
 		Stroke = 2.5,
 	})
 	ribbonHolder.ZIndex = 2
-	self.nightText = label({ Parent = ribbonBody, Size = UDim2.fromScale(1, 1), TextSize = 15, Text = "NIGHT 1/3" })
+	self.nightText = label({ Parent = ribbonBody, Size = UDim2.fromScale(1, 1), TextSize = 15, Text = "NIGHT 1" })
 	local starHolder = make("Frame", {
 		Name = "Star",
 		BackgroundTransparency = 1,
@@ -2143,7 +2143,7 @@ function Hud:setState(s)
 
 	-- Night badge.
 	self.nightNumber.Text = tostring(s.night)
-	self.nightText.Text = ("NIGHT %d/%d"):format(s.night, s.totalNights)
+	self.nightText.Text = ("NIGHT %d"):format(s.night)
 	if prev and prev.night ~= s.night then
 		local spin = scaleOf(self.nightStar)
 		spin.Value = 1.4
@@ -2361,7 +2361,10 @@ function Hud:setState(s)
 			setColors(self.resultGrad, RED)
 		end
 		if P == "RunEnded" then
-			self.reportTitle.Text = if s.complete then "PROTOTYPE COMPLETE!" else "RUN OVER"
+			self.reportTitle.Text = ("RUN OVER · %d NIGHT%s"):format(
+				r.nightsSurvived,
+				if r.nightsSurvived == 1 then "" else "S"
+			)
 			self.restartButton.holder.Visible = true
 			self.lobbyButton.holder.Visible = true
 		else
