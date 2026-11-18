@@ -32,7 +32,7 @@ local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 11
+MapBuilder.VERSION = 12
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -298,6 +298,91 @@ function MapBuilder.build(config)
 	})
 	label(shop, "SUPPLY SHOP", 3.4, 5.8, "trolley")
 
+	-- Kitchen (room service): stove counter with two burners and a prep board
+	-- inside the kitchen building (MapDecor.KITCHEN). One prompt opens the
+	-- kitchen panel; cooking goes through validated remote actions.
+	local K = MapDecor.KITCHEN
+	local stoveX = K.x1 + 1.7
+	local stove = part({
+		Name = "KitchenStove",
+		Size = Vector3.new(2.4, 3, 9),
+		Position = Vector3.new(stoveX, 1.9, 2),
+		Color = Color3.fromRGB(70, 74, 82),
+		Material = Enum.Material.Metal,
+		Parent = interact,
+	})
+	prompt(stove, config, {
+		action = "OpenKitchen",
+		actionText = "Cook",
+		objectText = "Kitchen",
+		offset = Vector3.new(1.6, 1, 0),
+	})
+	label(stove, "KITCHEN", 4.4, 5.4, "stove")
+	for i, kind in ipairs(config.kitchen.slots) do
+		local z = -0.5 + (i - 1) * 2.5
+		local slot
+		if kind == "Burner" then
+			slot = part({
+				Name = "KitchenSlot" .. i,
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.2, 1.9, 1.9),
+				CFrame = CFrame.new(stoveX, 3.5, z) * CFrame.Angles(0, 0, math.pi / 2),
+				Color = Color3.fromRGB(40, 40, 46),
+				Material = Enum.Material.Metal,
+				CanCollide = false,
+				Parent = interact,
+			})
+			local fire = Instance.new("ParticleEmitter")
+			fire.Name = "Fire"
+			fire.Enabled = false
+			fire.Rate = 30
+			fire.Lifetime = NumberRange.new(0.3, 0.5)
+			fire.Speed = NumberRange.new(1.5, 2.5)
+			fire.Size = NumberSequence.new(0.5, 0)
+			fire.Color = ColorSequence.new(Color3.fromRGB(255, 200, 80), Color3.fromRGB(255, 80, 40))
+			fire.LightEmission = 0.8
+			fire.EmissionDirection = Enum.NormalId.Right -- cylinder axis (local X) points up
+			fire.Parent = slot
+			local glow = Instance.new("PointLight")
+			glow.Name = "Glow"
+			glow.Enabled = false
+			glow.Range = 8
+			glow.Brightness = 1.5
+			glow.Color = Color3.fromRGB(255, 150, 60)
+			glow.Parent = slot
+		else
+			slot = part({
+				Name = "KitchenSlot" .. i,
+				Size = Vector3.new(1.9, 0.2, 2.2),
+				Position = Vector3.new(stoveX, 3.5, z),
+				Color = Color3.fromRGB(196, 150, 96),
+				Material = Enum.Material.Wood,
+				CanCollide = false,
+				Parent = interact,
+			})
+		end
+		slot:SetAttribute("Kind", kind)
+		local smoke = Instance.new("Smoke")
+		smoke.Name = "Smoke"
+		smoke.Enabled = false
+		smoke.Color = Color3.fromRGB(70, 70, 74)
+		smoke.Opacity = 0.35
+		smoke.RiseVelocity = 3
+		smoke.Size = 0.8
+		smoke.Parent = slot
+		part({
+			Name = "Dish",
+			Size = Vector3.new(1.4, 0.5, 1.4),
+			Position = Vector3.new(stoveX, 3.9, z),
+			Color = Color3.new(1, 1, 1),
+			Transparency = 1,
+			CanCollide = false,
+			CanQuery = false,
+			CanTouch = false,
+			Parent = slot,
+		})
+	end
+
 	-- Hallway ---------------------------------------------------------------
 	part({
 		Name = "Hallway",
@@ -456,9 +541,9 @@ function MapBuilder.build(config)
 					-- Bin is rotated 90deg on Z, so local +X is world up: raise the prompt to eye level.
 					offset = Vector3.new(2.5, 0, 0),
 				}),
-				deliverTowel = prompt(door, config, {
-					action = "DeliverTowel",
-					actionText = "Deliver Towel",
+				deliver = prompt(door, config, {
+					action = "Deliver",
+					actionText = "Deliver",
 					objectText = "Room " .. config.rooms[i].number,
 					roomId = i,
 				}),
@@ -731,6 +816,21 @@ function MapBuilder.collect(root: Instance, config)
 	layout.shopPosition = (shop :: BasePart).Position
 	layout.prompts.shop = promptIn(shop, "OpenShop")
 
+	local stove = must(interact, "KitchenStove")
+	layout.kitchenPosition = (stove :: BasePart).Position
+	layout.prompts.kitchen = promptIn(stove, "OpenKitchen")
+	layout.kitchenSlots = {}
+	for k = 1, #config.kitchen.slots do
+		local slot = must(interact, "KitchenSlot" .. k) :: BasePart
+		layout.kitchenSlots[k] = {
+			part = slot,
+			dish = must(slot, "Dish"),
+			smoke = must(slot, "Smoke"),
+			fire = slot:FindFirstChild("Fire"),
+			glow = slot:FindFirstChild("Glow"),
+		}
+	end
+
 	local shelf = must(interact, "LinenShelf")
 	layout.linenPosition = (shelf :: BasePart).Position
 	layout.prompts.linen = promptIn(shelf, "OpenLinen")
@@ -759,7 +859,7 @@ function MapBuilder.collect(root: Instance, config)
 			prompts = {
 				changeSheets = promptIn(bed, "ChangeSheets"),
 				collectTrash = promptIn(bin, "CollectTrash"),
-				deliverTowel = promptIn(door, "DeliverTowel"),
+				deliver = promptIn(door, "Deliver"),
 				repairAC = promptIn(ac, "RepairAC"),
 			},
 		}

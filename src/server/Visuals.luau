@@ -17,6 +17,16 @@ local NpcRigs = require(script.Parent:WaitForChild("NpcRigs"))
 local Visuals = {}
 Visuals.__index = Visuals
 
+-- Recipe definition from Config.recipes by id.
+local function recipeOf(config, id)
+	for _, r in ipairs(config.recipes) do
+		if r.id == id then
+			return r
+		end
+	end
+	return nil
+end
+
 local SKIN = {
 	Color3.fromRGB(255, 220, 185),
 	Color3.fromRGB(234, 184, 146),
@@ -630,7 +640,10 @@ function Visuals:updateLabel(core, g, e, now: number)
 		end
 	elseif g.state == GS.Staying then
 		local room = core.rooms[g.roomId]
-		if room and room.towelRequest then
+		local order = room and room.mealOrder and recipeOf(self.config, room.mealOrder.recipe)
+		if order then
+			text, color, iconName = "Hungry! " .. order.name, Color3.fromRGB(255, 210, 80), order.icon
+		elseif room and room.towelRequest then
 			text, color, iconName = "Towel please!", Color3.fromRGB(255, 210, 80), "towel"
 		else
 			text, iconName = "Room " .. tostring(room and room.number or g.roomId), "moon"
@@ -714,6 +727,12 @@ local GREEN = Color3.fromRGB(120, 240, 140)
 local BLUE = Color3.fromRGB(140, 200, 255)
 local AMBER = Color3.fromRGB(255, 210, 80)
 local RED = Color3.fromRGB(255, 110, 100)
+-- Colour of the plated dish shown on the stove when it is ready.
+local DISH_COLORS = {
+	pancakes = Color3.fromRGB(230, 170, 90),
+	burger = Color3.fromRGB(170, 100, 60),
+	salad = Color3.fromRGB(110, 190, 90),
+}
 
 function Visuals:refreshWorld(core)
 	local P = self.C.Phase
@@ -729,10 +748,18 @@ function Visuals:refreshWorld(core)
 			v.sign.TextColor3 = GREEN
 			signIcon = "check"
 		elseif room.occupant then
-			local extra = if room.towelRequest then "  TOWEL!" else ""
-			v.sign.Text = ("Room %d  OCCUPIED%s"):format(room.number, extra)
-			v.sign.TextColor3 = if room.towelRequest then AMBER else BLUE
-			signIcon = if room.towelRequest then "towel" else "moon"
+			local order = room.mealOrder and recipeOf(self.config, room.mealOrder.recipe)
+			if order then
+				local extra = if room.towelRequest then " + TOWEL" else ""
+				v.sign.Text = ("Room %d  ORDER: %s%s"):format(room.number, order.name, extra)
+				v.sign.TextColor3 = AMBER
+				signIcon = order.icon
+			else
+				local extra = if room.towelRequest then "  TOWEL!" else ""
+				v.sign.Text = ("Room %d  OCCUPIED%s"):format(room.number, extra)
+				v.sign.TextColor3 = if room.towelRequest then AMBER else BLUE
+				signIcon = if room.towelRequest then "towel" else "moon"
+			end
 		else
 			v.sign.Text = ("Room %d: %s"):format(room.number, table.concat(blockers, ", "))
 			v.sign.TextColor3 = if room.acBroken then RED else AMBER
@@ -756,12 +783,17 @@ function Visuals:refreshWorld(core)
 		elseif not room.acBroken and smoke then
 			smoke:Destroy()
 		end
-		v.door.Color = if room.towelRequest then Color3.fromRGB(255, 200, 60) else Color3.fromRGB(90, 70, 50)
-		v.door.Material = if room.towelRequest then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		local wants = room.towelRequest or room.mealOrder ~= nil
+		v.door.Color = if wants then Color3.fromRGB(255, 200, 60) else Color3.fromRGB(90, 70, 50)
+		v.door.Material = if wants then Enum.Material.Neon else Enum.Material.SmoothPlastic
 
 		v.prompts.changeSheets.Enabled = active and room.sheetsDirty and room.occupant == nil
 		v.prompts.collectTrash.Enabled = active and room.trash
-		v.prompts.deliverTowel.Enabled = active and room.towelRequest
+		v.prompts.deliver.Enabled = active and wants
+		v.prompts.deliver.ActionText = if room.towelRequest and room.mealOrder
+			then "Deliver"
+			elseif room.mealOrder then "Deliver Meal"
+			else "Deliver Towel"
 		v.prompts.repairAC.Enabled = active and room.acBroken
 	end
 
@@ -769,6 +801,32 @@ function Visuals:refreshWorld(core)
 	layout.prompts.breaker.Enabled = active and not core.power
 	layout.prompts.shop.Enabled = active
 	layout.prompts.linen.Enabled = active
+	layout.prompts.kitchen.Enabled = active
+
+	-- Kitchen stove: fire while cooking, plated dish when ready, smoke when burnt.
+	for i, slot in ipairs(core.slots) do
+		local v = layout.kitchenSlots and layout.kitchenSlots[i]
+		if v then
+			local cooking = slot.state == "Cooking"
+			local ready = slot.state == "Ready"
+			local burnt = slot.state == "Burnt"
+			if v.fire then
+				v.fire.Enabled = cooking
+			end
+			if v.glow then
+				v.glow.Enabled = cooking
+			end
+			v.smoke.Enabled = burnt
+			v.dish.Transparency = if ready or burnt then 0 else 1
+			v.dish.Color = if burnt
+				then Color3.fromRGB(40, 34, 30)
+				else (DISH_COLORS[slot.recipe] or Color3.new(1, 1, 1))
+			if slot.kind == "Burner" then
+				v.part.Color = if cooking then Color3.fromRGB(255, 110, 40) else Color3.fromRGB(40, 40, 46)
+				v.part.Material = if cooking then Enum.Material.Neon else Enum.Material.Metal
+			end
+		end
+	end
 	layout.prompts.dumpTrash.Enabled = active
 
 	layout.breakerLabel.Text = if core.power then "BREAKER: OK" else "BREAKER: RESET!"

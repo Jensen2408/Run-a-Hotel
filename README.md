@@ -53,7 +53,7 @@ Teleport tidak bisa di Studio: peluncuran room hanya disimulasikan dengan notifi
 ## Pemeriksaan CLI
 
 ```powershell
-luau tests/core.spec.luau     # 37 test logika inti (meja resepsionis, transaksi, race, tagihan, restart, simulasi 3 malam)
+luau tests/core.spec.luau     # 48 test logika inti (meja resepsionis, dapur, role, transaksi, race, tagihan, restart, simulasi 3 malam)
 selene src
 stylua --check src tests
 rojo sourcemap default.project.json -o sourcemap.json
@@ -71,6 +71,7 @@ luau-lsp analyze --sourcemap=sourcemap.json --definitions=<path>/globalTypes.d.l
 | `src/server/MotelCore.luau` | `ServerScriptService.Server.MotelCore` | State otoritatif murni (tanpa API Roblox, tanpa yield) |
 | `src/server/MapBuilder.luau` | | Blockout, waypoint, ProximityPrompt |
 | `src/server/Visuals.luau` | | Mobil, tamu, papan kamar, lampu, hujan |
+| `src/client/KitchenHud.luau` | `StarterPlayerScripts.Client.KitchenHud` | Panel dapur, kartu room service, badge dan pemilih role |
 | `src/server/NpcRigs.luau` | | Tamu dan penjaga toko R15 default (pakaian, muka, rambut dari marketplace UGC) |
 | `src/server/Main.server.luau` | | Remote, validasi, loop Heartbeat |
 | `src/client/Hud.luau`, `Main.client.luau` | `StarterPlayerScripts.Client` | HUD, pemilih kamar, laporan |
@@ -99,6 +100,15 @@ Satu sesi per meja, dipegang server (`MotelCore` bagian *Front desk terminal*). 
 - Uang muka reservasi dikreditkan sekali saat malam dimulai (baris **Deposits** di laporan). Check-in menambah kas sebesar sisa tagihan yang diterima (baris **Rent**).
 - Pemilihan kamar tidak mengubah hunian. `deskConfirm` memvalidasi ulang semuanya (tamu terdepan, reservasi, kamar, metode, kembalian) lalu menyelesaikan kamar, kas, reservasi, dan check-in sekaligus tanpa yield. `txId` yang sama mengembalikan jawaban pertama tanpa transaksi kedua.
 - Sesi dilepas saat HUD ditutup, pemilik keluar jangkauan / mati / keluar server, idle `Config.desk.sessionTimeout` detik, atau fase Closing. Pemain lain melihat *Front Desk Busy*. Jika tamu pergi, transaksi dibatalkan (*Guest Left*).
+
+## Kitchen, room service, dan soft role
+
+- **Room service:** tamu yang menginap bisa memesan makanan (`Config.kitchen.orderChance`, mulai Night 1). Pesanan tampil di papan kamar, kartu *ROOM SERVICE* di HUD, dan rail tiket di dapur. Tamu yang memesan tetap menginap sampai batas waktu pesanan.
+- **Dapur:** bangunan di halaman (west lawn, `MapDecor.KITCHEN`). Prompt *Cook* di kompor membuka panel: stok pantry, 2 burner (Pancakes, Burger) dan 1 prep board (Salad). Masakan burner gosong bila dibiarkan `burnAfter` detik setelah matang (lalu *Throw Away*). *Pick Up* memasukkan piring ke tangan, lalu antar di pintu kamar (prompt *Deliver*, juga dipakai untuk handuk). Bayaran = harga menu + tip cepat (`fastTip` dalam `fastWindow` detik).
+- **Bahan:** tab **Food** di Supply Shop (Egg Carton, Flour Sack, Burger Kit, Fresh Veggies) langsung menambah stok pantry.
+- **Soft role:** Receptionist (petunjuk kembalian), Housekeeper (+1 bawaan), Chef (masak 25% lebih cepat, gosong lebih lama), Maintenance (tahan prompt perbaikan/breaker setengah waktu). Dipilih di Preparation lewat badge role di kiri; main solo otomatis mendapat semua perk. Tag role tampil di atas kepala.
+- Laporan malam: baris **Meals**, dan pesanan yang gagal/gosong ikut di baris *Lost*.
+- Ikon dapur ada di icon sheet 4 (`assets/ui/ICON_SHEET_4_PROMPT.md`); sebelum di-upload tampil sebagai emoji.
 
 ## Checklist uji manual di Studio
 

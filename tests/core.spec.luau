@@ -209,7 +209,7 @@ test("M2: two players grab the last sheet", function()
 end)
 
 test("M2: carry capacity 1, trolley raises to 2", function()
-	local core = newCore()
+	local core = newCore({ playerCount = 2 }) -- solo players get the housekeeper perk
 	assert(core:takeSupply("A", "Sheet"))
 	eq(core:takeSupply("A", "Towel"), false, "hands full")
 	core.cash = 100
@@ -709,9 +709,163 @@ test("Desk: power out blocks the terminal, closing releases it", function()
 	eq(core:deskChoose("A", "WalkIn", t), false, "no check-in while closing")
 end)
 
+------------------------------------------------------------------------
+-- Kitchen and roles
+------------------------------------------------------------------------
+
+-- Puts a meal order on a room with a guest in it.
+local function orderMeal(core, roomId, recipe, now)
+	local room = core.rooms[roomId]
+	room.occupant = room.occupant or 999
+	room.mealOrder = { recipe = recipe, placedAt = now, expiresAt = now + Config.kitchen.orderPatience }
+end
+
+test("Kitchen: cook pancakes, pick up, deliver for price + fast tip", function()
+	local core = newCore({ playerCount = 2 })
+	local t = 1
+	orderMeal(core, 1, "pancakes", t)
+	local ok, msg = core:startCook("A", 1, "pancakes", t)
+	expect(ok, msg)
+	eq(core.pantry.Flour, 1, "flour used")
+	eq(core.pantry.Egg, 1, "egg used")
+	eq(core:collectDish("A", 1), false, "not ready yet")
+	core:update(t + 8.1)
+	eq(core.slots[1].state, "Ready", "ready after cook time")
+	assert(core:collectDish("A", 1))
+	eq(core.slots[1].state, "Empty", "slot freed")
+	eq(core:getCarry("A")[1], "Dish:pancakes", "carrying the dish")
+	local cash = core.cash
+	ok, msg = core:deliver("A", 1, t + 10)
+	expect(ok, msg)
+	eq(core.cash, cash + 10 + Config.kitchen.fastTip, "price + fast tip")
+	eq(core.rooms[1].mealOrder, nil, "order closed")
+	eq(core.nightStats.meals, 13, "meal stat")
+end)
+
+test("Kitchen: wrong station, missing ingredients, busy spot", function()
+	local core = newCore({ playerCount = 2 })
+	eq(core:startCook("A", 3, "burger", 1), false, "burger needs a burner")
+	eq(core:startCook("A", 1, "salad", 1), false, "salad needs the board")
+	core.pantry.Bun = 0
+	eq(core:startCook("A", 1, "burger", 1), false, "no buns")
+	eq(core.pantry.Patty, 2, "no ingredient used on failure")
+	assert(core:startCook("A", 1, "pancakes", 1))
+	eq(core:startCook("B", 1, "pancakes", 1), false, "spot busy")
+	eq(core.pantry.Egg, 1, "second cook used nothing")
+end)
+
+test("Kitchen: dish burns if left on the burner, discard frees the spot", function()
+	local core = newCore({ playerCount = 2 })
+	assert(core:startCook("A", 1, "burger", 0))
+	core:update(10 + Config.kitchen.burnAfter + 0.5)
+	eq(core.slots[1].state, "Burnt", "burnt")
+	eq(core.nightStats.burnt, 1, "burnt counted")
+	eq(core:collectDish("A", 1), false, "cannot serve burnt food")
+	assert(core:discardDish("A", 1))
+	eq(core.slots[1].state, "Empty", "spot free")
+	-- The prep board never burns.
+	assert(core:startCook("A", 3, "salad", 0))
+	core:update(200)
+	eq(core.slots[3].state, "Ready", "salad waits")
+end)
+
+test("Kitchen: two players grab the same dish, only one gets it", function()
+	local core = newCore({ playerCount = 2 })
+	assert(core:startCook("A", 3, "salad", 0))
+	core:update(6)
+	local okA = core:collectDish("A", 3)
+	local okB = core:collectDish("B", 3)
+	expect(okA and not okB, "one pickup")
+	eq(#core:getCarry("B"), 0, "B empty-handed")
+end)
+
+test("Kitchen: two deliveries for one order pay once", function()
+	local core = newCore({ playerCount = 2 })
+	orderMeal(core, 2, "salad", 0)
+	core.carries.A = { "Dish:salad" }
+	core.carries.B = { "Dish:salad" }
+	local cash = core.cash
+	local okA = core:deliver("A", 2, 1)
+	local okB = core:deliver("B", 2, 1)
+	expect(okA and not okB, "one delivery")
+	eq(core.cash, cash + 8 + Config.kitchen.fastTip, "paid once")
+	eq(#core.carries.B, 1, "B keeps the dish")
+end)
+
+test("Kitchen: wrong dish is refused, late orders are missed", function()
+	local core = newCore({ playerCount = 2 })
+	orderMeal(core, 1, "burger", 0)
+	core.carries.A = { "Dish:salad" }
+	local ok, msg = core:deliver("A", 1, 1)
+	eq(ok, false, "wrong dish")
+	expect(msg:find("Burger"), msg)
+	core:update(Config.kitchen.orderPatience + 1)
+	eq(core.rooms[1].mealOrder, nil, "order expired")
+	eq(core.nightStats.missedMeals, 1, "missed counted")
+end)
+
+test("Kitchen: slow delivery gets no tip; towel and meal on the same door", function()
+	local core = newCore({ playerCount = 2 })
+	orderMeal(core, 1, "salad", 0)
+	core.rooms[1].towelRequest = true
+	core.carries.A = { "Towel" }
+	core.carries.B = { "Dish:salad" }
+	local cash = core.cash
+	assert(core:deliver("A", 1, 30)) -- towel first (A carries a towel)
+	eq(core.cash, cash + Config.economy.towelTip, "towel tip")
+	assert(core:deliver("B", 1, 30)) -- then the meal, after the fast window
+	eq(core.cash, cash + Config.economy.towelTip + 8, "no fast tip")
+end)
+
+test("Kitchen: food purchases fill the pantry", function()
+	local core = newCore()
+	core.cash = 100
+	assert(core:buyItem("A", "burgerkit"))
+	eq(core.pantry.Bun, 5, "buns")
+	eq(core.pantry.Patty, 5, "patties")
+	eq(core.cash, 91, "cost")
+	assert(core:buyItem("A", "eggs"))
+	eq(core.pantry.Egg, 6, "eggs")
+end)
+
+test("Kitchen: guests order after check-in, checkout misses an open order", function()
+	local core = newCore({ random = lowRandom }) -- always orders, minimum delays
+	local t = nightWithQueue(core, 1)
+	assert(serve(core, "A", 1, t))
+	t = run(core, t, t + Config.kitchen.orderDelayMin + 0.5)
+	local order = core.rooms[1].mealOrder
+	expect(order ~= nil, "order placed")
+	eq(order.recipe, "pancakes", "first recipe with the low random")
+	local g = core.guests[core.rooms[1].occupant]
+	expect(g.stayUntil >= order.expiresAt, "guest stays until the order deadline")
+	core:checkout(core.guests[core.rooms[1].occupant], t, "Checkout")
+	eq(core.nightStats.missedMeals, 1, "missed on checkout")
+end)
+
+test("Roles: soft roles in Preparation; chef cooks faster; housekeeper carries more", function()
+	local core = newCore({ playerCount = 2 })
+	eq(core:setRole("A", "Pilot"), false, "unknown role")
+	assert(core:setRole("A", "Chef"))
+	assert(core:setRole("B", "Housekeeper"))
+	assert(core:startCook("A", 1, "burger", 0))
+	eq(core.slots[1].readyAt, 10 * Config.rolePerks.chefCookMultiplier, "chef speed")
+	assert(core:startCook("B", 2, "pancakes", 0))
+	eq(core.slots[2].readyAt, 8, "normal speed")
+	eq(core:carryCapacity("B"), 2, "housekeeper +1")
+	eq(core:carryCapacity("A"), 1, "chef normal carry")
+	core:setReady("A")
+	core:setReady("B")
+	core:update(0.5)
+	eq(core:setRole("A", "Maintenance"), false, "roles only change in Preparation")
+	-- Solo players have every perk.
+	local solo = newCore()
+	eq(solo:carryCapacity("A"), 2, "solo carry perk")
+	expect(solo:hasRole("A", "Chef"), "solo chef")
+end)
+
 -- Simulates players doing every job through the normal actions.
-local function simulateRun(playerCount, competent)
-	local core = newCore({ playerCount = playerCount, random = midRandom })
+local function simulateRun(playerCount, competent, random)
+	local core = newCore({ playerCount = playerCount, random = random or midRandom })
 	local t = 0
 	local guard = 0
 	while core.phase ~= P.RunEnded do
@@ -741,6 +895,39 @@ local function simulateRun(playerCount, competent)
 						end
 					end
 				end
+				-- Room service: cook what is ordered, pick up, deliver.
+				for _, room in ipairs(core.rooms) do
+					local order = room.mealOrder
+					if order then
+						local dish = "Dish:" .. order.recipe
+						local carry = core:getCarry("A")
+						if table.find(carry, dish) then
+							core:deliver("A", room.id, t)
+						else
+							local cooking = false
+							for i, slot in ipairs(core.slots) do
+								if slot.recipe == order.recipe and slot.state == "Ready" then
+									core:collectDish("A", i)
+									cooking = true
+								elseif slot.recipe == order.recipe and slot.state == "Cooking" then
+									cooking = true
+								end
+							end
+							if not cooking then
+								for i, slot in ipairs(core.slots) do
+									if slot.state == "Empty" and core:startCook("A", i, order.recipe, t) then
+										break
+									end
+								end
+							end
+						end
+					end
+				end
+				for i, slot in ipairs(core.slots) do
+					if slot.state == "Burnt" then
+						core:discardDish("A", i)
+					end
+				end
 				if core.phase == P.Night and #core.queue > 0 then
 					for _, room in ipairs(core.rooms) do
 						if core:isRoomReady(room) then
@@ -766,6 +953,31 @@ test("M3: competent 4-player schedule is completable", function()
 	local core = simulateRun(4, true)
 	expect(core.complete, "prototype complete")
 	print(("      final cash $%d, served %d, walkouts %d"):format(core.cash, core.totals.served, core.totals.walkouts))
+end)
+
+-- Seeded pseudo-random (LCG) so guests book, pay and order in a mix.
+local function seededRandom(seed)
+	local state = seed
+	return function(a, b)
+		state = (state * 1103515245 + 12345) % 2147483648
+		return a + (state / 2147483648) * (b - a)
+	end
+end
+
+test("Kitchen: competent solo team with room service completes 3 nights", function()
+	for _, seed in ipairs({ 7, 42, 2026 }) do
+		local core = simulateRun(1, true, seededRandom(seed))
+		expect(core.complete, "complete with seed " .. seed)
+		print(
+			("      seed %d: cash $%d, meals $%d, served %d, walkouts %d"):format(
+				seed,
+				core.cash,
+				core.totals.meals,
+				core.totals.served,
+				core.totals.walkouts
+			)
+		)
+	end
 end)
 
 test("M3: idle team fails night 1 with score 0", function()

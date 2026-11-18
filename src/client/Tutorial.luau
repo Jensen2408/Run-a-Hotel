@@ -24,7 +24,17 @@ local Workspace = game:GetService("Workspace")
 local Tutorial = {}
 Tutorial.__index = Tutorial
 
-local MAP_SCALE = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config")).mapScale or 1
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local MAP_SCALE = Config.mapScale or 1
+
+local function recipeName(id): string
+	for _, r in ipairs(Config.recipes) do
+		if r.id == id then
+			return r.name
+		end
+	end
+	return "food"
+end
 
 local YELLOW = Color3.fromRGB(255, 214, 64)
 local OUTLINE = Color3.fromRGB(46, 32, 22)
@@ -95,6 +105,15 @@ local CORE = {
 		text = "The SUPPLY SHOP is the store next to the motel. Press E at the counter to buy sheets, towels and the trolley.",
 		target = function()
 			return interactable("SupplyShop")
+		end,
+	},
+	{
+		id = "kitchen",
+		info = true,
+		near = 12,
+		text = "This is the KITCHEN. Guests order room service during their stay: cook it at the stove (E), then carry it to their door.",
+		target = function()
+			return interactable("KitchenStove")
 		end,
 	},
 	{
@@ -207,6 +226,46 @@ local CORE = {
 }
 
 local HINTS = {
+	{
+		id = "meal",
+		when = function(s, ctx)
+			ctx.mealRoom = firstRoom(s, function(r)
+				return r.mealOrder ~= nil
+			end)
+			return ctx.mealRoom ~= nil
+		end,
+		text = function(s, ctx)
+			local room = s.rooms[ctx.mealRoom or 1]
+			local recipe = room and room.mealOrder and room.mealOrder.recipe or ""
+			local number = room and room.number or 0
+			if carrying(s, "Dish:" .. recipe) then
+				return ("Deliver the %s at Room %d's door (E)."):format(recipeName(recipe), number)
+			end
+			for _, slot in ipairs(s.slots or {}) do
+				if slot.recipe == recipe and slot.state == "Ready" then
+					return ("The %s is ready! Open the stove (E) and PICK UP before it burns."):format(
+						recipeName(recipe)
+					)
+				end
+			end
+			return ("Room %d ordered %s! Go to the KITCHEN and press E at the stove to cook it."):format(
+				number,
+				recipeName(recipe)
+			)
+		end,
+		target = function(s, ctx)
+			local room = s.rooms[ctx.mealRoom or 1]
+			local recipe = room and room.mealOrder and room.mealOrder.recipe or ""
+			if carrying(s, "Dish:" .. recipe) then
+				return interactable(("Room%dDoor"):format(ctx.mealRoom or 1))
+			end
+			return interactable("KitchenStove")
+		end,
+		done = function(s, ctx)
+			local r = ctx.mealRoom and s.rooms[ctx.mealRoom]
+			return r == nil or r.mealOrder == nil
+		end,
+	},
 	{
 		id = "towel",
 		when = function(s, ctx)

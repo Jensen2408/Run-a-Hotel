@@ -64,9 +64,11 @@ export type ShopItem = {
 	desc: string,
 	icon: string,
 	cost: number,
+	category: string?, -- shop tab: "Linen" (default) or "Food"
 	sheets: number?,
 	towels: number?,
 	trolley: boolean?,
+	food: { [string]: number }?, -- ingredients added to the kitchen pantry
 }
 local shop: { ShopItem } = {
 	{ id = "sheets", name = "Sheet Pack", desc = "+4 clean sheets", icon = "sheet", cost = 12, sheets = 4 },
@@ -88,8 +90,125 @@ local shop: { ShopItem } = {
 		cost = Config.supplies.trolleyCost,
 		trolley = true,
 	},
+	-- Food tab: ingredients go straight into the kitchen pantry.
+	{
+		id = "eggs",
+		name = "Egg Carton",
+		desc = "+4 eggs",
+		icon = "egg",
+		cost = 6,
+		category = "Food",
+		food = { Egg = 4 },
+	},
+	{
+		id = "flour",
+		name = "Flour Sack",
+		desc = "+4 flour",
+		icon = "flour",
+		cost = 5,
+		category = "Food",
+		food = { Flour = 4 },
+	},
+	{
+		id = "burgerkit",
+		name = "Burger Kit",
+		desc = "+3 buns & +3 patties",
+		icon = "bun",
+		cost = 9,
+		category = "Food",
+		food = { Bun = 3, Patty = 3 },
+	},
+	{
+		id = "veggies",
+		name = "Fresh Veggies",
+		desc = "+6 veggies",
+		icon = "veggies",
+		cost = 6,
+		category = "Food",
+		food = { Veggies = 6 },
+	},
 }
 Config.shop = shop
+
+-- Kitchen / room service ---------------------------------------------------
+-- Staying guests sometimes order a meal. The chef cooks it at the kitchen
+-- stove (ingredients come from the pantry), anyone carries the dish to the
+-- room door. Burner dishes burn if they are left too long after cooking.
+export type Recipe = {
+	id: string,
+	name: string,
+	icon: string,
+	ingredients: { [string]: number },
+	cookTime: number, -- seconds
+	price: number, -- paid by the guest on delivery
+	station: string, -- "Burner" | "Board"
+}
+local recipes: { Recipe } = {
+	{
+		id = "pancakes",
+		name = "Pancakes",
+		icon = "pancakes",
+		ingredients = { Flour = 1, Egg = 1 },
+		cookTime = 8,
+		price = 10,
+		station = "Burner",
+	},
+	{
+		id = "burger",
+		name = "Burger",
+		icon = "burger",
+		ingredients = { Bun = 1, Patty = 1 },
+		cookTime = 10,
+		price = 12,
+		station = "Burner",
+	},
+	{
+		id = "salad",
+		name = "Salad",
+		icon = "salad",
+		ingredients = { Veggies = 2 },
+		cookTime = 5,
+		price = 8,
+		station = "Board",
+	},
+}
+Config.recipes = recipes
+
+Config.kitchen = {
+	ingredients = { "Egg", "Flour", "Bun", "Patty", "Veggies" }, -- display order
+	ingredientIcons = { Egg = "egg", Flour = "flour", Bun = "bun", Patty = "patty", Veggies = "veggies" },
+	startingStock = { Egg = 2, Flour = 2, Bun = 2, Patty = 2, Veggies = 4 },
+	slots = { "Burner", "Burner", "Board" }, -- cooking spots on the stove counter
+	burnAfter = 12, -- seconds a finished burner dish waits before it burns
+	orderChance = 0.5, -- chance a guest orders a meal during their stay
+	orderDelayMin = 4, -- seconds after check-in
+	orderDelayMax = 10,
+	orderPatience = 35, -- seconds to deliver (the guest stays at least this long)
+	fastTip = 3, -- extra tip when delivered within fastWindow
+	fastWindow = 20,
+}
+
+-- Soft roles: everyone can do every job; a role gives a perk. Solo players
+-- get every perk.
+export type RoleDef = { id: string, label: string, icon: string, perk: string }
+local roles: { RoleDef } = {
+	{ id = "Receptionist", label = "Receptionist", icon = "bell", perk = "Change hints at the front desk" },
+	{ id = "Housekeeper", label = "Housekeeper", icon = "broom", perk = "Carry 1 extra item" },
+	{ id = "Chef", label = "Chef", icon = "chefHat", perk = "Cooks 25% faster, food burns later" },
+	{
+		id = "Maintenance",
+		label = "Maintenance",
+		icon = "wrench",
+		perk = "Repairs and breaker resets take half the time",
+	},
+}
+Config.roles = roles
+Config.rolePerks = {
+	chefCookMultiplier = 0.75,
+	chefBurnMultiplier = 1.5,
+	housekeeperExtraCarry = 1,
+	maintenanceHoldMultiplier = 0.5,
+}
 
 Config.guests = {
 	stayMin = 30,
@@ -212,6 +331,7 @@ Config.interaction = {
 	deskRange = 14, -- max distance from the desk anchor for a check-in request
 	shopRange = 16, -- max distance from the shop counter for a purchase
 	linenRange = 14, -- max distance from the linen closet to take/return supplies
+	kitchenRange = 14, -- max distance from the kitchen stove to cook / pick up
 	remoteCooldown = 0.2,
 	repairHoldDuration = 1.5,
 	breakerHoldDuration = 1,

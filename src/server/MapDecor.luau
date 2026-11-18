@@ -34,6 +34,10 @@ MapDecor.SHOP_X = 100
 MapDecor.SHOP_Z = -36
 local SHOP_X, SHOP_Z = MapDecor.SHOP_X, MapDecor.SHOP_Z
 
+-- Kitchen building footprint on the courtyard's west lawn (scale-1, not
+-- moved with the rooms). The door in the east wall faces the courtyard path.
+MapDecor.KITCHEN = { x1 = -8, x2 = 6, z1 = -4, z2 = 10, doorZ1 = 1, doorZ2 = 5, pathX = 10 }
+
 ------------------------------------------------------------------------
 -- Palette
 ------------------------------------------------------------------------
@@ -1268,6 +1272,168 @@ local function buildShopBuilding(decor, rng)
 	lampPost(f, Vector3.new(x1 - 8, 0, SHOP_Z - 5), 11)
 end
 
+-- Kitchen: a small diner-style building on the courtyard's west lawn, door
+-- facing the courtyard path (east). The stove counter with the "Cook"
+-- prompt and its three cooking spots are gameplay parts built by MapBuilder
+-- (MapDecor.KITCHEN gives the footprint).
+local function buildKitchenBuilding(decor, rng)
+	local f = folder(decor, "KitchenBuilding")
+	local K = MapDecor.KITCHEN
+	local x1, x2, z1, z2 = K.x1, K.x2, K.z1, K.z2
+	local cx, cz = (x1 + x2) / 2, (z1 + z2) / 2
+	local H = 10
+	local butter = Color3.fromRGB(250, 226, 150)
+	block(f, "Floor", Vector3.new(x2 - x1, 0.4, z2 - z1), Vector3.new(cx, 0.25, cz), Color3.fromRGB(236, 236, 230))
+	-- Checker tiles.
+	for ix = 0, math.floor(x2 - x1) - 1, 2 do
+		for iz = 0, math.floor(z2 - z1) - 1, 2 do
+			if (ix / 2 + iz / 2) % 2 == 0 then
+				detail(
+					f,
+					"Tile",
+					Vector3.new(2, 0.04, 2),
+					Vector3.new(x1 + ix + 1, 0.47, z1 + iz + 1),
+					Color3.fromRGB(200, 70, 70)
+				)
+			end
+		end
+	end
+	local door = { K.doorZ1, K.doorZ2 }
+	wallX(f, "SouthWall", x1, x2, z1, H, nil, butter)
+	wallX(f, "NorthWall", x1, x2, z2, H, nil, butter)
+	wallZ(f, "WestWall", z1, z2, x1, H, nil, butter)
+	wallZ(f, "EastWall", z1, z2, x2, H, { door }, butter)
+	block(
+		f,
+		"Ceiling",
+		Vector3.new(x2 - x1, 0.3, z2 - z1),
+		Vector3.new(cx, H + 0.05, cz),
+		Color3.fromRGB(246, 240, 226)
+	)
+	gableRoof(f, "Roof", x1 - 1.2, x2 + 1.2, z1 - 1.2, z2 + 1.2, H, 4)
+	chimney(f, Vector3.new(x1 + 2, H, z2 - 3), 7)
+
+	-- Door frame, sign with chase bulbs, striped canopy (facing east).
+	for _, zc in ipairs({ door[1] - 0.3, door[2] + 0.3 }) do
+		detail(f, "DoorFrame", Vector3.new(0.8, DOOR_TOP, 0.8), Vector3.new(x2 + 0.6, DOOR_TOP / 2, zc), TRIM)
+	end
+	local sign = block(
+		f,
+		"KitchenSign",
+		Vector3.new(0.5, 2.2, 9),
+		Vector3.new(x2 + 0.8, H - 0.6, (door[1] + door[2]) / 2),
+		Color3.fromRGB(150, 50, 46)
+	)
+	surfaceText(sign, Enum.NormalId.Right, {
+		{ text = "KITCHEN", color = Color3.fromRGB(255, 232, 140), scale = 0.85 },
+	})
+	for k = 0, 8 do
+		neonBulb(
+			f,
+			Vector3.new(x2 + 1.15, H + 0.75, (door[1] + door[2]) / 2 - 4 + k),
+			Color3.fromRGB(255, 236, 150),
+			0.45,
+			{ Chase = 400 + k }
+		)
+	end
+	for k = 0, math.floor(door[2] - door[1]) + 1 do
+		detail(
+			f,
+			"Canopy",
+			Vector3.new(2.6, 0.35, 1),
+			CFrame.new(x2 + 1.8, DOOR_TOP + 0.3, door[1] - 0.5 + k) * CFrame.Angles(0, 0, math.rad(-14)),
+			if k % 2 == 0 then ACCENT else CREAM
+		)
+	end
+	-- Windows on the south wall (towards the office), with sills.
+	for _, xc in ipairs({ x1 + 4, x2 - 4 }) do
+		block(f, "Window", Vector3.new(3, 3.4, 0.3), Vector3.new(xc, 5, z1 - 0.6), GLASS, {
+			Material = Enum.Material.Glass,
+			Transparency = 0.3,
+			CanCollide = false,
+		})
+		detail(f, "Sill", Vector3.new(3.6, 0.4, 0.8), Vector3.new(xc, 3.1, z1 - 0.8), TRIM)
+	end
+	-- Step path from the door to the courtyard path.
+	block(
+		f,
+		"DoorPath",
+		Vector3.new(K.pathX - x2, 0.26, door[2] - door[1] + 1),
+		Vector3.new((x2 + K.pathX) / 2, 0.14, (door[1] + door[2]) / 2),
+		Color3.fromRGB(196, 186, 166),
+		{ Material = Enum.Material.Concrete }
+	)
+
+	-- Interior: fridge, pantry shelf, sink counter, hanging pots, lamp.
+	local fridge = block(
+		f,
+		"Fridge",
+		Vector3.new(2.6, 7, 2.4),
+		Vector3.new(x1 + 1.9, 3.75, z2 - 1.8),
+		Color3.fromRGB(240, 244, 246)
+	)
+	detail(f, "FridgeHandle", Vector3.new(0.25, 2.2, 0.25), fridge.Position + Vector3.new(1.4, 0.6, 0.6), METAL_DARK)
+	detail(
+		f,
+		"FridgeLine",
+		Vector3.new(2.62, 0.12, 2.42),
+		fridge.Position + Vector3.new(0, 1.2, 0),
+		Color3.fromRGB(200, 204, 210)
+	)
+	-- Pantry shelf on the north wall with ingredient boxes.
+	local px1, px2 = x1 + 4, x1 + 9
+	for _, x in ipairs({ px1, px2 }) do
+		block(f, "PantryPost", Vector3.new(0.3, 6.4, 1.6), Vector3.new(x, 3.4, z2 - 1.3), WOOD_DARK)
+	end
+	local goods = {
+		Color3.fromRGB(250, 246, 232), -- eggs
+		Color3.fromRGB(214, 190, 140), -- flour
+		Color3.fromRGB(226, 160, 80), -- buns
+		Color3.fromRGB(200, 80, 80), -- patties
+		Color3.fromRGB(110, 190, 90), -- veggies
+	}
+	for level, y in ipairs({ 1.4, 3.6, 5.8 }) do
+		block(f, "PantryBoard", Vector3.new(px2 - px1, 0.25, 1.6), Vector3.new((px1 + px2) / 2, y, z2 - 1.3), WOOD)
+		for k = 0, 3 do
+			detail(
+				f,
+				"Ingredient",
+				Vector3.new(0.9, 0.8, 0.9),
+				Vector3.new(px1 + 0.8 + k * 1.15, y + 0.53, z2 - 1.3 + rng:NextNumber(-0.15, 0.15)),
+				goods[(level + k) % #goods + 1]
+			)
+		end
+	end
+	-- Sink counter along the north wall, east part.
+	block(f, "SinkCounter", Vector3.new(4, 3, 2), Vector3.new(x2 - 3, 1.9, z2 - 1.5), Color3.fromRGB(150, 156, 166), {
+		Material = Enum.Material.Metal,
+	})
+	detail(f, "Sink", Vector3.new(2, 0.2, 1.2), Vector3.new(x2 - 3, 3.45, z2 - 1.5), Color3.fromRGB(110, 170, 210))
+	detail(f, "Tap", Vector3.new(0.3, 1, 0.3), Vector3.new(x2 - 3, 3.9, z2 - 0.9), METAL_DARK)
+	-- Hanging pots over the stove (west wall).
+	for k = 0, 2 do
+		detail(
+			f,
+			"HangingPot",
+			Vector3.new(1.2, 1, 1.2),
+			Vector3.new(x1 + 1.2, 7.6, cz - 2 + k * 2.2),
+			Color3.fromRGB(180, 120, 70),
+			{ Material = Enum.Material.Metal }
+		)
+	end
+	detail(f, "PotRail", Vector3.new(0.2, 0.2, 7), Vector3.new(x1 + 1.2, 8.3, cz + 0.2), METAL_DARK)
+	-- Order ticket rail above the stove.
+	detail(f, "TicketRail", Vector3.new(0.2, 0.3, 6), Vector3.new(x1 + 0.7, 6.3, cz - 1), METAL_DARK)
+	for k = 0, 2 do
+		detail(f, "Ticket", Vector3.new(0.05, 1, 0.8), Vector3.new(x1 + 0.78, 5.7, cz - 3 + k * 1.6), CREAM)
+	end
+	local lamp = detail(f, "KitchenLamp", Vector3.new(3, 0.4, 3), Vector3.new(cx, H - 0.4, cz), LAMP_WARM, {
+		Material = Enum.Material.Neon,
+	})
+	pointLight(lamp, 22, 1)
+	pottedPlant(f, Vector3.new(x2 + 1.5, 0.2, door[1] - 2.2), rng)
+end
+
 local function buildPool(decor)
 	local pool = folder(decor, "Pool")
 	block(pool, "Deck", Vector3.new(22, 0.4, 22), Vector3.new(-20, 0.2, 10), Color3.fromRGB(232, 222, 202))
@@ -1423,7 +1589,7 @@ local function buildCourtyard(decor, rng)
 	block(yard, "LawnWest", Vector3.new(19, 0.22, depth - 2), Vector3.new(0.5, 0.12, zc), Color3.fromRGB(120, 168, 86))
 	block(yard, "LawnEast", Vector3.new(34, 0.22, depth - 2), Vector3.new(39, 0.12, zc), Color3.fromRGB(120, 168, 86))
 	-- Flower beds along the path.
-	for _, x in ipairs({ 9, 23 }) do
+	for _, x in ipairs({ 23 }) do -- the west side is the kitchen now
 		block(yard, "FlowerBed", Vector3.new(2, 0.6, depth - 6), Vector3.new(x, 0.35, zc), WOOD_DARK)
 		for k = 0, math.floor((depth - 7) / 1.6) do
 			ball(
@@ -1437,9 +1603,7 @@ local function buildCourtyard(decor, rng)
 		end
 	end
 	-- Benches facing the path and lamps.
-	bench(yard, Vector3.new(4, 0.2, zc - 3), math.pi / 2)
 	bench(yard, Vector3.new(28, 0.2, zc + 3), -math.pi / 2)
-	lampPost(yard, Vector3.new(7, 0, z1 + 4), 10)
 	lampPost(yard, Vector3.new(25, 0, z2 - 4), 10)
 	-- Fountain on the east lawn.
 	local fx, fz = 42, zc
@@ -1465,9 +1629,7 @@ local function buildCourtyard(decor, rng)
 		Parent = top,
 	})
 	-- A couple of autumn trees and bushes on the lawns.
-	roundTree(yard, -4, zc + 2, rng, 0.9)
 	roundTree(yard, 52, zc - 2, rng, 0.9)
-	bush(yard, Vector3.new(-6, 0, zc - 4), rng, true)
 	bush(yard, Vector3.new(32, 0, zc - 5), rng, true)
 end
 
@@ -1633,6 +1795,7 @@ function MapDecor.build(mapFolder: Instance)
 	buildCampfire(decor, rng)
 	buildGreenery(decor, rng)
 	buildCourtyard(decor, rng)
+	buildKitchenBuilding(decor, rng)
 	task.wait()
 	buildWild(decor, rng)
 	task.wait()

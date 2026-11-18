@@ -26,6 +26,7 @@ local MapBuilder = require(script.Parent:WaitForChild("MapBuilder"))
 local Visuals = require(script.Parent:WaitForChild("Visuals"))
 local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
 local Persistence = require(script.Parent:WaitForChild("Persistence"))
+local UiAssets = require(Shared:WaitForChild("UiAssets"))
 local TeleportService = game:GetService("TeleportService")
 
 local PA = Constants.PromptAction
@@ -49,6 +50,7 @@ local feedbackRemote = remote(Constants.Remotes.Feedback)
 local openCheckInRemote = remote(Constants.Remotes.OpenCheckIn)
 local openShopRemote = remote(Constants.Remotes.OpenShop)
 local openLinenRemote = remote(Constants.Remotes.OpenLinen)
+local openKitchenRemote = remote(Constants.Remotes.OpenKitchen)
 remotes.Parent = ReplicatedStorage
 
 ------------------------------------------------------------------------
@@ -180,6 +182,17 @@ local function rateLimited(player: Player): boolean
 	return false
 end
 
+-- Kitchen actions (all need the player at the stove).
+local KITCHEN_ACTIONS = {
+	[RA.Cook] = true,
+	[RA.CollectDish] = true,
+	[RA.DiscardDish] = true,
+}
+
+local function validSlot(slot): boolean
+	return typeof(slot) == "number" and slot == math.floor(slot) and slot >= 1 and slot <= #Config.kitchen.slots
+end
+
 -- Front desk terminal actions (all need the player at the desk).
 local DESK_ACTIONS = {
 	[RA.DeskMode] = true,
@@ -244,8 +257,16 @@ local promptHandlers = {
 	[PA.ChangeSheets] = function(player, roomId)
 		return core:changeSheets(player.UserId, roomId)
 	end,
-	[PA.DeliverTowel] = function(player, roomId)
-		return core:deliverTowel(player.UserId, roomId)
+	[PA.Deliver] = function(player, roomId)
+		return core:deliver(player.UserId, roomId, now())
+	end,
+	[PA.OpenKitchen] = function(player)
+		local ok, err = core:requireActive()
+		if not ok then
+			return false, err
+		end
+		openKitchenRemote:FireClient(player)
+		return nil, nil -- no toast; the client opens the kitchen panel
 	end,
 	[PA.RepairAC] = function(player, roomId)
 		return core:repairAC(player.UserId, roomId)
@@ -333,6 +354,30 @@ actionRemote.OnServerEvent:Connect(function(player: Player, payload)
 		end
 		-- Errors and progress show inside the terminal (desk view), not as toasts.
 		return
+	elseif KITCHEN_ACTIONS[kind] then
+		if not validSlot(payload.slot) then
+			return
+		end
+		local range = Config.interaction.kitchenRange * (Config.mapScale or 1)
+		if not withinRange(player, layout.kitchenPosition, range) then
+			feedback(player, "Walk to the kitchen stove first.", "error")
+			return
+		end
+		if kind == RA.Cook then
+			if typeof(payload.recipe) ~= "string" then
+				return
+			end
+			ok, msg = core:startCook(player.UserId, payload.slot, payload.recipe, now())
+		elseif kind == RA.CollectDish then
+			ok, msg = core:collectDish(player.UserId, payload.slot)
+		else
+			ok, msg = core:discardDish(player.UserId, payload.slot)
+		end
+	elseif kind == RA.SetRole then
+		if typeof(payload.role) ~= "string" then
+			return
+		end
+		ok, msg = core:setRole(player.UserId, payload.role)
 	elseif kind == RA.TakeSupply or kind == RA.ReturnSupplies then
 		local range = Config.interaction.linenRange * (Config.mapScale or 1)
 		if not withinRange(player, layout.linenPosition, range) then
@@ -417,7 +462,59 @@ local function applyWalkSpeed(player: Player)
 	end
 end
 
+-- Role tag above the head (soft roles).
+local function applyRoleTag(player: Player)
+	local role = core.roles[player.UserId]
+	player:SetAttribute("Role", role)
+	local character = player.Character
+	local head = character and character:FindFirstChild("Head")
+	if not head then
+		return
+	end
+	local old = head:FindFirstChild("RoleTag")
+	if old then
+		old:Destroy()
+	end
+	local def = role and core:roleDef(role)
+	if not def then
+		return
+	end
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "RoleTag"
+	gui.Size = UDim2.fromScale(5, 1)
+	gui.StudsOffset = Vector3.new(0, 2.6, 0)
+	gui.MaxDistance = 60
+	gui.LightInfluence = 0
+	local icon = Instance.new("ImageLabel")
+	icon.Name = "Icon"
+	icon.BackgroundTransparency = 1
+	icon.ScaleType = Enum.ScaleType.Fit
+	icon.Size = UDim2.fromScale(0.24, 1.2)
+	icon.Position = UDim2.fromScale(0, 0.5)
+	icon.AnchorPoint = Vector2.new(0, 0.5)
+	UiAssets.applyTo(icon, def.icon)
+	icon.Parent = gui
+	local text = Instance.new("TextLabel")
+	text.BackgroundTransparency = 1
+	text.Size = UDim2.fromScale(0.74, 1)
+	text.Position = UDim2.fromScale(0.26, 0)
+	text.TextXAlignment = Enum.TextXAlignment.Left
+	text.TextScaled = true
+	text.Font = Enum.Font.FredokaOne
+	text.TextColor3 = Color3.fromRGB(255, 226, 120)
+	text.Text = def.label:upper()
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(46, 32, 22)
+	stroke.Parent = text
+	text.Parent = gui
+	gui.Parent = head
+end
+
 Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function()
+		task.defer(applyRoleTag, player)
+	end)
 	refreshPlayerCount(nil)
 	applyWalkSpeed(player)
 	sendState(player)
@@ -431,6 +528,9 @@ end)
 
 for _, player in ipairs(Players:GetPlayers()) do
 	applyWalkSpeed(player)
+	player.CharacterAdded:Connect(function()
+		task.defer(applyRoleTag, player)
+	end)
 	sendState(player)
 end
 
@@ -438,7 +538,25 @@ end
 -- Event messages
 ------------------------------------------------------------------------
 
+local function recipeName(id): string
+	local r = core:recipe(id)
+	return if r then r.name else "Food"
+end
+
 local eventMessages = {
+	MealOrder = function(e)
+		return ("Room %d ordered %s! Cook it in the KITCHEN."):format(core:roomNumber(e.roomId), recipeName(e.recipe)),
+			"alert"
+	end,
+	DishReady = function(e)
+		return ("%s is ready on the stove!"):format(recipeName(e.recipe)), "ok"
+	end,
+	DishBurnt = function(e)
+		return ("The %s burned! Throw it away and cook again."):format(recipeName(e.recipe)), "alert"
+	end,
+	MealMissed = function(e)
+		return ("Room %d gave up on their %s."):format(core:roomNumber(e.roomId), recipeName(e.recipe)), "alert"
+	end,
 	Walkout = function()
 		return "A guest got tired of waiting and left!", "alert"
 	end,
@@ -517,6 +635,12 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 
 	for _, e in ipairs(core:drainEvents()) do
+		if e.kind == "RoleChanged" then
+			local p = Players:GetPlayerByUserId(e.by)
+			if p then
+				applyRoleTag(p)
+			end
+		end
 		local fn = eventMessages[e.kind]
 		if fn then
 			local text, kind = fn(e)

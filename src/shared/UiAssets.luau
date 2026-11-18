@@ -22,6 +22,7 @@ UiAssets.iconSheets = {
 	"rbxassetid://85647358432325", -- sheet 1: assets/ui/icon-sheet.png
 	"rbxassetid://92991628549421", -- sheet 2: assets/ui/icon-sheet-2.png
 	"rbxassetid://91194297042510", -- sheet 3: assets/ui/icon-sheet-3.png (lobby/settings icons; paste "rbxassetid://..." after upload)
+	"", -- sheet 4: assets/ui/icon-sheet-4.png (kitchen/roles; paste "rbxassetid://..." after upload)
 }
 UiAssets.cellSize = 256 -- pixels per icon cell in a sheet
 UiAssets.cellInset = 0 -- shave pixels off each cell edge if neighbours bleed in
@@ -79,6 +80,23 @@ UiAssets.icons = {
 	people = { 3, 2, 4 },
 	calendar = { 3, 3, 4 },
 	gift = { 3, 4, 4 },
+	-- Sheet 4 (kitchen, roles)
+	pancakes = { 4, 1, 1 },
+	burger = { 4, 2, 1 },
+	salad = { 4, 3, 1 },
+	egg = { 4, 4, 1 },
+	flour = { 4, 1, 2 },
+	bun = { 4, 2, 2 },
+	patty = { 4, 3, 2 },
+	veggies = { 4, 4, 2 },
+	stove = { 4, 1, 3 },
+	fridge = { 4, 2, 3 },
+	tray = { 4, 3, 3 },
+	chefHat = { 4, 4, 3 },
+	burnt = { 4, 1, 4 },
+	ticket = { 4, 2, 4 },
+	pot = { 4, 3, 4 },
+	roles = { 4, 4, 4 },
 }
 
 -- Temporary stand-ins while a sheet is empty or loading.
@@ -131,6 +149,22 @@ UiAssets.fallback = {
 	people = "👪",
 	calendar = "📅",
 	gift = "🎁",
+	pancakes = "🥞",
+	burger = "🍔",
+	salad = "🥗",
+	egg = "🥚",
+	flour = "🌾",
+	bun = "🍞",
+	patty = "🥩",
+	veggies = "🥬",
+	stove = "🔥",
+	fridge = "🧊",
+	tray = "🍽",
+	chefHat = "👨‍🍳",
+	burnt = "💨",
+	ticket = "🧾",
+	pot = "🍲",
+	roles = "🎭",
 }
 
 -- Sheet image + rect for an icon, or nil when its sheet is not uploaded.

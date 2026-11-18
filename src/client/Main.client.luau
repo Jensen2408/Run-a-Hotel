@@ -15,6 +15,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local DeskHud = require(script.Parent:WaitForChild("DeskHud"))
+local KitchenHud = require(script.Parent:WaitForChild("KitchenHud"))
 local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
 local Sfx = require(script.Parent:WaitForChild("Sfx"))
 local Settings = require(script.Parent:WaitForChild("Settings"))
@@ -28,6 +29,7 @@ local feedbackRemote = remotes:WaitForChild(Constants.Remotes.Feedback)
 local openCheckInRemote = remotes:WaitForChild(Constants.Remotes.OpenCheckIn)
 local openShopRemote = remotes:WaitForChild(Constants.Remotes.OpenShop)
 local openLinenRemote = remotes:WaitForChild(Constants.Remotes.OpenLinen)
+local openKitchenRemote = remotes:WaitForChild(Constants.Remotes.OpenKitchen)
 
 local RA = Constants.RemoteAction
 
@@ -61,6 +63,44 @@ local desk = DeskHud.new(player:WaitForChild("PlayerGui"), {
 	end,
 })
 
+-- Kitchen panel, room service orders card, role badge and role picker.
+local kitchen = KitchenHud.new(player:WaitForChild("PlayerGui"), {
+	send = function(payload)
+		actionRemote:FireServer(payload)
+	end,
+}, Config)
+
+-- Maintenance perk: repair / breaker prompts hold for less time (local
+-- prompts; prompts that stream in later get the same value).
+local holdMultiplier = 1
+local function applyHold(prompt: Instance)
+	if not prompt:IsA("ProximityPrompt") then
+		return
+	end
+	local action = prompt:GetAttribute("Action")
+	if action == "RepairAC" then
+		prompt.HoldDuration = Config.interaction.repairHoldDuration * holdMultiplier
+	elseif action == "ResetBreaker" then
+		prompt.HoldDuration = Config.interaction.breakerHoldDuration * holdMultiplier
+	end
+end
+local function setHoldMultiplier(m: number)
+	if m == holdMultiplier then
+		return
+	end
+	holdMultiplier = m
+	local motel = workspace:FindFirstChild("Motel")
+	if motel then
+		for _, d in ipairs(motel:GetDescendants()) do
+			applyHold(d)
+		end
+	end
+end
+task.spawn(function()
+	local motel = workspace:WaitForChild("Motel")
+	motel.DescendantAdded:Connect(applyHold)
+end)
+
 -- Music + volume settings (gear button, top right).
 UiKit.setSfx(sfx)
 Settings.new(player:WaitForChild("PlayerGui"), sfx, "game")
@@ -74,6 +114,9 @@ stateRemote.OnClientEvent:Connect(function(snapshot)
 		return
 	end
 	desk:setState(snapshot)
+	kitchen:setState(snapshot)
+	local maintenance = snapshot.soloRoles or snapshot.role == "Maintenance"
+	setHoldMultiplier(if maintenance then Config.rolePerks.maintenanceHoldMultiplier else 1)
 	if snapshot.phase ~= lastPhase then
 		local banners = {
 			Preparation = {
@@ -117,6 +160,10 @@ openShopRemote.OnClientEvent:Connect(function()
 	hud:openShop()
 end)
 
+openKitchenRemote.OnClientEvent:Connect(function()
+	kitchen:openKitchen()
+end)
+
 openLinenRemote.OnClientEvent:Connect(function()
 	hud:openLinen()
 end)
@@ -134,6 +181,14 @@ local function checkShopDistance()
 	if not (hrp and interact) then
 		return
 	end
+	if kitchen:isKitchenOpen() then
+		-- Same radius the server accepts kitchen actions in (+2 for latency);
+		-- a stove that streamed out also means the player walked away.
+		local stove = interact:FindFirstChild("KitchenStove")
+		if not stove or (hrp.Position - stove.Position).Magnitude > Config.interaction.kitchenRange * SCALE + 2 then
+			kitchen:closeKitchen()
+		end
+	end
 	for _, st in ipairs(stations) do
 		if hud[st.panel].Visible then
 			local part = interact:FindFirstChild(st.part)
@@ -147,6 +202,7 @@ end
 RunService.RenderStepped:Connect(function()
 	hud:tick()
 	desk:tick()
+	kitchen:tick()
 	tutorial:tick()
 	checkShopDistance()
 end)

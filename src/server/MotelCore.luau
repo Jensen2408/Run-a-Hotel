@@ -53,6 +53,7 @@ function MotelCore.new(config, constants, options)
 	self.version = 0
 	self.playerCount = math.max(1, options.playerCount or 1)
 	self.pendingEvents = {}
+	self.roles = {} -- [playerId] = role id (soft roles; kept across restarts)
 	self:resetRun(options.now or 0)
 	return self
 end
@@ -103,6 +104,7 @@ function MotelCore:resetRun(now: number)
 			sheetsDirty = false,
 			acBroken = false,
 			towelRequest = false,
+			mealOrder = nil, -- { recipe, placedAt, expiresAt }
 		}
 	end
 	self.guests = {}
@@ -114,7 +116,8 @@ function MotelCore:resetRun(now: number)
 	self.complete = false
 	self.lastReport = nil
 	self.billPaidForNight = 0
-	self.totals = { served = 0, walkouts = 0, unserved = 0, rent = 0, tips = 0, deposits = 0 }
+	self.totals = { served = 0, walkouts = 0, unserved = 0, rent = 0, tips = 0, deposits = 0, meals = 0 }
+	self:resetKitchen()
 	self.desk = nil -- front desk session (see Front desk section)
 	self.reservations = {}
 	self.cashierTutorialDone = false
@@ -263,6 +266,9 @@ function MotelCore:enterPreparation(now: number)
 		rent = 0, -- money taken at the front desk
 		deposits = 0, -- reservation money paid in advance (credited when the night starts)
 		checkIns = 0,
+		meals = 0, -- room service money (price + fast tips)
+		missedMeals = 0,
+		burnt = 0,
 		tips = 0,
 		purchases = 0,
 		arrivals = 0,
@@ -274,6 +280,9 @@ function MotelCore:enterPreparation(now: number)
 	}
 	self.nextArrival = 1
 	self.reservations = {}
+	if self.slots then
+		self:clearStove() -- leftovers on the stove are thrown out each night
+	end
 	self:setPhase(self.C.Phase.Preparation, now, self.config.phases.preparation)
 end
 
@@ -343,6 +352,9 @@ function MotelCore:enterReport(now: number)
 		rent = self.nightStats.rent,
 		deposits = self.nightStats.deposits,
 		tips = self.nightStats.tips,
+		meals = self.nightStats.meals,
+		missedMeals = self.nightStats.missedMeals,
+		burnt = self.nightStats.burnt,
 		purchases = self.nightStats.purchases,
 		bill = plan.bill,
 		served = self.nightStats.served,
@@ -465,6 +477,10 @@ function MotelCore:checkout(g, now: number, reason: string)
 			room.towelRequest = false
 			self.nightStats.missedTowels += 1
 		end
+		if room.mealOrder then
+			room.mealOrder = nil
+			self.nightStats.missedMeals += 1
+		end
 	end
 	self:depart(g, reason, now)
 	self:emit("Checkout", { guestId = g.id, roomId = g.roomId })
@@ -496,6 +512,7 @@ function MotelCore:updateGuests(now: number)
 		elseif g.state == GS.Queued and now >= g.patienceEndsAt then
 			self:depart(g, "Walkout", now)
 		elseif g.state == GS.Staying then
+			self:placeMealOrder(g, now)
 			if g.towelAt and now >= g.towelAt then
 				g.towelAt = nil
 				local room = self.rooms[g.roomId]
@@ -600,6 +617,7 @@ function MotelCore:update(now: number)
 		self:updateGuests(now)
 	end
 	self:deskTick(now)
+	self:updateKitchen(now)
 end
 
 ------------------------------------------------------------------------
@@ -640,9 +658,13 @@ function MotelCore:getCarry(pid)
 	return carry
 end
 
-function MotelCore:carryCapacity(): number
+function MotelCore:carryCapacity(pid): number
 	local s = self.config.supplies
-	return if self.trolley then s.trolleyCarryCapacity else s.baseCarryCapacity
+	local cap = if self.trolley then s.trolleyCarryCapacity else s.baseCarryCapacity
+	if pid ~= nil and self:hasRole(pid, "Housekeeper") then
+		cap += self.config.rolePerks.housekeeperExtraCarry
+	end
+	return cap
 end
 
 local function removeOne(list, item): boolean
@@ -1026,6 +1048,7 @@ function MotelCore:commitCheckIn(g, room, amount: number, pid, now: number)
 			+ self:dur(self.random(self.config.guests.towelRequestDelayMin, self.config.guests.towelRequestDelayMax))
 	end
 	room.occupant = g.id
+	self:planMeal(g, now)
 	self.cash += amount
 	self.nightStats.rent += amount
 	self.nightStats.checkIns += 1
@@ -1218,7 +1241,8 @@ function MotelCore:deskView(pid)
 			local due = self:deskDue(s, g) or 0
 			view.due = due
 			view.given = s.given
-			if s.method == self.C.PayMethod.Cash and not self.cashierTutorialDone and s.given and s.given >= due then
+			local hint = not self.cashierTutorialDone or self:hasRole(pid, "Receptionist")
+			if s.method == self.C.PayMethod.Cash and hint and s.given and s.given >= due then
 				view.changeHint = s.given - due
 			end
 		end
@@ -1235,8 +1259,8 @@ function MotelCore:takeSupply(pid, item: string): (boolean, string)
 		return false, "Unknown supply."
 	end
 	local carry = self:getCarry(pid)
-	if #carry >= self:carryCapacity() then
-		return false, ("Your hands are full (%d/%d)."):format(#carry, self:carryCapacity())
+	if #carry >= self:carryCapacity(pid) then
+		return false, ("Your hands are full (%d/%d)."):format(#carry, self:carryCapacity(pid))
 	end
 	if self.stock[item] <= 0 then
 		return false, ("Out of %ss. Buy a refill."):format(item:lower())
@@ -1275,13 +1299,13 @@ function MotelCore:collectTrash(pid, roomId): (boolean, string)
 		return false, "No trash here."
 	end
 	local carry = self:getCarry(pid)
-	if #carry >= self:carryCapacity() then
+	if #carry >= self:carryCapacity(pid) then
 		return false, "Your hands are full."
 	end
 	room.trash = false
 	table.insert(carry, self.C.Item.Trash)
 	self:bump()
-	return true, ("Picked up trash from Room %d. Take it to the dumpster."):format(room.id)
+	return true, ("Picked up trash from Room %d. Take it to the dumpster."):format(room.number)
 end
 
 function MotelCore:dumpTrash(pid): (boolean, string)
@@ -1316,7 +1340,7 @@ function MotelCore:changeSheets(pid, roomId): (boolean, string)
 	room.sheetsDirty = false
 	self:bump()
 	local suffix = if self:isRoomReady(room) then " Room is READY." else ""
-	return true, ("Changed sheets in Room %d.%s"):format(room.id, suffix)
+	return true, ("Changed sheets in Room %d.%s"):format(room.number, suffix)
 end
 
 function MotelCore:deliverTowel(pid, roomId): (boolean, string)
@@ -1338,7 +1362,7 @@ function MotelCore:deliverTowel(pid, roomId): (boolean, string)
 	self.nightStats.tips += tip
 	self.totals.tips += tip
 	self:bump()
-	return true, ("Towel delivered to Room %d. Tip +$%d"):format(room.id, tip)
+	return true, ("Towel delivered to Room %d. Tip +$%d"):format(room.number, tip)
 end
 
 function MotelCore:repairAC(_pid, roomId): (boolean, string)
@@ -1352,7 +1376,7 @@ function MotelCore:repairAC(_pid, roomId): (boolean, string)
 	end
 	room.acBroken = false
 	self:bump()
-	return true, ("Repaired the AC in Room %d."):format(room.id)
+	return true, ("Repaired the AC in Room %d."):format(room.number)
 end
 
 function MotelCore:resetBreaker(pid): (boolean, string)
@@ -1407,6 +1431,17 @@ function MotelCore:buyItem(_pid, itemId: string): (boolean, string)
 		self.stock.Towel += item.towels
 		table.insert(parts, ("+%d towels"):format(item.towels))
 	end
+	if item.food then
+		local keys = {}
+		for k in pairs(item.food) do
+			table.insert(keys, k)
+		end
+		table.sort(keys)
+		for _, ing in ipairs(keys) do
+			self.pantry[ing] = (self.pantry[ing] or 0) + item.food[ing]
+			table.insert(parts, ("+%d %s"):format(item.food[ing], ing:lower()))
+		end
+	end
 	if item.trolley then
 		self.trolley = true
 		table.insert(parts, ("everyone carries %d"):format(self.config.supplies.trolleyCarryCapacity))
@@ -1456,8 +1491,259 @@ function MotelCore:playerLeft(pid)
 	end
 	self.carries[pid] = nil
 	self.ready[pid] = nil
+	self.roles[pid] = nil
 	self:deskRelease(pid)
 	self:bump()
+end
+
+------------------------------------------------------------------------
+-- Kitchen (room service) and soft roles
+------------------------------------------------------------------------
+
+function MotelCore:recipe(id)
+	for _, r in ipairs(self.config.recipes) do
+		if r.id == id then
+			return r
+		end
+	end
+	return nil
+end
+
+local function emptySlot(kind: string)
+	return { kind = kind, recipe = nil, state = "Empty", startedAt = nil, readyAt = nil, burnAt = nil, cook = nil }
+end
+
+function MotelCore:resetKitchen()
+	self.pantry = table.clone(self.config.kitchen.startingStock)
+	self:clearStove()
+end
+
+function MotelCore:clearStove()
+	self.slots = {}
+	for i, kind in ipairs(self.config.kitchen.slots) do
+		self.slots[i] = emptySlot(kind)
+	end
+end
+
+-- Soft roles: a solo player has every perk.
+function MotelCore:hasRole(pid, role: string): boolean
+	return self.playerCount <= 1 or self.roles[pid] == role
+end
+
+function MotelCore:roleDef(role)
+	for _, r in ipairs(self.config.roles) do
+		if r.id == role then
+			return r
+		end
+	end
+	return nil
+end
+
+function MotelCore:setRole(pid, role): (boolean, string)
+	local def = self:roleDef(role)
+	if not def then
+		return false, "Unknown role."
+	end
+	if self.phase ~= self.C.Phase.Preparation then
+		return false, "Pick your role during Preparation."
+	end
+	if self.roles[pid] == role then
+		return true, ("You are already the %s."):format(def.label)
+	end
+	self.roles[pid] = role
+	self:emit("RoleChanged", { by = pid, role = role })
+	self:bump()
+	return true, ("You are the %s! Perk: %s."):format(def.label, def.perk)
+end
+
+-- Ticks stove timers and meal order deadlines.
+function MotelCore:updateKitchen(now: number)
+	for i, slot in ipairs(self.slots) do
+		if slot.state == "Cooking" and now >= slot.readyAt then
+			slot.state = "Ready"
+			self:emit("DishReady", { slot = i, recipe = slot.recipe })
+			self:bump()
+		end
+		if slot.state == "Ready" and slot.burnAt and now >= slot.burnAt then
+			slot.state = "Burnt"
+			if self.nightStats then
+				self.nightStats.burnt += 1
+			end
+			self:emit("DishBurnt", { slot = i, recipe = slot.recipe })
+			self:bump()
+		end
+	end
+	for _, room in ipairs(self.rooms) do
+		local order = room.mealOrder
+		if order and now >= order.expiresAt then
+			room.mealOrder = nil
+			self.nightStats.missedMeals += 1
+			self:emit("MealMissed", { roomId = room.id, recipe = order.recipe })
+			self:bump()
+		end
+	end
+end
+
+-- Called when a guest checks in: maybe they will order a meal later.
+function MotelCore:planMeal(g, now: number)
+	local k = self.config.kitchen
+	if self.random(0, 1) < k.orderChance then
+		local list = self.config.recipes
+		g.mealAt = now + self:dur(self.random(k.orderDelayMin, k.orderDelayMax))
+		g.mealRecipe = list[math.clamp(math.floor(self.random(1, #list + 1)), 1, #list)].id
+	end
+end
+
+-- Called from updateGuests for a staying guest.
+function MotelCore:placeMealOrder(g, now: number)
+	if not (g.mealAt and now >= g.mealAt) then
+		return
+	end
+	g.mealAt = nil
+	local room = self.rooms[g.roomId]
+	if room and room.occupant == g.id and not room.mealOrder then
+		room.mealOrder = {
+			recipe = g.mealRecipe,
+			placedAt = now,
+			expiresAt = now + self:dur(self.config.kitchen.orderPatience),
+		}
+		-- A hungry guest waits for the food: the stay lasts at least until
+		-- the order deadline, so the whole delivery window is usable.
+		g.stayUntil = math.max(g.stayUntil, room.mealOrder.expiresAt + self:dur(2))
+		self:emit("MealOrder", { roomId = room.id, recipe = g.mealRecipe })
+		self:bump()
+	end
+end
+
+function MotelCore:startCook(pid, slotIndex, recipeId, now: number): (boolean, string)
+	local ok, err = self:requireActive()
+	if not ok then
+		return false, err
+	end
+	local slot = self.slots[slotIndex]
+	if not slot then
+		return false, "Unknown cooking spot."
+	end
+	local r = self:recipe(recipeId)
+	if not r then
+		return false, "Unknown recipe."
+	end
+	if slot.state ~= "Empty" then
+		return false, "That spot is busy."
+	end
+	if r.station ~= slot.kind then
+		return false, ("%s is made on the %s."):format(r.name, if r.station == "Board" then "prep board" else "burner")
+	end
+	for item, n in pairs(r.ingredients) do
+		if (self.pantry[item] or 0) < n then
+			return false, ("Not enough %s. Buy more at the shop (Food tab)."):format(item:lower())
+		end
+	end
+	-- Commit: ingredients and the cooking spot in one step.
+	for item, n in pairs(r.ingredients) do
+		self.pantry[item] -= n
+	end
+	local perks = self.config.rolePerks
+	local chef = self:hasRole(pid, "Chef")
+	local cookTime = r.cookTime * (if chef then perks.chefCookMultiplier else 1)
+	slot.recipe = r.id
+	slot.state = "Cooking"
+	slot.startedAt = now
+	slot.readyAt = now + self:dur(cookTime)
+	slot.burnAt = if slot.kind == "Burner"
+		then slot.readyAt + self:dur(self.config.kitchen.burnAfter * (if chef then perks.chefBurnMultiplier else 1))
+		else nil
+	slot.cook = pid
+	self:bump()
+	return true, ("Cooking %s..."):format(r.name)
+end
+
+function MotelCore:collectDish(pid, slotIndex): (boolean, string)
+	local ok, err = self:requireActive()
+	if not ok then
+		return false, err
+	end
+	local slot = self.slots[slotIndex]
+	if not slot or slot.state == "Empty" then
+		return false, "Nothing to pick up there."
+	elseif slot.state == "Cooking" then
+		return false, "Not ready yet."
+	elseif slot.state == "Burnt" then
+		return false, "It burned! Throw it away and cook again."
+	end
+	local carry = self:getCarry(pid)
+	local cap = self:carryCapacity(pid)
+	if #carry >= cap then
+		return false, ("Your hands are full (%d/%d)."):format(#carry, cap)
+	end
+	local r = self:recipe(slot.recipe)
+	table.insert(carry, self.C.DishPrefix .. slot.recipe)
+	self.slots[slotIndex] = emptySlot(slot.kind) -- cleared together with the pickup
+	self:bump()
+	return true, ("Picked up %s. Take it to the room!"):format(r and r.name or "the dish")
+end
+
+function MotelCore:discardDish(_pid, slotIndex): (boolean, string)
+	local ok, err = self:requireActive()
+	if not ok then
+		return false, err
+	end
+	local slot = self.slots[slotIndex]
+	if not slot or slot.state == "Empty" then
+		return false, "Nothing to throw away."
+	elseif slot.state == "Cooking" then
+		return false, "Still cooking."
+	end
+	local burnt = slot.state == "Burnt"
+	self.slots[slotIndex] = emptySlot(slot.kind)
+	self:bump()
+	return true, if burnt then "Burnt food thrown away." else "Dish thrown away."
+end
+
+function MotelCore:deliverMeal(pid, roomId, now: number): (boolean, string)
+	local ok, err = self:requireActive()
+	if not ok then
+		return false, err
+	end
+	local room = self.rooms[roomId]
+	local order = room and room.mealOrder
+	if not order or not room.occupant then
+		return false, "Nobody ordered food here."
+	end
+	local r = self:recipe(order.recipe)
+	local carry = self:getCarry(pid)
+	if not removeOne(carry, self.C.DishPrefix .. order.recipe) then
+		return false, ("Room %d ordered %s. Cook it in the kitchen."):format(room.number, r.name)
+	end
+	room.mealOrder = nil -- cleared before paying: the meal is paid once
+	local k = self.config.kitchen
+	local tip = if now - order.placedAt <= self:dur(k.fastWindow) then k.fastTip else 0
+	local amount = r.price + tip
+	self.cash += amount
+	self.nightStats.meals += amount
+	self.totals.meals += amount
+	self:emit("MealDelivered", { roomId = room.id, recipe = order.recipe, by = pid })
+	self:bump()
+	if tip > 0 then
+		return true, ("%s delivered to Room %d. +$%d (fast tip +$%d)"):format(r.name, room.number, r.price, tip)
+	end
+	return true, ("%s delivered to Room %d. +$%d"):format(r.name, room.number, r.price)
+end
+
+-- Room door: hand over whatever the room asked for (towel or meal).
+function MotelCore:deliver(pid, roomId, now: number): (boolean, string)
+	local room = self.rooms[roomId]
+	if not room then
+		return false, "Unknown room."
+	end
+	local carry = self:getCarry(pid)
+	if room.towelRequest and (count(carry, self.C.Item.Towel) > 0 or not room.mealOrder) then
+		return self:deliverTowel(pid, roomId)
+	end
+	if room.mealOrder then
+		return self:deliverMeal(pid, roomId, now)
+	end
+	return false, "Nothing to deliver here."
 end
 
 ------------------------------------------------------------------------
@@ -1465,12 +1751,30 @@ end
 ------------------------------------------------------------------------
 
 function MotelCore:snapshot(pid)
+	local stoveView = {}
+	for i, slot in ipairs(self.slots) do
+		stoveView[i] = {
+			kind = slot.kind,
+			recipe = slot.recipe,
+			state = slot.state,
+			startedAt = slot.startedAt,
+			readyAt = slot.readyAt,
+			burnAt = slot.burnAt,
+		}
+	end
 	local rooms = {}
 	for i, room in ipairs(self.rooms) do
 		rooms[i] = {
 			id = room.id,
 			number = room.number,
 			type = room.type,
+			mealOrder = if room.mealOrder
+				then {
+					recipe = room.mealOrder.recipe,
+					placedAt = room.mealOrder.placedAt,
+					expiresAt = room.mealOrder.expiresAt,
+				}
+				else nil,
 			occupied = room.occupant ~= nil,
 			trash = room.trash,
 			sheetsDirty = room.sheetsDirty,
@@ -1505,7 +1809,7 @@ function MotelCore:snapshot(pid)
 		stock = { Sheet = self.stock.Sheet, Towel = self.stock.Towel },
 		trolley = self.trolley,
 		carry = carry,
-		carryCapacity = self:carryCapacity(),
+		carryCapacity = self:carryCapacity(pid),
 		sheetsCarried = count(carry, self.C.Item.Sheet),
 		power = self.power,
 		rain = self.rain,
@@ -1517,6 +1821,10 @@ function MotelCore:snapshot(pid)
 		nightStats = table.clone(self.nightStats),
 		report = self.lastReport and table.clone(self.lastReport) or nil,
 		desk = self:deskView(pid),
+		pantry = table.clone(self.pantry),
+		slots = stoveView,
+		role = self.roles[pid],
+		soloRoles = self.playerCount <= 1,
 	}
 end
 

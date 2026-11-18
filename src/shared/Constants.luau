@@ -23,6 +23,8 @@ Constants.Item = {
 	Towel = "Towel",
 	Trash = "Trash",
 }
+-- A carried dish is the item "Dish:<recipeId>", e.g. "Dish:burger".
+Constants.DishPrefix = "Dish:"
 
 -- Actions a ProximityPrompt can carry in its "Action" attribute.
 Constants.PromptAction = {
@@ -31,7 +33,8 @@ Constants.PromptAction = {
 	CollectTrash = "CollectTrash",
 	DumpTrash = "DumpTrash",
 	ChangeSheets = "ChangeSheets",
-	DeliverTowel = "DeliverTowel",
+	Deliver = "Deliver", -- room door: towel or meal, whichever the room asked for
+	OpenKitchen = "OpenKitchen",
 	RepairAC = "RepairAC",
 	ResetBreaker = "ResetBreaker",
 	OpenShop = "OpenShop",
@@ -53,6 +56,10 @@ Constants.RemoteAction = {
 	TakeSupply = "TakeSupply",
 	ReturnSupplies = "ReturnSupplies",
 	BackToLobby = "BackToLobby",
+	Cook = "Cook", -- { slot, recipe }
+	CollectDish = "CollectDish", -- { slot }
+	DiscardDish = "DiscardDish", -- { slot }
+	SetRole = "SetRole", -- { role }
 }
 
 -- Front desk terminal.
@@ -74,6 +81,7 @@ Constants.Remotes = {
 	OpenCheckIn = "OpenCheckIn", -- server -> client: open the front desk terminal
 	OpenShop = "OpenShop", -- server -> client: show the supply shop panel
 	OpenLinen = "OpenLinen", -- server -> client: show the linen closet panel
+	OpenKitchen = "OpenKitchen", -- server -> client: show the kitchen panel
 }
 
 -- Lobby place remotes (ReplicatedStorage.LobbyRemotes).

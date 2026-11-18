@@ -59,6 +59,17 @@ local CONFETTI_COLORS = {
 }
 
 local ITEM_ICON = { Sheet = "sheet", Towel = "towel", Trash = "trash" }
+local RECIPES = {} -- id -> recipe (filled in Hud.new from Config.recipes)
+local DISH_PREFIX = "Dish:"
+
+-- Icon and caption for a carried item ("Dish:burger" -> burger icon, "BURGER").
+local function itemInfo(item: string): (string, string)
+	if item:sub(1, #DISH_PREFIX) == DISH_PREFIX then
+		local r = RECIPES[item:sub(#DISH_PREFIX + 1)]
+		return (r and r.icon or "tray"), (r and r.name:upper() or "DISH")
+	end
+	return ITEM_ICON[item] or "check", item:upper()
+end
 
 -- Layering: modals above the backdrop, which is above the HUD.
 local Z_BACKDROP = 9
@@ -355,6 +366,11 @@ end
 function Hud.new(playerGui: PlayerGui, config, callbacks)
 	local self = setmetatable({}, Hud)
 	self.roomDefs = config.rooms
+	self.foodIngredients = config.kitchen.ingredients
+	self.ingredientIcons = config.kitchen.ingredientIcons
+	for _, r in ipairs(config.recipes) do
+		RECIPES[r.id] = r
+	end
 	self.shopItems = config.shop or {}
 	self.callbacks = callbacks
 	self.state = nil
@@ -1240,15 +1256,16 @@ function Hud:setTutorial(info)
 end
 
 function Hud:buildReport()
-	local holder, body, title = modal(self.root, "Report", Vector2.new(480, 494), "NIGHT REPORT")
+	local holder, body, title = modal(self.root, "Report", Vector2.new(480, 528), "NIGHT REPORT")
 	self.report = holder
 	self.reportTitle = title
 	self.reportRows = {}
 	self.reportRowLabels = {}
-	local names = { "Rent", "Deposits", "Tips", "Purchases", "Bill", "Cash", "Guests", "Lost" }
+	local names = { "Rent", "Deposits", "Meals", "Tips", "Purchases", "Bill", "Cash", "Guests", "Lost" }
 	local rowIcons = {
 		Rent = "key",
 		Deposits = "calendar",
+		Meals = "tray",
 		Tips = "hand",
 		Purchases = "trolley",
 		Bill = "warning",
@@ -1558,9 +1575,35 @@ end
 
 function Hud:buildShop()
 	local items = self.shopItems
-	local rows = math.ceil(#items / 2)
-	local holder, body = modal(self.root, "Shop", Vector2.new(580, 120 + rows * 176), "SUPPLY SHOP")
+	-- Tabs: Linen (default category) and Food (kitchen ingredients).
+	local perTab = { Linen = 0, Food = 0 }
+	local slotOf = {}
+	for i, item in ipairs(items) do
+		local cat = item.category or "Linen"
+		perTab[cat] = (perTab[cat] or 0) + 1
+		slotOf[i] = perTab[cat]
+	end
+	local rows = math.ceil(math.max(perTab.Linen, perTab.Food) / 2)
+	local holder, body = modal(self.root, "Shop", Vector2.new(580, 174 + rows * 176), "SUPPLY SHOP")
 	self.shop = holder
+	self.shopTab = "Linen"
+	self.shopTabs = {}
+	for k, cat in ipairs({ "Linen", "Food" }) do
+		local b = chunkyButton(
+			body,
+			"Tab" .. cat,
+			UDim2.fromOffset(160, 44),
+			UDim2.fromOffset(20 + (k - 1) * 172, 38),
+			if k == 1 then BLUE else GREY,
+			cat:upper(),
+			function()
+				self.shopTab = cat
+				self:renderShop()
+			end,
+			if cat == "Linen" then "sheet" else "burger"
+		)
+		self.shopTabs[cat] = b
+	end
 
 	-- Wallet + stock strip.
 	local strip = make("Frame", {
@@ -1568,12 +1611,12 @@ function Hud:buildShop()
 		BackgroundTransparency = 0.35,
 		BorderSizePixel = 0,
 		Size = UDim2.new(1, -40, 0, 44),
-		Position = UDim2.fromOffset(20, 38),
+		Position = UDim2.fromOffset(20, 92),
 		Parent = body,
 	})
 	corner(strip, UDim.new(0, 12))
 	local function stat(iconName, x)
-		Icons.create(iconName, {
+		local icon = Icons.create(iconName, {
 			Parent = strip,
 			Size = UDim2.fromOffset(34, 34),
 			Position = UDim2.new(0, x, 0.5, 0),
@@ -1589,21 +1632,47 @@ function Hud:buildShop()
 			Stroke = 0,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Text = "",
-		})
+		}),
+			icon
 	end
 	self.shopCash = stat("coin", 12)
-	self.shopSheets = stat("sheet", 190)
-	self.shopTowels = stat("towel", 330)
+	local sheetIcon, towelIcon
+	self.shopSheets, sheetIcon = stat("sheet", 190)
+	self.shopTowels, towelIcon = stat("towel", 330)
+	self.shopLinenStats = { { self.shopSheets, sheetIcon }, { self.shopTowels, towelIcon } }
+	-- Food tab: pantry counts (smaller, five of them).
+	self.shopFoodStats = {}
+	for k, ing in ipairs(self.foodIngredients) do
+		local x = 130 + (k - 1) * 82
+		local icon = Icons.create(self.ingredientIcons[ing], {
+			Parent = strip,
+			Size = UDim2.fromOffset(30, 30),
+			Position = UDim2.new(0, x, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+		})
+		local l = label({
+			Parent = strip,
+			Size = UDim2.fromOffset(44, 40),
+			Position = UDim2.new(0, x + 32, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			TextSize = 22,
+			TextColor3 = TEXT_DARK,
+			Stroke = 0,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Text = "0",
+		})
+		self.shopFoodStats[ing] = { icon = icon, label = l }
+	end
 
 	self.shopCards = {}
 	for i, item in ipairs(items) do
-		local col = (i - 1) % 2
-		local row = (i - 1) // 2
+		local col = (slotOf[i] - 1) % 2
+		local row = (slotOf[i] - 1) // 2
 		local cardHolder, card = chunk({
 			Name = "Item_" .. item.id,
 			Parent = body,
 			Size = UDim2.fromOffset(255, 160),
-			Position = UDim2.fromOffset(20 + col * 285, 98 + row * 176),
+			Position = UDim2.fromOffset(20 + col * 285, 152 + row * 176),
 			Colors = CARD,
 			Radius = UDim.new(0, 16),
 			ShadowDepth = 4,
@@ -1733,8 +1802,22 @@ function Hud:renderShop()
 	self.shopCash.Text = ("$%d"):format(s.cash)
 	self.shopSheets.Text = tostring(s.stock.Sheet)
 	self.shopTowels.Text = tostring(s.stock.Towel)
+	local food = self.shopTab == "Food"
+	for cat, b in pairs(self.shopTabs) do
+		setColors(b.grad, if cat == self.shopTab then BLUE else GREY)
+	end
+	for _, pair in ipairs(self.shopLinenStats) do
+		pair[1].Visible = not food
+		pair[2].frame.Visible = not food
+	end
+	for ing, st in pairs(self.shopFoodStats) do
+		st.label.Visible = food
+		st.icon.frame.Visible = food
+		st.label.Text = tostring(s.pantry and s.pantry[ing] or 0)
+	end
 	for _, c in ipairs(self.shopCards) do
 		local item = c.item
+		c.holder.Visible = (item.category or "Linen") == self.shopTab
 		local owned = item.trolley and s.trolley
 		local afford = s.cash >= item.cost
 		if owned then
@@ -1949,10 +2032,10 @@ function Hud:renderLinen()
 		slot.holder.Visible = i <= s.carryCapacity
 		local item = s.carry[i]
 		if item then
-			slot.icon:set(ITEM_ICON[item] or "check")
+			slot.icon:set((itemInfo(item)))
 			slot.icon.frame.Visible = true
 			setColors(slot.grad, if item == "Trash" then ORANGE else TEAL)
-			if item ~= "Trash" then
+			if item == "Sheet" or item == "Towel" then
 				cleanCarried += 1
 			end
 		else
@@ -2193,9 +2276,10 @@ function Hud:setState(s)
 		local item = s.carry[i]
 		local before = prev and prev.carry[i]
 		if item then
-			t.icon:set(ITEM_ICON[item] or "check")
+			local icon, caption = itemInfo(item)
+			t.icon:set(icon)
 			t.icon.frame.Visible = true
-			t.caption.Text = item:upper()
+			t.caption.Text = caption
 			setColors(t.grad, if item == "Trash" then ORANGE else TEAL)
 		else
 			t.icon.frame.Visible = false
@@ -2254,16 +2338,18 @@ function Hud:setState(s)
 		local r = s.report
 		self.reportRows.Rent.Text = ("+$%d"):format(r.rent)
 		self.reportRows.Deposits.Text = ("+$%d"):format(r.deposits or 0)
+		self.reportRows.Meals.Text = ("+$%d"):format(r.meals or 0)
 		self.reportRows.Tips.Text = ("+$%d"):format(r.tips)
 		self.reportRows.Purchases.Text = ("-$%d"):format(r.purchases)
 		self.reportRows.Bill.Text = ("-$%d"):format(r.bill)
 		self.reportCashBefore.Text = ("$%d"):format(r.cashBefore)
 		self.reportRows.Cash.Text = ("$%d"):format(r.cashAfter)
 		self.reportRows.Guests.Text = ("%d served / %d planned"):format(r.served, r.guestsPlanned)
-		self.reportRows.Lost.Text = ("%d walkout · %d unserved · %d towel"):format(
+		self.reportRows.Lost.Text = ("%d walkout · %d unserved · %d towel · %d meal"):format(
 			r.walkouts,
 			r.unserved,
-			r.missedTowels
+			r.missedTowels,
+			(r.missedMeals or 0) + (r.burnt or 0)
 		)
 		if r.passed then
 			self.resultText.Text = ("BILL PAID! Nights survived: %d"):format(r.nightsSurvived)
