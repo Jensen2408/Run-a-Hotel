@@ -644,48 +644,56 @@ return {
 		place = { { -46, 0, -50 } },
 	},
 	SM_Bld_OfficeV2_Walls = {
+		id = "rbxassetid://131360094996906",
 		group = "OfficeV2",
 		c = { -0, 10.975, 0 },
 		s = { 37.26, 21.95, 27.26 },
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_Trim = {
+		id = "rbxassetid://76718667500654",
 		group = "OfficeV2",
 		c = { 0, 11.549, -1.836 },
 		s = { 40.42, 23.098, 34.287 },
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_Roof = {
+		id = "rbxassetid://99584620076635",
 		group = "OfficeV2",
 		c = { 0, 19.807, 0 },
 		s = { 40.6, 12.285, 31.725 },
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_Awning = {
+		id = "rbxassetid://127645848194649",
 		group = "OfficeV2",
 		c = { -0, 8.335, -6.198 },
 		s = { 41.252, 2.78, 18.896 },
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_Porch = {
+		id = "rbxassetid://100615788729472",
 		group = "OfficeV2",
 		c = { 0, 5.597, -16.055 },
 		s = { 15.2, 11.195, 5.91 },
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_Flowers = {
+		id = "rbxassetid://123025917100503",
 		group = "OfficeV2",
 		c = { 0.001, 2.685, 0.001 },
 		s = { 39.571, 2.27, 29.642 },
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_Sign = {
+		id = "rbxassetid://134855578990122",
 		group = "OfficeV2",
 		c = { 0, 17.95, -15.196 },
 		s = { 19.8, 7.6, 3.439 },
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_Windows = {
+		id = "rbxassetid://95537066630154",
 		group = "OfficeV2",
 		c = { 0, 5.6, -0 },
 		s = { 36.12, 5.4, 26.12 },
@@ -693,6 +701,7 @@ return {
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_Glow = {
+		id = "rbxassetid://110527173556074",
 		group = "OfficeV2",
 		c = { 0, 13.737, -2.574 },
 		s = { 39.957, 16.763, 33.153 },
@@ -700,6 +709,7 @@ return {
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_DoorFL = {
+		id = "rbxassetid://118436201496864",
 		group = "OfficeDoorFL",
 		c = { 1.418, 4.37, -0 },
 		s = { 2.965, 7.9, 0.713 },
@@ -708,6 +718,7 @@ return {
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_DoorFL_Glass = {
+		id = "rbxassetid://121122328879888",
 		group = "OfficeDoorFL",
 		c = { 1.45, 5.545, -0 },
 		s = { 1.94, 4.53, 0.08 },
@@ -717,6 +728,7 @@ return {
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_DoorFR = {
+		id = "rbxassetid://75333989797291",
 		group = "OfficeDoorFR",
 		c = { -1.418, 4.37, -0 },
 		s = { 2.965, 7.9, 0.713 },
@@ -725,6 +737,7 @@ return {
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_DoorFR_Glass = {
+		id = "rbxassetid://85494506830661",
 		group = "OfficeDoorFR",
 		c = { -1.45, 5.545, -0 },
 		s = { 1.94, 4.53, 0.08 },
@@ -734,6 +747,7 @@ return {
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_DoorSide = {
+		id = "rbxassetid://119243553775996",
 		group = "OfficeDoorSide",
 		c = { 0, 4.37, 1.918 },
 		s = { 1.011, 7.9, 3.965 },
@@ -742,6 +756,7 @@ return {
 		place = { { 22, 0, -19 } },
 	},
 	SM_Bld_OfficeV2_DoorBack = {
+		id = "rbxassetid://117143563195108",
 		group = "OfficeDoorBack",
 		c = { 1.918, 4.37, -0 },
 		s = { 3.965, 7.9, 1.011 },
