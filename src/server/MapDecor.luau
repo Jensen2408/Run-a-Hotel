@@ -894,6 +894,10 @@ local function buildGroundAndRoad(decor)
 	block(road, "MailboxPost", Vector3.new(0.4, 3.5, 0.4), Vector3.new(31, 1.75, -54), WOOD_DARK)
 	block(road, "Mailbox", Vector3.new(1.2, 1.2, 2), Vector3.new(31, 3.9, -54), Color3.fromRGB(60, 90, 160))
 	detail(road, "MailFlag", Vector3.new(0.1, 0.9, 0.3), Vector3.new(31.7, 4.4, -53.6), ACCENT)
+	-- Kit mailbox (same footprint: body along Z, flag on +X).
+	if Kit.place("Mailbox", road, CFrame.new(31, 0, -54)) then
+		Kit.retireNamed(road, { "MailboxPost", "Mailbox", "MailFlag" })
+	end
 end
 
 local function buildMotelSign(decor)
