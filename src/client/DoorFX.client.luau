@@ -9,7 +9,13 @@
 	gameplay walls, so nothing is blocked either way).
 
 	Door model: PrimaryPart "Hinge" on the hinge line; Swing = degrees
-	about +Y that open it (sign = direction, inward).
+	about +Y that open it (sign = direction, inward); optional Range
+	(scale-1 studs, default 7).
+
+	Room doors: while Locked (room rented) only guest NPCs open them, and
+	the door's BlockerRef part collides for the local player (client-side
+	CanCollide, the character is simulated here), except when the player
+	is still inside the room, so nobody gets shut in.
 ]]
 
 local Players = game:GetService("Players")
@@ -24,7 +30,6 @@ end
 local Config = require(Shared:WaitForChild("Config"))
 
 local SCALE = Config.mapScale or 1
-local RANGE = 7 * SCALE -- studs from the hinge
 local SPEED = 2.6 -- open fraction per second
 local SCAN_EVERY = 0.1
 
@@ -42,6 +47,7 @@ local function register(inst: Instance)
 		closed = inst:GetPivot(),
 		hinge = hinge.Position,
 		swing = math.rad(tonumber(inst:GetAttribute("Swing")) or 90),
+		range = (tonumber(inst:GetAttribute("Range")) or 7) * SCALE,
 		t = 0,
 		target = 0,
 	}
@@ -72,12 +78,12 @@ Workspace.ChildAdded:Connect(function(child)
 end)
 
 -- Everyone who can walk through a door: player characters and guest NPCs.
-local function people(): { Vector3 }
-	local out = {}
+local function people(): ({ Vector3 }, { Vector3 })
+	local players, npcs = {}, {}
 	for _, p in ipairs(Players:GetPlayers()) do
 		local root = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
 		if root then
-			table.insert(out, root.Position)
+			table.insert(players, root.Position)
 		end
 	end
 	local runtime = Workspace:FindFirstChild("Motel") and Workspace.Motel:FindFirstChild("Runtime")
@@ -85,11 +91,42 @@ local function people(): { Vector3 }
 		for _, m in ipairs(runtime:GetChildren()) do
 			local root = m:IsA("Model") and m:FindFirstChild("HumanoidRootPart")
 			if root then
-				table.insert(out, root.Position)
+				table.insert(npcs, root.Position)
 			end
 		end
 	end
-	return out
+	return players, npcs
+end
+
+local function anyNear(list: { Vector3 }, at: Vector3, range: number): boolean
+	for _, pos in ipairs(list) do
+		if (pos - at).Magnitude < range then
+			return true
+		end
+	end
+	return false
+end
+
+-- Locked doors: the blocker collides for the local player unless they are
+-- on the room side of it (LookVector points into the room). Returns true
+-- when the local player is inside (the door then opens to let them out).
+local function updateBlocker(model: Model, locked: boolean): boolean
+	local ref = model:FindFirstChild("BlockerRef")
+	local blocker = ref and ref:IsA("ObjectValue") and ref.Value
+	if not (blocker and blocker:IsA("BasePart")) then
+		return false
+	end
+	local inside = false
+	if locked then
+		local char = Players.LocalPlayer.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		inside = root ~= nil and (root.Position - blocker.Position):Dot(blocker.CFrame.LookVector) > 0
+	end
+	local solid = locked and not inside
+	if blocker.CanCollide ~= solid then
+		blocker.CanCollide = solid
+	end
+	return inside
 end
 
 local function ease(t: number): number
@@ -101,15 +138,12 @@ RunService.Heartbeat:Connect(function(dt)
 	scan -= dt
 	if scan <= 0 then
 		scan = SCAN_EVERY
-		local list = people()
-		for _, d in pairs(doors) do
-			local near = false
-			for _, pos in ipairs(list) do
-				if (pos - d.hinge).Magnitude < RANGE then
-					near = true
-					break
-				end
-			end
+		local players, npcs = people()
+		for model, d in pairs(doors) do
+			local locked = model:GetAttribute("Locked") == true
+			local leaving = updateBlocker(model, locked)
+			local near = anyNear(npcs, d.hinge, d.range)
+				or ((not locked or leaving) and anyNear(players, d.hinge, d.range))
 			d.target = if near then 1 else 0
 		end
 	end

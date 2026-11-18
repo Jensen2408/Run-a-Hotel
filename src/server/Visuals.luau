@@ -788,6 +788,10 @@ function Visuals:refreshWorld(core)
 		if signIconLabel then
 			UiAssets.applyTo(signIconLabel, signIcon)
 		end
+		-- Rented rooms: door closed and locked (only the guest opens it).
+		if v.doorModel then
+			v.doorModel:SetAttribute("Locked", room.occupant ~= nil)
+		end
 		-- Kit.set forwards to the Blender kit meshes when the part is skinned.
 		Kit.set(
 			v.bed,

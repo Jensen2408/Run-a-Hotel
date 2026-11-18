@@ -34,6 +34,60 @@ local Surfaces = require(script.Parent:WaitForChild("Surfaces"))
 -- Room door leaf colours (Blender kit door, one per room).
 local DOOR_COLORS = { Color3.fromRGB(64, 150, 146), Color3.fromRGB(230, 120, 70), Color3.fromRGB(110, 120, 200) }
 
+--[[
+	Hinged room door (kit RoomDoor leaf + hardware), closed in the doorway
+	of the front wall (z 4, gap x cx-2..cx+2), hinge on the -X jamb (handle on +X). The
+	client DoorFX swings it inward (Swing -90) when someone is within
+	Range studs; Visuals sets Locked while the room is rented: then only
+	the guest NPC opens it and the Blocker (invisible, collidable on the
+	client) keeps players out. The Blocker's LookVector points into the
+	room, so a player still inside can always walk out.
+]]
+local function roomDoor(parent: Instance, cx: number, color: Color3): Model?
+	if not Kit.has("RoomDoor") then
+		return nil
+	end
+	local model = Instance.new("Model")
+	model.Name = "RoomDoor"
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	local hinge = Instance.new("Part")
+	hinge.Name = "Hinge"
+	hinge.Size = Vector3.new(0.3, 0.3, 0.3)
+	hinge.Transparency = 1
+	hinge.Anchored = true
+	hinge.CanCollide = false
+	hinge.CanQuery = false
+	hinge.CanTouch = false
+	hinge.CFrame = CFrame.new(cx - 1.9, 0.4, 4)
+	hinge.Parent = model
+	model.PrimaryPart = hinge
+	Kit.place("RoomDoor", model, CFrame.new(cx, 0.4, 4), {
+		only = { SM_Prop_Door_Leaf = true, SM_Prop_Door_Hardware = true },
+		tint = { SM_Prop_Door_Leaf = color },
+	})
+	local blocker = Instance.new("Part")
+	blocker.Name = "DoorBlocker"
+	blocker.Size = Vector3.new(4, 7.6, 0.6)
+	blocker.CFrame = CFrame.lookAt(Vector3.new(cx, 3.8, 4), Vector3.new(cx, 3.8, 5))
+	blocker.Transparency = 1
+	blocker.Anchored = true
+	blocker.CanCollide = false
+	blocker.CanQuery = false
+	blocker.CanTouch = false
+	blocker.CastShadow = false
+	blocker.Parent = parent
+	model:SetAttribute("KitDoor", true)
+	model:SetAttribute("Swing", -90)
+	model:SetAttribute("Range", 4.5)
+	model:SetAttribute("Locked", false)
+	local ref = Instance.new("ObjectValue")
+	ref.Name = "BlockerRef"
+	ref.Value = blocker
+	ref.Parent = model
+	model.Parent = parent
+	return model
+end
+
 -- Front-door line of the office (scale 1): entrance path, desk, queue and
 -- lobby entrance sit on it. 22 = office centre, where the v2 office has its
 -- centred double door (the old office's wide gap 19..33 contains it too).
@@ -42,7 +96,7 @@ local LOBBY_X = 22
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 30
+MapBuilder.VERSION = 31
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -542,6 +596,7 @@ function MapBuilder.build(config)
 		-- Blender kit: room shell over the (now invisible) gameplay walls, and
 		-- skins on the bed, bin, trash bag and AC. Visuals drives their state
 		-- colours through Kit.set.
+		local doorModel = nil
 		-- RoomV2 = the office-style shell (batch "rooms"); RoomUnit until imported.
 		local roomV2 = Kit.has("RoomV2")
 		if Kit.place(if roomV2 then "RoomV2" else "RoomUnit", roomFolder, CFrame.new(cx, 0, 12)) then
@@ -557,11 +612,7 @@ function MapBuilder.build(config)
 			if not roomV2 then -- RoomV2 has its own teal door frame
 				Kit.place("RoomDoor", roomFolder, CFrame.new(cx, 0, 4), { only = { SM_Prop_Door_Frame = true } })
 			end
-			-- Door leaf swung open against the inside of the front wall.
-			Kit.place("RoomDoor", roomFolder, CFrame.new(cx + 2.35, 0.4, 6.15) * CFrame.Angles(0, -math.pi / 2, 0), {
-				only = { SM_Prop_Door_Leaf = true, SM_Prop_Door_Hardware = true },
-				tint = { SM_Prop_Door_Leaf = doorColor },
-			})
+			doorModel = roomDoor(roomFolder, cx, doorColor)
 			Kit.skin(bed, "Bed", CFrame.new(cx + 3, 0.4, 15), {
 				follow = { SM_Prop_Bed_Sheet = true },
 				tint = { SM_Prop_Bed_Blanket = doorColor },
@@ -579,6 +630,7 @@ function MapBuilder.build(config)
 			id = i,
 			center = Vector3.new(cx, 1, 12),
 			door = door,
+			doorModel = doorModel,
 			bed = bed,
 			bin = bin,
 			trashBag = trashBag,
@@ -914,6 +966,7 @@ function MapBuilder.collect(root: Instance, config)
 		layout.rooms[r] = {
 			id = r,
 			door = door,
+			doorModel = roomFolder:FindFirstChild("RoomDoor"),
 			bed = bed,
 			bin = bin,
 			trashBag = must(roomFolder, "TrashBag"),
