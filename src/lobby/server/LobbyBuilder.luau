@@ -182,7 +182,7 @@ function LobbyBuilder.build(scale: number)
 
 	-- Ground and hall shell ---------------------------------------------------
 	if xmas then
-		block(map, "Snow", Vector3.new(500, 1, 500), Vector3.new(0, -0.38, 0), Color3.fromRGB(236, 243, 252), {
+		block(map, "Snow", Vector3.new(620, 1, 620), Vector3.new(0, -0.38, 0), Color3.fromRGB(236, 243, 252), {
 			Material = Enum.Material.Snow,
 		})
 	else
@@ -510,11 +510,20 @@ function LobbyBuilder.build(scale: number)
 		elseif xmas and Kit.has("SnowPine") then "SnowPine"
 		else nil
 	local snowPines = snowPineGroup ~= nil
-	for k = 1, 40 do
+	-- Christmas: a denser forest (inner trees keep a clearing in front of
+	-- the entrance so the path and the outdoor tree stay in view).
+	local count, rMin, rMax = 40, 70, 130
+	if snowPines then
+		count, rMin, rMax = 120, 56, 165
+	end
+	for k = 1, count do
 		local a = rng:NextNumber(0, math.pi * 2)
-		local r = rng:NextNumber(70, 130)
+		local r = rng:NextNumber(rMin, rMax)
 		local x, z = math.cos(a) * r, math.sin(a) * r
 		local h = rng:NextNumber(22, 34)
+		if snowPines and z < 0 and math.abs(x) < 34 and r < 95 then
+			continue
+		end
 		if snowPines then
 			Kit.place(
 				snowPineGroup,
@@ -547,6 +556,28 @@ function LobbyBuilder.build(scale: number)
 		)
 		if k % 10 == 0 then
 			task.wait()
+		end
+	end
+
+	-- Christmas: snowy mountains on the horizon (batch 5 mountains have
+	-- snow caps), a ring past the forest.
+	if xmas and Kit.has("MountainTall") then
+		local mrng = Random.new(1225)
+		local n = 16
+		for i = 1, n do
+			local a = (i - 1) / n * math.pi * 2 + mrng:NextNumber(-0.12, 0.12)
+			local r = mrng:NextNumber(205, 245)
+			local width = mrng:NextNumber(70, 125)
+			local height = mrng:NextNumber(48, 95)
+			local tall = height / width > 0.65
+			local k = width / 10
+			local baseH = (if tall then 8 else 5) * k
+			Kit.place(
+				if tall then "MountainTall" else "MountainWide",
+				map,
+				CFrame.new(math.cos(a) * r, -2, math.sin(a) * r) * CFrame.Angles(0, mrng:NextNumber(0, math.pi * 2), 0),
+				{ scale = k, stretch = Vector3.new(1, height / baseH, 1) }
+			)
 		end
 	end
 
