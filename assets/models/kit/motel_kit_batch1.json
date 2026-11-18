@@ -1,103 +1,116 @@
 {
   "batch": "batch1",
   "units": "studs",
+  "axes": "roblox",
   "meshes": {
-    "BedFrame": {
+    "SM_Prop_Bed_Frame": {
       "group": "Bed",
       "size": [
-        5.6,
-        3.6,
-        8.0
+        5.74,
+        4.24,
+        8.134
       ],
       "center": [
         0.0,
-        1.8,
-        0.275
+        2.12,
+        0.195
       ],
       "tint": false,
-      "tris": 1428
+      "glow": false,
+      "collision": "Box",
+      "tris": 2408
     },
-    "BedSheet": {
+    "SM_Prop_Bed_Sheet": {
       "group": "Bed",
       "size": [
-        4.9,
-        0.8,
-        6.7
+        4.88,
+        0.915,
+        6.55
       ],
       "center": [
         0.0,
-        1.45,
-        0.1
+        1.628,
+        0.15
       ],
       "tint": true,
-      "tris": 188
+      "glow": false,
+      "collision": "Box",
+      "tris": 780
     },
-    "BedBlanket": {
+    "SM_Prop_Bed_Blanket": {
       "group": "Bed",
       "size": [
-        5.05,
-        0.28,
-        3.7
+        5.06,
+        1.045,
+        3.99
       ],
       "center": [
         0.0,
-        1.95,
-        -1.5
+        1.628,
+        -1.495
       ],
       "tint": true,
-      "tris": 108
+      "glow": false,
+      "collision": "Box",
+      "tris": 376
     },
-    "BedPillows": {
+    "SM_Prop_Bed_Linen": {
       "group": "Bed",
       "size": [
-        4.4,
-        0.64,
-        1.2
+        5.1,
+        0.739,
+        2.852
       ],
       "center": [
         0.0,
+        2.191,
+        1.666
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 980
+    },
+    "SM_Prop_Nightstand": {
+      "group": "Nightstand",
+      "size": [
         2.0,
-        2.5
-      ],
-      "tint": false,
-      "tris": 448
-    },
-    "Nightstand": {
-      "group": "Nightstand",
-      "size": [
-        1.8,
-        1.95,
-        2.0
+        3.45,
+        2.007
       ],
       "center": [
         0.0,
-        0.975,
-        -0.1
+        1.725,
+        -0.054
       ],
       "tint": false,
-      "tris": 1176
+      "glow": false,
+      "collision": "Box",
+      "tris": 2420
     },
-    "BedsideLamp": {
+    "SM_Prop_Nightstand_Shade": {
       "group": "Nightstand",
       "size": [
-        1.166,
-        1.575,
-        1.166
+        1.48,
+        0.82,
+        1.48
       ],
       "center": [
         0.0,
-        2.737,
+        3.71,
         -0.0
       ],
       "tint": false,
-      "tris": 572
+      "glow": true,
+      "collision": "None",
+      "tris": 120
     },
-    "RoomDoor": {
+    "SM_Prop_Door_Leaf": {
       "group": "RoomDoor",
       "size": [
         3.8,
         6.8,
-        0.4
+        0.5
       ],
       "center": [
         0.0,
@@ -105,232 +118,475 @@
         -0.0
       ],
       "tint": true,
-      "tris": 540
+      "glow": false,
+      "collision": "Box",
+      "tris": 2444
     },
-    "DoorKnobs": {
+    "SM_Prop_Door_Hardware": {
       "group": "RoomDoor",
       "size": [
-        0.297,
-        0.32,
-        0.812
+        3.615,
+        6.075,
+        1.08
       ],
       "center": [
-        1.5,
-        3.264,
+        -0.148,
+        3.112,
         -0.0
       ],
       "tint": false,
-      "tris": 240
+      "glow": false,
+      "collision": "None",
+      "tris": 1488
     },
-    "DoorFrame": {
+    "SM_Prop_Door_Frame": {
       "group": "RoomDoor",
       "size": [
-        4.9,
-        7.45,
-        0.45
+        5.6,
+        7.71,
+        0.75
       ],
       "center": [
         0.0,
-        3.725,
+        3.855,
         -0.0
       ],
       "tint": false,
-      "tris": 324
+      "glow": false,
+      "collision": "Hull",
+      "tris": 1128
     },
-    "ACUnit": {
+    "SM_Prop_AC_Body": {
       "group": "ACUnit",
       "size": [
-        4.0,
-        2.0,
-        1.0
+        4.1,
+        2.09,
+        1.075
       ],
       "center": [
         0.0,
-        0.0,
-        -0.0
+        -0.045,
+        -0.037
       ],
       "tint": true,
-      "tris": 108
+      "glow": false,
+      "collision": "Box",
+      "tris": 488
     },
-    "ACGrille": {
+    "SM_Prop_AC_Front": {
       "group": "ACUnit",
       "size": [
-        3.5,
-        1.485,
-        0.08
+        3.69,
+        2.005,
+        1.04
       ],
       "center": [
-        -0.05,
-        -0.033,
-        -0.52
+        -0.025,
+        -0.177,
+        -0.17
       ],
       "tint": false,
-      "tris": 944
+      "glow": false,
+      "collision": "None",
+      "tris": 2792
     },
-    "TrashBin": {
+    "SM_Prop_TrashBin": {
       "group": "Trash",
       "size": [
-        2.403,
-        3.04,
-        2.57
+        2.6,
+        3.2,
+        2.695
       ],
       "center": [
         0.0,
-        1.52,
-        -0.065
+        1.6,
+        -0.048
       ],
       "tint": false,
-      "tris": 640
+      "glow": false,
+      "collision": "Hull",
+      "tris": 1240
     },
-    "TrashBag": {
+    "SM_Prop_TrashBag": {
       "group": "Trash",
       "size": [
-        1.728,
-        1.948,
-        1.773
+        1.862,
+        2.107,
+        1.81
+      ],
+      "center": [
+        -0.011,
+        1.004,
+        0.029
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "tris": 730
+    },
+    "SM_Prop_FrontDesk": {
+      "group": "FrontDesk",
+      "size": [
+        10.8,
+        4.043,
+        2.655
       ],
       "center": [
         0.0,
-        0.914,
+        2.021,
+        0.072
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 2936
+    },
+    "SM_Prop_DeskBell": {
+      "group": "FrontDesk",
+      "size": [
+        0.906,
+        0.74,
+        0.92
+      ],
+      "center": [
+        0.0,
+        0.37,
         -0.0
       ],
       "tint": false,
-      "tris": 580
+      "glow": false,
+      "collision": "None",
+      "tris": 624
     },
-    "FrontDesk": {
-      "group": "FrontDesk",
+    "SM_Prop_LampPost": {
+      "group": "LampPost",
       "size": [
-        10.6,
-        2.925,
-        2.5
+        1.9,
+        12.0,
+        1.9
       ],
       "center": [
         0.0,
-        1.462,
-        -0.1
-      ],
-      "tint": false,
-      "tris": 648
-    },
-    "DeskBell": {
-      "group": "FrontDesk",
-      "size": [
-        0.819,
-        0.66,
-        0.84
-      ],
-      "center": [
-        0.0,
-        0.2,
+        6.0,
         -0.0
       ],
       "tint": false,
-      "tris": 440
+      "glow": false,
+      "collision": "Hull",
+      "tris": 1426
     },
-    "LampPost": {
+    "SM_Prop_LampPost_Glass": {
       "group": "LampPost",
       "size": [
-        2.041,
-        12.4,
-        4.056
+        1.923,
+        1.8,
+        1.923
       ],
       "center": [
         0.0,
-        6.2,
-        1.293
+        9.8,
+        -0.0
       ],
       "tint": false,
-      "tris": 784
+      "glow": true,
+      "collision": "None",
+      "tris": 24
     },
-    "LampPostGlass": {
-      "group": "LampPost",
-      "size": [
-        1.209,
-        0.93,
-        1.24
-      ],
-      "center": [
-        0.0,
-        11.25,
-        2.3
-      ],
-      "tint": false,
-      "tris": 196
-    },
-    "Bench": {
+    "SM_Prop_Bench": {
       "group": "Bench",
       "size": [
         5.0,
-        2.905,
-        1.65
+        3.437,
+        2.251
       ],
       "center": [
         0.0,
-        1.447,
-        0.065
+        1.718,
+        0.12
       ],
       "tint": false,
-      "tris": 1620
+      "glow": false,
+      "collision": "Box",
+      "tris": 2804
     },
-    "PottedPlant": {
+    "SM_Prop_PottedPlant": {
       "group": "PottedPlant",
       "size": [
-        2.45,
-        3.25,
-        2.1
+        2.782,
+        3.487,
+        2.385
       ],
       "center": [
-        0.025,
-        1.625,
-        -0.0
+        -0.012,
+        1.744,
+        -0.053
       ],
       "tint": false,
-      "tris": 1200
+      "glow": false,
+      "collision": "Hull",
+      "tris": 2112
     },
-    "FlowerBush": {
+    "SM_Prop_FlowerBush": {
       "group": "FlowerBush",
       "size": [
-        4.46,
-        2.55,
-        3.568
+        5.259,
+        2.687,
+        4.327
       ],
       "center": [
-        0.026,
-        1.125,
-        0.201
+        0.145,
+        1.214,
+        0.05
       ],
       "tint": false,
-      "tris": 1376
+      "glow": false,
+      "collision": "Hull",
+      "tris": 2556
     },
-    "RoundTreeTrunk": {
+    "SM_Veg_RoundTree_Trunk": {
       "group": "RoundTree",
       "size": [
-        3.192,
-        9.0,
-        2.152
+        3.726,
+        9.744,
+        3.575
       ],
       "center": [
-        0.085,
-        4.5,
-        -0.0
+        0.116,
+        4.828,
+        -0.002
       ],
       "tint": false,
-      "tris": 496
+      "glow": false,
+      "collision": "Hull",
+      "tris": 1238
     },
-    "RoundTreeCanopy": {
+    "SM_Veg_RoundTree_Canopy": {
       "group": "RoundTree",
       "size": [
-        10.062,
-        8.5,
-        9.6
+        10.381,
+        8.679,
+        9.731
       ],
       "center": [
-        0.001,
-        12.15,
-        0.1
+        0.066,
+        12.276,
+        0.052
       ],
       "tint": true,
-      "tris": 1512
+      "glow": false,
+      "collision": "None",
+      "tris": 2240
+    }
+  },
+  "validation": {
+    "SM_Prop_Bed_Frame": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_Bed_Sheet": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_Bed_Blanket": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_Bed_Linen": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Bed": {
+      "tris": 4544,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Prop_Nightstand": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_Nightstand_Shade": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Nightstand": {
+      "tris": 2540,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_Door_Leaf": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_Door_Hardware": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_Door_Frame": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_RoomDoor": {
+      "tris": 5060,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Prop_AC_Body": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_AC_Front": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_ACUnit": {
+      "tris": 3280,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Prop_TrashBin": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_TrashBag": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Trash": {
+      "tris": 1970,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Prop_FrontDesk": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_DeskBell": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_FrontDesk": {
+      "tris": 3560,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Prop_LampPost": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_LampPost_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_LampPost": {
+      "tris": 1450,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_Bench": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Bench": {
+      "tris": 2804,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_PottedPlant": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_PottedPlant": {
+      "tris": 2112,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_FlowerBush": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_FlowerBush": {
+      "tris": 2556,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Veg_RoundTree_Trunk": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Veg_RoundTree_Canopy": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_RoundTree": {
+      "tris": 3478,
+      "budget": 4000,
+      "status": "OK"
     }
   }
 }
