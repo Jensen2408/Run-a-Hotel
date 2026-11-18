@@ -48,6 +48,10 @@ LobbyBuilder.ROOM_COLORS = {
 }
 LobbyBuilder.ROOM_NAMES = { "SOLO", "DUO", "TRIO", "SQUAD" }
 
+-- Seasonal dressing on top of the kit hall: "Christmas" (batch "xmas":
+-- snow, lights, garlands, tree, fireplace, cocoa bar, snowman...) or nil.
+LobbyBuilder.THEME = "Christmas"
+
 local function part(props)
 	local p = Instance.new(props.ClassName or "Part")
 	p.Anchored = true
@@ -172,11 +176,18 @@ function LobbyBuilder.build(scale: number)
 
 	Kit.load()
 	local kit = Kit.has("LobbyHall")
+	local xmas = kit and LobbyBuilder.THEME == "Christmas" and Kit.has("XmasHall")
 	-- Kit hall: the shell parts only collide (the meshes draw the hall).
 	local hidden = if kit then { Transparency = 1, CastShadow = false } else nil
 
 	-- Ground and hall shell ---------------------------------------------------
-	block(map, "Grass", Vector3.new(500, 1, 500), Vector3.new(0, -0.38, 0), Color3.fromRGB(112, 156, 80))
+	if xmas then
+		block(map, "Snow", Vector3.new(500, 1, 500), Vector3.new(0, -0.38, 0), Color3.fromRGB(236, 243, 252), {
+			Material = Enum.Material.Snow,
+		})
+	else
+		block(map, "Grass", Vector3.new(500, 1, 500), Vector3.new(0, -0.38, 0), Color3.fromRGB(112, 156, 80))
+	end
 	local floorProps = { Material = Enum.Material.WoodPlanks }
 	if kit then
 		floorProps = hidden
@@ -203,9 +214,14 @@ function LobbyBuilder.build(scale: number)
 		Kit.place("LobbyHall", map, CFrame.new())
 		Kit.place("LobbyTitle", map, CFrame.new())
 		Kit.place("LobbyRug", map, CFrame.new(0, 0.4, -6), { scale = 1.95 })
+		if xmas then
+			Kit.place("XmasHall", map, CFrame.new())
+			Kit.place("XmasInterior", map, CFrame.new())
+		end
 		for _, x in ipairs({ -30, -15, 0, 15, 30 }) do
 			for _, z in ipairs({ -12, 8 }) do
-				Kit.place("CeilingLamp", map, CFrame.new(x, H - 0.9, z), { scale = 1.3 })
+				-- Christmas: glowing stars hang from the beams instead.
+				Kit.place(if xmas then "StarLamp" else "CeilingLamp", map, CFrame.new(x, H - 0.9, z), { scale = 1.3 })
 				local anchor = block(map, "LampLight", Vector3.new(0.4, 0.4, 0.4), Vector3.new(x, H - 2.2, z), LAMP, {
 					Transparency = 1,
 					CanCollide = false,
@@ -377,6 +393,22 @@ function LobbyBuilder.build(scale: number)
 
 	-- Boards ---------------------------------------------------------------------------
 	-- Kit frames face into the hall: front (-Z) turned to +X / -X.
+	-- Christmas layout (reference): leaderboard on the +X wall, profile and
+	-- how-to boards on the -X wall next to the fireplace. A board moved to
+	-- the other wall is turned 180 degrees so its SurfaceGui still faces in.
+	local spots = {
+		leader = { pos = Vector3.new(-40.3, 8, 0), facing = 1 },
+		profile = { pos = Vector3.new(40.3, 8, 15), facing = -1 },
+		howto = { pos = Vector3.new(40.3, 8, -10), facing = -1 },
+	}
+	if xmas then
+		spots.leader = { pos = Vector3.new(40.3, 8, 4), facing = -1, flip = true }
+		spots.profile = { pos = Vector3.new(-40.3, 8, 19), facing = 1, flip = true }
+		spots.howto = { pos = Vector3.new(-40.3, 8, -1.5), facing = 1, flip = true }
+	end
+	local function boardAt(spot)
+		return if spot.flip then CFrame.new(spot.pos) * CFrame.Angles(0, math.pi, 0) else CFrame.new(spot.pos)
+	end
 	local function frame(group, partName, size, pos, facing: number)
 		if kit and Kit.has(group) then
 			Kit.place(
@@ -389,22 +421,23 @@ function LobbyBuilder.build(scale: number)
 		end
 	end
 	local leaderboard =
-		block(boards, "Leaderboard", Vector3.new(0.6, 14, 24), Vector3.new(-40.3, 8, 0), Color3.fromRGB(46, 58, 70))
-	frame("LobbyBoardL", "LeaderboardFrame", Vector3.new(0.5, 15, 25), Vector3.new(-40.3, 8, 0), 1)
+		block(boards, "Leaderboard", Vector3.new(0.6, 14, 24), boardAt(spots.leader), Color3.fromRGB(46, 58, 70))
+	frame("LobbyBoardL", "LeaderboardFrame", Vector3.new(0.5, 15, 25), spots.leader.pos, spots.leader.facing)
 	LobbyBuilder.buildLeaderboardGui(leaderboard)
 
 	local profile =
-		block(boards, "ProfileBoard", Vector3.new(0.6, 11, 15), Vector3.new(40.3, 8, 15), Color3.fromRGB(46, 70, 66))
-	frame("LobbyBoardM", "ProfileFrame", Vector3.new(0.5, 12, 16), Vector3.new(40.3, 8, 15), -1)
+		block(boards, "ProfileBoard", Vector3.new(0.6, 11, 15), boardAt(spots.profile), Color3.fromRGB(46, 70, 66))
+	frame("LobbyBoardM", "ProfileFrame", Vector3.new(0.5, 12, 16), spots.profile.pos, spots.profile.facing)
 	profile:SetAttribute("ProfileBoard", true)
 
-	local howto =
-		block(boards, "HowToPlay", Vector3.new(0.6, 13, 22), Vector3.new(40.3, 8, -10), Color3.fromRGB(70, 56, 46))
-	frame("LobbyBoardW", "HowToFrame", Vector3.new(0.5, 14, 23), Vector3.new(40.3, 8, -10), -1)
+	local howto = block(boards, "HowToPlay", Vector3.new(0.6, 13, 22), boardAt(spots.howto), Color3.fromRGB(70, 56, 46))
+	frame("LobbyBoardW", "HowToFrame", Vector3.new(0.5, 14, 23), spots.howto.pos, spots.howto.facing)
 	LobbyBuilder.buildHowToGui(howto)
 
 	-- Decor: couches, plants, pillars ----------------------------------------------------
-	if kit then
+	if xmas then
+		LobbyBuilder.dressChristmas(map)
+	elseif kit then
 		-- Kit furniture (batch 4): couches facing the room doors with coffee
 		-- tables, potted plants in the corners, coffee bar by the entrance,
 		-- flower beds and bushes along the front.
@@ -470,11 +503,21 @@ function LobbyBuilder.build(scale: number)
 	-- when the kit is available, else a trunk + wedge).
 	local rng = Random.new(77)
 	local kitPines = Kit.has("PineTree")
+	local snowPines = xmas and Kit.has("SnowPine")
 	for k = 1, 40 do
 		local a = rng:NextNumber(0, math.pi * 2)
 		local r = rng:NextNumber(70, 130)
 		local x, z = math.cos(a) * r, math.sin(a) * r
 		local h = rng:NextNumber(22, 34)
+		if snowPines then
+			Kit.place(
+				"SnowPine",
+				map,
+				CFrame.new(x, 0, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
+				{ scale = h / 23.6 }
+			)
+			continue
+		end
 		if kitPines then
 			Kit.place(
 				"PineTree",
@@ -516,6 +559,79 @@ function LobbyBuilder.build(scale: number)
 	root.Parent = Workspace
 	LobbyBuilder.scale(root, scale)
 	return root
+end
+
+--[[
+	Christmas set dressing (batch "xmas", matched to the 4-view references).
+	Inside: tree by the doors (+X back corner), fireplace on the -X wall,
+	hot cocoa bar on the +X wall by the entrance, two couches facing each
+	other on the rug with cocoa and cookies, poinsettias. Outside: flagstone
+	path with candy canes and lanterns, decorated tree with presents,
+	snowman, sled, snowy shrubs. Positions are scale 1 (the root is scaled
+	afterwards).
+]]
+function LobbyBuilder.dressChristmas(map: Instance)
+	local floor = 0.4
+	local ground = 0.12
+	local function put(group, cf, opts)
+		Kit.place(group, map, cf, opts)
+	end
+	-- Inside.
+	put("XmasTree", CFrame.new(33.5, floor, 20.5) * CFrame.Angles(0, -0.5, 0))
+	put("Fireplace", CFrame.new(-40.5, floor, -19) * CFrame.Angles(0, -math.pi / 2, 0))
+	put("CocoaBar", CFrame.new(37.8, floor, -20) * CFrame.Angles(0, math.pi / 2, 0))
+	put("Couch", CFrame.new(-6, floor, -6) * CFrame.Angles(0, -math.pi / 2, 0))
+	put("Couch", CFrame.new(6, floor, -6) * CFrame.Angles(0, math.pi / 2, 0))
+	put("CoffeeTable", CFrame.new(0, floor, -6) * CFrame.Angles(0, math.pi / 2, 0))
+	put("CocoaSet", CFrame.new(0, floor + 1.01, -6) * CFrame.Angles(0, math.pi / 2, 0))
+	for _, p in ipairs({
+		Vector3.new(16, floor, 25.8),
+		Vector3.new(-16, floor, 25.8),
+		Vector3.new(0, floor, 25.8),
+		Vector3.new(-38.8, floor, -26.3),
+		Vector3.new(38.6, floor, -26),
+		Vector3.new(-38.6, floor, 26),
+	}) do
+		put("Poinsettia", CFrame.new(p), { scale = 1.3 })
+	end
+	-- Light from the fireplace and the tree.
+	for _, l in ipairs({
+		{ Vector3.new(-37.5, 2.5, -19), Color3.fromRGB(255, 150, 70), 22, 1.6 },
+		{ Vector3.new(33.5, 7, 20.5), Color3.fromRGB(255, 214, 140), 18, 0.8 },
+	}) do
+		local anchor = Instance.new("Part")
+		anchor.Name = "XmasLight"
+		anchor.Anchored = true
+		anchor.CanCollide = false
+		anchor.CanQuery = false
+		anchor.CanTouch = false
+		anchor.Transparency = 1
+		anchor.Size = Vector3.new(0.4, 0.4, 0.4)
+		anchor.Position = l[1]
+		local light = Instance.new("PointLight")
+		light.Color = l[2]
+		light.Range = l[3]
+		light.Brightness = l[4]
+		light.Parent = anchor
+		anchor.Parent = map
+	end
+	-- Outside: path, candy canes + lanterns, tree, snowman, sled, shrubs.
+	put("StonePath", CFrame.new(0, ground, -28.6))
+	for i, z in ipairs({ -32, -37, -42, -47, -52 }) do
+		for _, x in ipairs({ -5.4, 5.4 }) do
+			if i % 2 == 1 then
+				put("CandyCane", CFrame.new(x, ground, z) * CFrame.Angles(0, if x < 0 then math.pi else 0, 0))
+			else
+				put("PathLantern", CFrame.new(x, ground, z))
+			end
+		end
+	end
+	put("XmasTree", CFrame.new(26, ground, -38) * CFrame.Angles(0, 0.3, 0), { scale = 1.25 })
+	put("Snowman", CFrame.new(-21, ground, -36) * CFrame.Angles(0, -0.35, 0), { scale = 1.1 })
+	put("Sled", CFrame.new(-33, ground, -33) * CFrame.Angles(0, 1.1, 0))
+	for _, x in ipairs({ -38, -29, -21.5, 21.5, 29, 38 }) do
+		put("SnowBush", CFrame.new(x, ground, -31) * CFrame.Angles(0, x * 0.7, 0))
+	end
 end
 
 -- Uniform scale about the origin (same rules as MapBuilder.scale).

@@ -1,0 +1,792 @@
+{
+  "batch": "xmas",
+  "units": "studs",
+  "axes": "roblox",
+  "meshes": {
+    "SM_Xmas_Hall_Snow": {
+      "group": "XmasHall",
+      "size": [
+        87.1,
+        13.851,
+        61.536
+      ],
+      "center": [
+        0.0,
+        21.332,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 10636
+    },
+    "SM_Xmas_Hall_Decor": {
+      "group": "XmasHall",
+      "size": [
+        83.6,
+        14.878,
+        60.637
+      ],
+      "center": [
+        0.0,
+        8.505,
+        -0.061
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 8976
+    },
+    "SM_Xmas_Hall_Lights": {
+      "group": "XmasHall",
+      "size": [
+        86.435,
+        15.434,
+        60.78
+      ],
+      "center": [
+        0.0,
+        16.872,
+        -0.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 10336
+    },
+    "SM_Xmas_Int_Garland": {
+      "group": "XmasInterior",
+      "size": [
+        80.802,
+        1.586,
+        54.821
+      ],
+      "center": [
+        -0.013,
+        14.25,
+        -0.008
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 16352
+    },
+    "SM_Xmas_Int_Bows": {
+      "group": "XmasInterior",
+      "size": [
+        81.699,
+        9.507,
+        54.36
+      ],
+      "center": [
+        -0.002,
+        12.047,
+        -0.018
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 17272
+    },
+    "SM_Xmas_Int_Lights": {
+      "group": "XmasInterior",
+      "size": [
+        79.56,
+        1.2,
+        52.9
+      ],
+      "center": [
+        0.35,
+        14.05,
+        -0.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 4968
+    },
+    "SM_Xmas_Tree": {
+      "group": "XmasTree",
+      "size": [
+        9.141,
+        12.4,
+        8.952
+      ],
+      "center": [
+        0.135,
+        6.2,
+        -0.012
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 7038
+    },
+    "SM_Xmas_Tree_Glow": {
+      "group": "XmasTree",
+      "size": [
+        7.949,
+        11.623,
+        7.835
+      ],
+      "center": [
+        -0.383,
+        7.782,
+        -0.349
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 1500
+    },
+    "SM_Xmas_StarLamp": {
+      "group": "StarLamp",
+      "size": [
+        0.476,
+        1.25,
+        0.489
+      ],
+      "center": [
+        0.0,
+        -0.625,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 476
+    },
+    "SM_Xmas_StarLamp_Glow": {
+      "group": "StarLamp",
+      "size": [
+        1.576,
+        1.499,
+        0.35
+      ],
+      "center": [
+        0.0,
+        -1.971,
+        -0.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 276
+    },
+    "SM_Xmas_Fireplace": {
+      "group": "Fireplace",
+      "size": [
+        11.6,
+        15.4,
+        4.1
+      ],
+      "center": [
+        0.0,
+        7.7,
+        -1.95
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 6848
+    },
+    "SM_Xmas_Fireplace_Glow": {
+      "group": "Fireplace",
+      "size": [
+        8.831,
+        8.168,
+        2.734
+      ],
+      "center": [
+        0.0,
+        5.088,
+        -2.333
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 848
+    },
+    "SM_Xmas_CocoaBar": {
+      "group": "CocoaBar",
+      "size": [
+        9.2,
+        9.104,
+        4.647
+      ],
+      "center": [
+        0.0,
+        4.552,
+        0.426
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 4296
+    },
+    "SM_Xmas_CocoaBar_Glow": {
+      "group": "CocoaBar",
+      "size": [
+        7.714,
+        0.796,
+        0.3
+      ],
+      "center": [
+        0.373,
+        2.902,
+        -1.75
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 216
+    },
+    "SM_Xmas_CocoaSet": {
+      "group": "CocoaSet",
+      "size": [
+        2.586,
+        0.818,
+        1.68
+      ],
+      "center": [
+        0.063,
+        0.409,
+        -0.21
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 2328
+    },
+    "SM_Xmas_Poinsettia": {
+      "group": "Poinsettia",
+      "size": [
+        2.164,
+        2.179,
+        1.599
+      ],
+      "center": [
+        -0.006,
+        1.09,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 1116
+    },
+    "SM_Xmas_Snowman": {
+      "group": "Snowman",
+      "size": [
+        5.078,
+        7.102,
+        3.209
+      ],
+      "center": [
+        0.0,
+        3.349,
+        -0.007
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 2172
+    },
+    "SM_Xmas_CandyCane": {
+      "group": "CandyCane",
+      "size": [
+        1.237,
+        3.506,
+        0.34
+      ],
+      "center": [
+        0.449,
+        1.753,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 356
+    },
+    "SM_Xmas_PathLantern": {
+      "group": "PathLantern",
+      "size": [
+        0.819,
+        3.968,
+        0.823
+      ],
+      "center": [
+        -0.004,
+        1.984,
+        -0.01
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 786
+    },
+    "SM_Xmas_PathLantern_Glow": {
+      "group": "PathLantern",
+      "size": [
+        0.42,
+        0.7,
+        0.42
+      ],
+      "center": [
+        0.0,
+        3.05,
+        -0.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 44
+    },
+    "SM_Xmas_Sled": {
+      "group": "Sled",
+      "size": [
+        1.8,
+        1.126,
+        4.873
+      ],
+      "center": [
+        -0.0,
+        0.593,
+        -0.037
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 932
+    },
+    "SM_Xmas_StonePath": {
+      "group": "StonePath",
+      "size": [
+        7.185,
+        0.338,
+        25.138
+      ],
+      "center": [
+        -0.008,
+        0.045,
+        -12.192
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 3696
+    },
+    "SM_Xmas_SnowPine": {
+      "group": "SnowPine",
+      "size": [
+        14.0,
+        23.87,
+        13.649
+      ],
+      "center": [
+        0.0,
+        11.935,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 2586
+    },
+    "SM_Xmas_SnowBush": {
+      "group": "SnowBush",
+      "size": [
+        3.557,
+        1.92,
+        3.096
+      ],
+      "center": [
+        -0.027,
+        0.346,
+        -0.066
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": null,
+      "hinge": null,
+      "swing": null,
+      "tris": 400
+    }
+  },
+  "validation": {
+    "SM_Xmas_Hall_Snow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Xmas_Hall_Decor": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Xmas_Hall_Lights": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_XmasHall": {
+      "tris": 29948,
+      "budget": 60000,
+      "status": "OK"
+    },
+    "SM_Xmas_Int_Garland": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Xmas_Int_Bows": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Xmas_Int_Lights": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_XmasInterior": {
+      "tris": 38592,
+      "budget": 60000,
+      "status": "OK"
+    },
+    "SM_Xmas_Tree": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Xmas_Tree_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_XmasTree": {
+      "tris": 8538,
+      "budget": 12000,
+      "status": "OK"
+    },
+    "SM_Xmas_StarLamp": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Xmas_StarLamp_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_StarLamp": {
+      "tris": 752,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Xmas_Fireplace": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Xmas_Fireplace_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Fireplace": {
+      "tris": 7696,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Xmas_CocoaBar": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Xmas_CocoaBar_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_CocoaBar": {
+      "tris": 4512,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Xmas_CocoaSet": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_CocoaSet": {
+      "tris": 2328,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Xmas_Poinsettia": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Poinsettia": {
+      "tris": 1116,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Xmas_Snowman": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Snowman": {
+      "tris": 2172,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Xmas_CandyCane": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 48,
+      "scale_applied": true
+    },
+    "_group_CandyCane": {
+      "tris": 356,
+      "budget": 1000,
+      "status": "OK"
+    },
+    "SM_Xmas_PathLantern": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Xmas_PathLantern_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_PathLantern": {
+      "tris": 830,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Xmas_Sled": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 84,
+      "scale_applied": true
+    },
+    "_group_Sled": {
+      "tris": 932,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Xmas_StonePath": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_StonePath": {
+      "tris": 3696,
+      "budget": 3000,
+      "status": "OVER"
+    },
+    "SM_Xmas_SnowPine": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_SnowPine": {
+      "tris": 2586,
+      "budget": 4000,
+      "status": "OK"
+    },
+    "SM_Xmas_SnowBush": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_SnowBush": {
+      "tris": 400,
+      "budget": 3000,
+      "status": "OK"
+    }
+  }
+}

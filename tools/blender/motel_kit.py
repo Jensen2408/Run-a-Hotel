@@ -2824,6 +2824,582 @@ def lobby_board_w():
 
 
 # ======================================================================
+# Batch "xmas": Christmas dressing for the lobby, matched to the two painted
+# 4-view references (exterior + interior). Skills: blender-director,
+# environment-artist, prop-artist, vegetation-artist, cartoon-style,
+# cozy-wholesome-mood, biome-worlds (snow), set-dressing, materials,
+# lighting, lookdev, asset-optimization, qa-review, export-pipeline.
+#
+# Object map (reference -> mesh group):
+#   snow on the roof, drips, icicles, chimney cap        XmasHall   Snow
+#   multicolour eave / rake string lights               XmasHall   Lights
+#   entrance garland + bows, candy-cane pillars,
+#   bow + holly on WELCOME, wreaths by the door         XmasHall   Decor
+#   wall-top garlands with bows + fairy lights,
+#   snow + holly on RUN A MOTEL, door wreaths           XmasInterior
+#   decorated tree with star + presents (in and out)    XmasTree
+#   hanging glowing stars under the beams               StarLamp
+#   brick fireplace, stockings, candles, wreath, fire   Fireplace
+#   hot cocoa bar with urns, mugs, snowy canopy, sign   CocoaBar
+#   mugs of cocoa + cookie plate on the coffee table    CocoaSet
+#   poinsettias                                         Poinsettia
+#   snowman, candy canes, path lanterns, sled           Snowman, CandyCane, PathLantern, Sled
+#   flagstone path to the entrance                      StonePath
+#   snowy pines and snow mounds                         SnowPine, SnowBush
+# XmasHall / XmasInterior use the LobbyHall coordinates (origin = lobby
+# origin); props are floor-pivot, front = +Y (Roblox -Z).
+# ======================================================================
+SNOW = srgb(244, 249, 255)
+SNOW_BLUE = srgb(214, 230, 248)
+ICE = srgb(200, 232, 255)
+XRED = srgb(214, 34, 44)
+XRED_DARK = srgb(160, 22, 32)
+XGREEN = srgb(40, 132, 66)
+XGREEN_DARK = srgb(24, 96, 52)
+XGOLD = srgb(246, 196, 70)
+COAL = srgb(40, 40, 46)
+CARROT = srgb(246, 128, 40)
+STONE = srgb(150, 156, 170)
+STONE_DARK = srgb(118, 124, 140)
+FLAME = srgb(255, 150, 40)
+FLAME_CORE = srgb(255, 226, 120)
+MUG_RED = srgb(204, 44, 48)
+COOKIE = srgb(196, 132, 70)
+STEEL_URN = srgb(190, 196, 206)
+XMAS_BULBS = [srgb(255, 70, 70), srgb(90, 230, 110), srgb(255, 214, 70), srgb(90, 160, 255), srgb(255, 150, 60)]
+FAIRY = srgb(255, 226, 150)
+
+
+def bow(loc, size, parts, facing=1):
+    """Red ribbon bow facing +-Y: two loops, a knot, two tails."""
+    x, y, z = loc
+    k = size
+    for s in (-1, 1):
+        parts.append(blob(0.42 * k, (x + s * 0.48 * k, y, z + 0.06 * k), XRED, squash=(1.15, 0.45, 0.8), lump=0.04, segs=8, rings=5))
+        parts.append(box((0.22 * k, 0.16 * k, 0.9 * k), (x + s * 0.28 * k, y + facing * 0.02, z - 0.55 * k), XRED_DARK, bevel=0.05, segments=1, rot=(0, s * 0.35, 0)))
+    parts.append(blob(0.2 * k, (x, y + facing * 0.06 * k, z), XRED_DARK, squash=(1, 0.8, 1), lump=0, segs=8, rings=6))
+
+
+def holly(loc, size, parts, facing=1):
+    x, y, z = loc
+    for a in (-0.6, 0.0, 0.6):
+        parts.append(blob(0.34 * size, (x + math.sin(a) * 0.45 * size, y, z + math.cos(a) * 0.2 * size), XGREEN, squash=(1.3, 0.3, 0.55), lump=0.15, segs=8, rings=5))
+    for dx in (-0.12, 0.12, 0.0):
+        parts.append(blob(0.13 * size, (x + dx * size, y + facing * 0.12 * size, z + 0.12 * size + (0.12 * size if dx == 0 else 0)), XRED, lump=0, segs=8, rings=5))
+
+
+def wreath(loc, r, parts, facing=1, n=12):
+    """Evergreen ring (in the XZ plane, facing +-Y) with berries and a bow."""
+    x, y, z = loc
+    for i in range(n):
+        a = i * 2 * math.pi / n
+        parts.append(blob(0.36 * r, (x + math.cos(a) * r, y, z + math.sin(a) * r), XGREEN if i % 2 else XGREEN_DARK, squash=(1, 0.55, 1), lump=0.2, seed=i, segs=8, rings=6))
+    for i in range(0, n, 3):
+        a = i * 2 * math.pi / n + 0.3
+        parts.append(blob(0.11 * r + 0.02, (x + math.cos(a) * r, y + facing * 0.25 * r, z + math.sin(a) * r), XRED, lump=0, segs=6, rings=4))
+    bow((x, y + facing * 0.3 * r, z - r), 0.55 * r, parts, facing)
+
+
+def garland(a, b, sag, step, green, lights, light_every=2, colours=None, facing_off=(0, 0, 0)):
+    """Pine garland swag from a to b, sagging `sag` in the middle; bulbs on it."""
+    a, b = Vector(a), Vector(b)
+    n = max(2, int((b - a).length / step))
+    off = Vector(facing_off)
+    for i in range(n + 1):
+        t = i / n
+        p = a.lerp(b, t) + Vector((0, 0, -sag * 4 * t * (1 - t)))
+        green.append(blob(0.42, p, XGREEN if i % 2 else XGREEN_DARK, squash=(1, 1, 0.8), lump=0.22, seed=i * 0.7, segs=7, rings=5))
+        if lights is not None and i % light_every == 1:
+            c = (colours or [FAIRY])[(i // light_every) % len(colours or [FAIRY])]
+            lights.append(blob(0.15, p + off + Vector((0, 0, -0.2)), c, lump=0, segs=6, rings=4))
+
+
+def icicle(loc, length, parts):
+    x, y, z = loc
+    parts.append(cyl(0.14, length, (x, y, z - length / 2), ICE, verts=6, bevel=0.0, radius2=0.01))
+
+
+def candy_stripes(cx, cy, r, z0, z1, parts, turns=4.0, segs_per_turn=10):
+    """Red helix stripe around a vertical column (candy-cane wrap)."""
+    total = int(turns * segs_per_turn)
+    prev = None
+    for i in range(total + 1):
+        t = i / total
+        a = t * turns * 2 * math.pi
+        p = (cx + math.cos(a) * r, cy + math.sin(a) * r, z0 + (z1 - z0) * t)
+        if prev is not None:
+            parts.append(segment(prev, p, 0.2, XRED, verts=6))
+        prev = p
+
+
+# ---------------------------------------------------------------- hall
+def xmas_hall():
+    """Exterior dressing on LobbyHall (X +-41, Y +-28, walls 16, roof rise 9,
+    half-depth 29.8, overhang 1.8, front opening x +-17 up to z 10)."""
+    H, RISE, D, OVER, TH = 16.0, 9.0, 29.8, 1.8, 0.5
+    X1, X2, Y2 = -41.0, 41.0, 28.0
+    snow, lights, decor = [], [], []
+    a = math.atan2(RISE, D)
+    L = math.hypot(D, RISE)
+    length = (X2 - X1) + 2 * OVER
+    top = Vector((0.0, 0.0, H + RISE))
+    for side in (1, -1):
+        rot = (-a * side, 0, 0)
+        n = Vector((0, side * math.sin(a), math.cos(a)))
+        down = Vector((0, side * math.cos(a), -math.sin(a)))
+        # Thick snow blanket on the upper 45 % of the slope, lumpy lower edge.
+        band_len = L * 0.45
+        mid = top + down * (band_len / 2) + n * (TH + 1.15)
+        snow.append(box((length + 0.5, band_len, 0.8), mid, SNOW, bevel=0.35, segments=2, rot=rot))
+        edge = top + down * band_len + n * (TH + 1.05)
+        for i in range(30):
+            x = -length / 2 + (i + 0.5) * length / 30
+            snow.append(blob(1.05, edge + Vector((x, 0, 0)) + down * (0.3 * math.sin(i * 1.7)), SNOW, squash=(1.6, 1.2, 0.45), lump=0.2, seed=i, segs=10, rings=6))
+        # Snow roll along the eave with drips and icicles.
+        eave = top + down * (L + 0.05) + n * (TH * 0.5)
+        snow.append(cyl(0.75, length + 0.6, eave + n * 1.0 - down * 0.2, SNOW, verts=12, rot=(0, math.pi / 2, 0)))
+        for i in range(44):
+            x = -length / 2 + (i + 0.5) * length / 44
+            p = eave + Vector((x, 0, 0)) + down * 0.35 + n * 0.4
+            if i % 3 == 0:
+                snow.append(blob(0.5, p + Vector((0, 0, -0.35)), SNOW, squash=(1.3, 0.7, 1.1), lump=0.1, seed=i, segs=8, rings=5))
+            icicle(p + Vector((0.6, 0, -0.5)), 0.7 + 0.9 * ((i * 37) % 7) / 6, snow)
+        # Multicolour bulbs hanging under the eave, on a dark wire.
+        wire_a = eave + Vector((-length / 2 + 1.0, 0, -0.75)) + down * 0.3
+        wire_b = eave + Vector((length / 2 - 1.0, 0, -0.75)) + down * 0.3
+        decor.append(segment(wire_a, wire_b, 0.05, IRON, verts=4))
+        nb = 42
+        for i in range(nb):
+            p = wire_a.lerp(wire_b, (i + 0.5) / nb)
+            lights.append(blob(0.24, p + Vector((0, 0, -0.22)), XMAS_BULBS[i % len(XMAS_BULBS)], squash=(0.8, 0.8, 1.2), lump=0, segs=8, rings=5))
+        # Rake (gable edge) snow and lights.
+        for xs in (X1 - OVER - 0.25, X2 + OVER + 0.25):
+            r_top = Vector((xs, 0.0, H + RISE + TH + 1.0))
+            r_eave = Vector((xs, side * (D + 0.1), H + TH + 0.9))
+            snow.append(segment(r_top, r_eave, 0.5, SNOW, verts=8))
+            ra = r_top + Vector((0, 0, -1.9))
+            rb = r_eave + Vector((0, 0, -1.6))
+            for i in range(16):
+                p = ra.lerp(rb, (i + 0.5) / 16)
+                lights.append(blob(0.22, p, XMAS_BULBS[(i + 2) % len(XMAS_BULBS)], squash=(0.8, 0.8, 1.2), lump=0, segs=8, rings=5))
+    snow.append(cyl(0.95, length + 1.0, top + Vector((0, 0, TH + 1.25)), SNOW, verts=12, rot=(0, math.pi / 2, 0)))
+    # Chimney cap (chimney at 28, -14; top at H + RISE + 1.6).
+    snow.append(blob(1.8, (28.0, -14.0, H + RISE + 2.45), SNOW, squash=(1.0, 1.0, 0.45), lump=0.12, segs=12, rings=7))
+    # Entrance: garland swags with bows and fairy lights over the opening.
+    yg = Y2 + 0.95
+    for xa, xb in ((-17.0, -5.7), (-5.7, 5.7), (5.7, 17.0)):
+        garland((xa, yg, 10.6), (xb, yg, 10.6), 1.1, 0.75, decor, lights, light_every=2, colours=XMAS_BULBS, facing_off=(0, 0.35, 0))
+    for x in (-17.0, -5.7, 5.7, 17.0):
+        bow((x, yg + 0.45, 10.75), 1.0, decor)
+    # Candy-cane wrap on the pillars (x +-16.2, y 29, r 0.75, z 1.2..9.4).
+    for x in (-16.2, 16.2):
+        candy_stripes(x, Y2 + 1.0, 0.78, 1.25, 9.35, decor)
+    # Bow + holly on the WELCOME sign crest (sign plane y ~ 29.65, top ~ 14.6).
+    holly((0.0, Y2 + 1.9, 14.9), 1.4, decor)
+    bow((0.0, Y2 + 2.05, 15.35), 1.5, decor)
+    # Wreaths between the lanterns and the windows.
+    for x in (-23.0, 23.0):
+        wreath((x, Y2 + 0.85, 6.6), 1.15, decor)
+    return {
+        "SM_Xmas_Hall_Snow": (build_mesh("SM_Xmas_Hall_Snow", snow), dict(collision="None", place=[[0, 0, 0]])),
+        "SM_Xmas_Hall_Decor": (build_mesh("SM_Xmas_Hall_Decor", decor), dict(collision="None", place=[[0, 0, 0]])),
+        "SM_Xmas_Hall_Lights": (build_mesh("SM_Xmas_Hall_Lights", lights, "glow"), dict(glow=True, collision="None", place=[[0, 0, 0]])),
+    }
+
+
+def xmas_interior():
+    """Inside the hall: garlands with bows and fairy lights along the top of
+    the walls (not behind the title sign), snow + holly on RUN A MOTEL, a
+    wreath on each room door."""
+    green, bows, lights, snow = [], [], [], []
+    zt, sag, inset = 14.7, 0.9, 0.85
+    runs = []
+    # Back wall (y -27.5 inner face): either side of the title sign.
+    for xa, xb in ((-40.0, -15.5), (15.5, 40.0)):
+        runs.append(((xa, -27.5 + inset, zt), (xb, -27.5 + inset, zt), (0, 1)))
+    # Front wall (y 27.5): either side of the opening + over it.
+    for xa, xb in ((-40.0, -17.5), (-17.5, 17.5), (17.5, 40.0)):
+        runs.append(((xa, 27.5 - inset, zt), (xb, 27.5 - inset, zt), (0, -1)))
+    # Side walls (x +-40.5).
+    for x, o in ((-40.5 + inset, 1), (40.5 - inset, -1)):
+        runs.append(((x, -27.0, zt), (x, 27.0, zt), (o, 0)))
+    for p0, p1, (fx, fy) in runs:
+        p0, p1 = Vector(p0), Vector(p1)
+        swags = max(1, int((p1 - p0).length / 8.0))
+        for k in range(swags):
+            a = p0.lerp(p1, k / swags)
+            b = p0.lerp(p1, (k + 1) / swags)
+            garland(a, b, sag, 0.85, green, lights, light_every=2, colours=[FAIRY], facing_off=(fx * 0.35, fy * 0.35, 0))
+            bow(tuple(a + Vector((fx * 0.45, fy * 0.45, 0.15))), 0.9, bows, facing=fy if fy else 1)
+        bow(tuple(p1 + Vector((fx * 0.45, fy * 0.45, 0.15))), 0.9, bows, facing=fy if fy else 1)
+    # Snow cap + holly on the title sign (z0 10.5, iw 26, ih 3.4, crest 0.45;
+    # front plane y -26.35).
+    iw, ih, crest, z0 = 26.0, 3.4, 0.45, 10.5
+    ir, ic, icw = ih * 0.28 * crest, ih * 0.38 * crest, iw * 0.11
+    bw, bh, br, bc, bcw = iw + 0.9, ih + 0.5, ir + 0.15, ic + 0.2, icw + 0.15
+    for i in range(24):
+        u = -bw / 2 + 0.6 + i * (bw - 1.2) / 23
+        zt_ = z0 + sign_top(u, bw, bh, br, bc, bcw)
+        snow.append(blob(0.62, (u, -26.35 + 0.05, zt_ + 0.18), SNOW, squash=(1.35, 0.9, 0.6), lump=0.15, seed=i, segs=9, rings=6))
+    holly((0.0, -25.75, z0 + sign_top(0.0, bw, bh, br, bc, bcw) + 0.5), 1.4, bows)
+    bow((-6.5, -25.85, z0 + bh + 0.35), 1.0, bows)
+    bow((6.5, -25.85, z0 + bh + 0.35), 1.0, bows)
+    # Door wreaths (doors at x 24, 8, -8, -24; leaf front y -27.0, floor 0.4).
+    for x in (24.0, 8.0, -8.0, -24.0):
+        wreath((x, -26.75, 8.25), 0.62, bows, n=10)
+    return {
+        "SM_Xmas_Int_Garland": (build_mesh("SM_Xmas_Int_Garland", green), dict(collision="None", place=[[0, 0, 0]])),
+        "SM_Xmas_Int_Bows": (build_mesh("SM_Xmas_Int_Bows", bows + snow), dict(collision="None", place=[[0, 0, 0]])),
+        "SM_Xmas_Int_Lights": (build_mesh("SM_Xmas_Int_Lights", lights, "glow"), dict(glow=True, collision="None", place=[[0, 0, 0]])),
+    }
+
+
+# ---------------------------------------------------------------- props
+def present(loc, size, colour, ribbon, parts, rot=0.0):
+    x, y, z = loc
+    sx, sy, sz = size
+    parts.append(box((sx, sy, sz), (x, y, z + sz / 2), colour, bevel=0.08, segments=1, rot=(0, 0, rot)))
+    parts.append(box((sx + 0.12, 0.18, sz + 0.1), (x, y, z + sz / 2), ribbon, bevel=0.02, segments=1, rot=(0, 0, rot)))
+    parts.append(box((0.18, sy + 0.12, sz + 0.12), (x, y, z + sz / 2), ribbon, bevel=0.02, segments=1, rot=(0, 0, rot)))
+    for s in (-1, 1):
+        parts.append(blob(0.2 * min(sx, sy), (x + s * 0.18 * sx, y, z + sz + 0.1), ribbon, squash=(1.2, 0.5, 0.8), lump=0, segs=8, rings=5))
+
+
+def xmas_tree():
+    """Decorated tree 12.5 tall (fits under the 15 beams indoors; outdoors
+    scaled up): red skirt, tiered rounded cones, gold bead spiral, red and
+    gold baubles, warm + multicolour fairy lights, glowing star, presents."""
+    body, glow = [], []
+    body.append(cyl(0.45, 1.4, (0, 0, 0.7), BARK, verts=10))
+    body.append(cyl(3.0, 0.18, (0, 0, 0.09), XRED, verts=24, bevel=0.06))
+    body.append(cyl(2.6, 0.08, (0, 0, 0.2), SNOW, verts=24, bevel=0.03))
+    tiers = [(4.1, 1.2, 4.2), (3.4, 3.7, 3.8), (2.6, 6.0, 3.4), (1.8, 8.1, 3.0), (1.0, 10.0, 2.4)]
+    for i, (r, z0, h) in enumerate(tiers):
+        prof = [(0.0, 0.0), (r * 0.85, 0.0), (r, 0.25), (r * 0.92, 0.5), (r * 0.55, h * 0.55), (0.12, h), (0.0, h)]
+        body.append(lathe(prof, (0, 0, z0), XGREEN if i % 2 == 0 else mix(XGREEN, XGREEN_DARK, 0.4), verts=16))
+        nb = max(6, int(r * 3))
+        for k in range(nb):
+            a = k * 2 * math.pi / nb + i * 0.4
+            body.append(blob(0.55 + r * 0.06, (math.cos(a) * r * 0.9, math.sin(a) * r * 0.9, z0 + 0.35), XGREEN_DARK if k % 2 else XGREEN, squash=(1, 1, 0.6), lump=0.2, seed=k + i, segs=7, rings=4))
+    # Gold bead spiral + baubles + fairy lights on the cone surface.
+    def surface(t, ang):
+        z = 1.5 + t * 10.2
+        r = 3.9 * (1 - t) + 0.35
+        return Vector((math.cos(ang) * r, math.sin(ang) * r, z))
+    prev = None
+    for i in range(60):
+        t = i / 60
+        p = surface(t, t * 3.2 * 2 * math.pi) * 1.02
+        if prev is not None:
+            body.append(segment(prev, p, 0.07, XGOLD, verts=4))
+        prev = p
+    for i in range(26):
+        t = (i * 0.618) % 0.92
+        p = surface(t, i * 2.4)
+        body.append(blob(0.3 + 0.08 * (i % 2), p * 1.04, XRED if i % 2 else XGOLD, lump=0, segs=8, rings=5))
+    for i in range(34):
+        t = ((i * 0.381) + 0.05) % 0.95
+        p = surface(t, i * 1.7 + 0.9)
+        glow.append(blob(0.14, p * 1.05, FAIRY if i % 3 else XMAS_BULBS[i % len(XMAS_BULBS)], lump=0, segs=6, rings=4))
+    # Star on top (extruded 5-point star, facing +Y).
+    star = []
+    for k in range(10):
+        a = math.pi / 2 + k * math.pi / 5
+        rr = 1.0 if k % 2 == 0 else 0.45
+        star.append((math.cos(a) * rr, math.sin(a) * rr))
+    st = extrude_profile([(-u, v) for u, v in star], 0.0, 0.3, XGOLD, bevel=0.05)
+    st.rotation_euler = (0, 0, math.pi / 2)
+    st.location = (0, 0, 12.6)
+    bpy.context.view_layer.update()
+    _activate(st)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    glow.append(st)
+    # Presents under the tree (front half).
+    for (x, y, sx, sy, sz, c, rb, r) in (
+        (-2.4, 2.2, 1.6, 1.6, 1.3, XRED, XGOLD, 0.2),
+        (0.3, 3.0, 2.0, 1.5, 1.0, XGREEN, XRED, -0.1),
+        (2.6, 2.0, 1.4, 1.4, 1.6, XGOLD, XRED, 0.3),
+        (-0.9, 3.4, 1.0, 1.0, 0.8, srgb(70, 140, 230), SNOW, 0.5),
+        (1.6, 3.6, 1.1, 1.1, 0.7, CREAM, XRED, -0.4),
+    ):
+        present((x, y, 0.2), (sx, sy, sz), c, rb, body, rot=r)
+    return {
+        "SM_Xmas_Tree": (build_mesh("SM_Xmas_Tree", body), dict(collision="Hull")),
+        "SM_Xmas_Tree_Glow": (build_mesh("SM_Xmas_Tree_Glow", glow, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+def star_lamp():
+    """Hanging star lamp: cord from the ceiling (origin = mount, top), brass
+    cap, glowing 5-point star (1.6 wide) facing +-Y."""
+    trim, glow = [], []
+    trim.append(cyl(0.25, 0.12, (0, 0, -0.06), BRASS, verts=10))
+    trim.append(segment((0, 0, -0.1), (0, 0, -1.1), 0.04, IRON, verts=4))
+    trim.append(cyl(0.12, 0.2, (0, 0, -1.15), BRASS, verts=8))
+    pts = []
+    for k in range(10):
+        a = math.pi / 2 + k * math.pi / 5
+        rr = 0.85 if k % 2 == 0 else 0.38
+        pts.append((math.cos(a) * rr, math.sin(a) * rr - 2.05))
+    st = extrude_profile([(-u, v) for u, v in pts], 0.0, 0.35, srgb(255, 214, 110), bevel=0.06)
+    st.rotation_euler = (0, 0, math.pi / 2)
+    bpy.context.view_layer.update()
+    _activate(st)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    glow.append(st)
+    return {
+        "SM_Xmas_StarLamp": (build_mesh("SM_Xmas_StarLamp", trim), dict(collision="None")),
+        "SM_Xmas_StarLamp_Glow": (build_mesh("SM_Xmas_StarLamp_Glow", glow, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+def fireplace():
+    """Brick fireplace against a wall (back at y = 0, facing +Y): breast
+    10 wide x 15.4 tall up to the ceiling, firebox, stone hearth, wooden
+    mantel with garland, three stockings, candles, lanterns, wreath, fire."""
+    body, glow = [], []
+    W, Dp, Ht = 10.0, 2.4, 15.4
+    OW, OT = 5.2, 4.4  # firebox opening width / top
+    side = (W - OW) / 2
+    for sx in (-1, 1):
+        body.append(box((side, Dp, 7.4), (sx * (OW / 2 + side / 2), Dp / 2, 3.7), BRICK, bevel=0.12, segments=1))
+    body.append(box((OW + 0.2, Dp, 7.4 - OT), (0, Dp / 2, OT + (7.4 - OT) / 2), BRICK, bevel=0.12, segments=1))
+    body.append(box((W - 2.4, Dp - 0.6, Ht - 7.4), (0, (Dp - 0.6) / 2, 7.4 + (Ht - 7.4) / 2), BRICK, bevel=0.12, segments=1))
+    # Mortar courses on the front faces (around the opening).
+    for z in [0.6 + 0.62 * i for i in range(11)]:
+        if z < OT:
+            for sx in (-1, 1):
+                body.append(box((side - 0.1, 0.06, 0.07), (sx * (OW / 2 + side / 2), Dp, z), MORTAR, bevel=0.0))
+        else:
+            body.append(box((W + 0.02, 0.06, 0.07), (0, Dp, z), MORTAR, bevel=0.0))
+    for z in [8.0 + 0.62 * i for i in range(12)]:
+        body.append(box((W - 2.38, 0.06, 0.07), (0, Dp - 0.6, z), MORTAR, bevel=0.0))
+    # Firebox: sooty back and floor inside the opening, stone arch trim, hearth.
+    body.append(box((OW, 0.3, OT), (0, 0.35, OT / 2), COAL, bevel=0.05, segments=1))
+    body.append(box((OW, Dp - 0.5, 0.2), (0, Dp / 2, 0.5), COAL, bevel=0.03, segments=1))
+    body.append(box((OW + 0.8, 0.4, 0.55), (0, Dp + 0.12, OT + 0.2), STONE, bevel=0.12, segments=1))
+    body.append(box((W + 1.6, 1.8, 0.4), (0, Dp + 0.7, 0.2), STONE, bevel=0.12, segments=1))
+    # Logs + fire.
+    for x, r in ((-0.9, 0.2), (0.9, -0.2)):
+        body.append(cyl(0.32, 2.4, (x * 0.5, 1.3, 0.9), BARK, verts=8, rot=(0, math.pi / 2, r)))
+    for i, (x, h, c) in enumerate(((-1.2, 1.4, FLAME), (0.0, 2.0, FLAME), (1.1, 1.5, FLAME), (-0.4, 1.0, FLAME_CORE), (0.5, 1.2, FLAME_CORE))):
+        glow.append(blob(0.5 if c is FLAME else 0.35, (x, 1.3 + (0.25 if c is FLAME_CORE else 0), 1.2 + h * 0.45), c, squash=(1, 0.6, h), lump=0.25, seed=i, segs=8, rings=6))
+    # Mantel shelf + garland with bows and fairy lights.
+    body.append(box((W + 1.0, Dp + 1.0, 0.5), (0, Dp / 2 + 0.4, 7.65), WOOD_DARK, bevel=0.14, segments=2))
+    garland((-W / 2, Dp + 0.85, 7.7), (W / 2, Dp + 0.85, 7.7), 0.7, 0.7, body, glow, light_every=2, colours=[FAIRY], facing_off=(0, 0.3, 0))
+    for x in (-W / 2, 0.0, W / 2):
+        bow((x, Dp + 1.2, 7.8), 0.7, body)
+    # Stockings hanging from the mantel.
+    for x, c in ((-2.8, XRED), (0.0, XGREEN), (2.8, XRED)):
+        body.append(box((0.9, 0.5, 1.6), (x, Dp + 1.0, 6.3), c, bevel=0.2, segments=2))
+        body.append(box((1.3, 0.55, 0.7), (x + 0.25, Dp + 1.0, 5.55), c, bevel=0.25, segments=2))
+        body.append(box((1.05, 0.62, 0.45), (x, Dp + 1.0, 7.1), SNOW, bevel=0.15, segments=2))
+    # Candles + lanterns on the mantel, wreath on the breast.
+    for x in (-1.6, -1.1, 1.3):
+        h = 0.9 if x != -1.1 else 0.6
+        body.append(cyl(0.2, h, (x, Dp / 2 + 0.6, 7.9 + h / 2), CREAM, verts=10))
+        glow.append(blob(0.12, (x, Dp / 2 + 0.6, 7.9 + h + 0.18), FLAME_CORE, squash=(1, 1, 1.6), lump=0, segs=6, rings=4))
+    for x in (-4.2, 4.2):
+        lantern((x, Dp / 2 + 0.2, 8.75), glow, body, facing=(0, 1))
+    wreath((0.0, Dp - 0.45, 11.2), 1.3, body)
+    return {
+        "SM_Xmas_Fireplace": (build_mesh("SM_Xmas_Fireplace", body), dict(collision="Box")),
+        "SM_Xmas_Fireplace_Glow": (build_mesh("SM_Xmas_Fireplace_Glow", glow, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+def mug(loc, parts, scale=1.0):
+    x, y, z = loc
+    k = scale
+    parts.append(lathe([(0.0, 0), (0.26 * k, 0), (0.29 * k, 0.5 * k), (0.25 * k, 0.52 * k), (0.0, 0.52 * k)], (x, y, z), MUG_RED, verts=12))
+    parts.append(cyl(0.3 * k, 0.07 * k, (x, y, z + 0.28 * k), SNOW, verts=12, bevel=0.0))
+    parts.append(cyl(0.1 * k, 0.26 * k, (x + 0.32 * k, y, z + 0.27 * k), MUG_RED, verts=8, rot=(math.pi / 2, 0, 0)))
+    parts.append(blob(0.24 * k, (x, y, z + 0.6 * k), CREAM, squash=(1, 1, 0.6), lump=0.12, segs=8, rings=5))
+
+
+def cocoa_set():
+    """Two mugs of cocoa with cream and a plate of cookies (origin = table top)."""
+    parts = []
+    mug((-0.9, 0.3, 0.0), parts, 1.1)
+    mug((0.9, -0.3, 0.0), parts, 1.1)
+    parts.append(cyl(0.7, 0.06, (0.0, 0.35, 0.03), SNOW, verts=18))
+    for i in range(5):
+        a = i * 2 * math.pi / 5
+        parts.append(cyl(0.22, 0.08, (math.cos(a) * 0.35, 0.35 + math.sin(a) * 0.35, 0.1 + 0.02 * (i % 2)), COOKIE, verts=10))
+    return {"SM_Xmas_CocoaSet": (build_mesh("SM_Xmas_CocoaSet", parts), dict(collision="None"))}
+
+
+def cocoa_bar():
+    """Hot cocoa bar 8 x 2.6 (front +Y): wooden counter with garland, two
+    steel urns, mugs, cookie jar, posts holding a snowy gable canopy and a
+    hanging mug sign. 8.6 tall."""
+    body, glow = [], []
+    body.append(box((8.0, 2.6, 3.4), (0, 0, 1.7), WOOD, bevel=0.12, segments=1))
+    for x in (-2.7, 0.0, 2.7):
+        body.append(box((2.3, 0.12, 2.4), (x, 1.32, 1.6), WOOD_DARK, bevel=0.05, segments=1))
+    body.append(box((8.5, 3.0, 0.3), (0, 0, 3.55), WOOD_DARK, bevel=0.08, segments=1))
+    garland((-4.1, 1.45, 3.35), (4.1, 1.45, 3.35), 0.5, 0.7, body, glow, light_every=2, colours=[FAIRY], facing_off=(0, 0.3, 0))
+    for x in (-2.2, -0.8):
+        body.append(lathe([(0.0, 0), (0.5, 0), (0.55, 1.3), (0.4, 1.5), (0.15, 1.6), (0.0, 1.6)], (x, -0.3, 3.7), STEEL_URN, verts=14))
+        body.append(cyl(0.08, 0.3, (x, 0.3, 3.95), IRON, verts=6, rot=(math.pi / 2, 0, 0)))
+    for i, x in enumerate((0.6, 1.3, 2.0, 2.7)):
+        mug((x, 0.4 + 0.25 * (i % 2), 3.7), body, 0.9)
+    body.append(lathe([(0.0, 0), (0.42, 0), (0.48, 0.8), (0.3, 0.95), (0.0, 0.95)], (3.4, -0.5, 3.7), srgb(220, 236, 248), verts=12))
+    # Posts + snowy gable canopy.
+    for x in (-3.8, 3.8):
+        body.append(box((0.35, 0.35, 5.0), (x, -1.0, 6.2), WOOD_DARK, bevel=0.06, segments=1))
+    for s in (1, -1):
+        body.append(box((9.0, 2.0, 0.25), (0, -1.0 + s * 0.85, 8.25), WOOD, bevel=0.08, segments=1, rot=(-s * 0.5, 0, 0)))
+        body.append(box((9.2, 1.5, 0.45), (0, -1.0 + s * 0.75, 8.6), SNOW, bevel=0.2, segments=2, rot=(-s * 0.5, 0, 0)))
+    for i in range(9):
+        body.append(cyl(0.07, 0.25 + 0.15 * (i % 3), (-4.0 + i, 0.75, 7.75 - (0.25 + 0.15 * (i % 3)) / 2), ICE, verts=5, bevel=0.0, radius2=0.01))
+    # Hanging sign with a mug picture.
+    body.append(box((2.6, 0.18, 1.4), (0, 0.3, 6.9), WOOD_DARK, bevel=0.08, segments=1))
+    body.append(box((0.8, 0.1, 0.75), (-0.15, 0.42, 6.85), CREAM, bevel=0.1, segments=1))
+    body.append(cyl(0.18, 0.1, (0.35, 0.42, 6.9), CREAM, verts=10, rot=(math.pi / 2, 0, 0)))
+    for x in (-0.9, 0.9):
+        body.append(segment((x, 0.3, 7.6), (x, 0.3, 8.0), 0.04, IRON, verts=4))
+    holly((0.0, 0.45, 7.75), 0.8, body)
+    return {
+        "SM_Xmas_CocoaBar": (build_mesh("SM_Xmas_CocoaBar", body), dict(collision="Box")),
+        "SM_Xmas_CocoaBar_Glow": (build_mesh("SM_Xmas_CocoaBar_Glow", glow, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+def poinsettia():
+    """Poinsettia in a gold-wrapped pot (2.6 tall)."""
+    parts = []
+    parts.append(lathe([(0.0, 0), (0.6, 0), (0.75, 1.0), (0.82, 1.08), (0.0, 1.08)], (0, 0, 0), XGOLD, verts=14))
+    parts.append(cyl(0.7, 0.08, (0, 0, 1.0), SOIL, verts=14))
+    for i in range(6):
+        a = i * math.pi / 3
+        parts.append(blob(0.42, (math.cos(a) * 0.55, math.sin(a) * 0.55, 1.45), XGREEN_DARK, squash=(1.3, 0.6, 0.35), lump=0.1, segs=8, rings=5))
+    for i in range(7):
+        a = i * 2 * math.pi / 7 + 0.3
+        parts.append(blob(0.4, (math.cos(a) * 0.45, math.sin(a) * 0.45, 1.85), XRED, squash=(1.35, 0.55, 0.32), lump=0.08, segs=8, rings=5))
+    parts.append(blob(0.18, (0, 0, 2.0), XGOLD, lump=0.2, segs=6, rings=4))
+    return {"SM_Xmas_Poinsettia": (build_mesh("SM_Xmas_Poinsettia", parts), dict(collision="Hull"))}
+
+
+def snowman():
+    """Snowman 6.2 tall: three snowballs, coal eyes / buttons, carrot nose,
+    top hat with red band, red scarf, stick arms."""
+    parts = []
+    for r, z in ((1.6, 1.4), (1.15, 3.6), (0.85, 5.1)):
+        parts.append(blob(r, (0, 0, z), SNOW, lump=0.05, segs=16, rings=10))
+    for x in (-0.3, 0.3):
+        parts.append(blob(0.1, (x, 0.75, 5.3), COAL, lump=0, segs=6, rings=4))
+    for z in (3.3, 3.8, 4.25):
+        parts.append(blob(0.12, (0, 1.12 - abs(z - 3.8) * 0.15, z), COAL, lump=0, segs=6, rings=4))
+    nose = cyl(0.14, 0.7, (0, 1.12, 5.1), CARROT, verts=8, radius2=0.01, rot=(-math.pi / 2, 0, 0))
+    parts.append(nose)
+    parts.append(cyl(0.95, 0.1, (0, 0, 5.85), COAL, verts=16))
+    parts.append(cyl(0.62, 1.0, (0, 0, 6.4), COAL, verts=16))
+    parts.append(cyl(0.64, 0.2, (0, 0, 6.05), XRED, verts=16))
+    parts.append(cyl(0.95, 0.35, (0, 0, 4.45), XRED, verts=16, bevel=0.12))
+    parts.append(box((0.45, 0.3, 1.4), (0.5, 0.85, 3.9), XRED, bevel=0.12, segments=2, rot=(0.2, 0, 0.15)))
+    for s in (-1, 1):
+        parts.append(segment((s * 1.0, 0, 3.8), (s * 2.5, 0.2, 4.7), 0.08, BARK, verts=5))
+        parts.append(segment((s * 2.1, 0.15, 4.45), (s * 2.5, 0.2, 4.1), 0.06, BARK, verts=5))
+    return {"SM_Xmas_Snowman": (build_mesh("SM_Xmas_Snowman", parts), dict(collision="Hull"))}
+
+
+def candy_cane():
+    """Candy-cane marker 3.6 tall (hook toward +X), red/white segments."""
+    parts = []
+    pts = [(0, 0, z) for z in [0.0 + i * 0.4 for i in range(8)]]
+    for i in range(1, 8):
+        a = i * math.pi / 7
+        pts.append((0.45 - math.cos(a) * 0.45, 0, 2.8 + math.sin(a) * 0.55))
+    for i, (p, q) in enumerate(zip(pts, pts[1:])):
+        parts.append(segment(p, q, 0.17, XRED if i % 2 else SNOW, verts=8))
+    return {"SM_Xmas_CandyCane": (build_mesh("SM_Xmas_CandyCane", parts), dict(collision="None"))}
+
+
+def path_lantern():
+    """Short lantern post 3.4 tall with a snow cap and warm glow."""
+    trim, glow = [], []
+    trim.append(cyl(0.32, 0.3, (0, 0, 0.15), IRON, verts=10))
+    trim.append(cyl(0.12, 2.3, (0, 0, 1.45), IRON, verts=8))
+    trim.append(cyl(0.38, 0.12, (0, 0, 2.62), IRON, verts=4, rot=(0, 0, math.pi / 4)))
+    for a in range(4):
+        ang = a * math.pi / 2 + math.pi / 4
+        trim.append(box((0.07, 0.07, 0.75), (math.cos(ang) * 0.3, math.sin(ang) * 0.3, 3.05), IRON, bevel=0.0))
+    trim.append(cyl(0.5, 0.4, (0, 0, 3.6), IRON, verts=4, radius2=0.05, rot=(0, 0, math.pi / 4)))
+    trim.append(blob(0.42, (0, 0, 3.78), SNOW, squash=(1, 1, 0.45), lump=0.1, segs=8, rings=5))
+    glow.append(box((0.42, 0.42, 0.7), (0, 0, 3.05), GLOW, bevel=0.06, segments=1))
+    return {
+        "SM_Xmas_PathLantern": (build_mesh("SM_Xmas_PathLantern", trim), dict(collision="None")),
+        "SM_Xmas_PathLantern_Glow": (build_mesh("SM_Xmas_PathLantern_Glow", glow, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+def sled():
+    """Wooden sled 5 long (along Y), red runners curling up at the front."""
+    parts = []
+    for x in (-0.65, 0.65):
+        prev = None
+        for i in range(12):
+            t = i / 11
+            y = -2.4 + t * 4.3
+            z = 0.12
+            if t > 0.75:
+                a = (t - 0.75) / 0.25 * math.pi * 0.9
+                y = 0.825 + 1.075 + math.sin(a) * 0.5
+                z = 0.12 + (1 - math.cos(a)) * 0.5
+            p = (x, y, z)
+            if prev is not None:
+                parts.append(segment(prev, p, 0.09, XRED, verts=6))
+            prev = p
+        for y in (-1.6, 0.0, 1.4):
+            parts.append(box((0.22, 0.2, 0.45), (x, y, 0.38), XRED_DARK, bevel=0.03, segments=1))
+    for i in range(6):
+        parts.append(box((1.8, 0.62, 0.12), (0, -2.0 + i * 0.7, 0.64), WOOD_LIGHT if i % 2 else WOOD, bevel=0.05, segments=1))
+    parts.append(segment((-0.9, 1.9, 1.05), (0.9, 1.9, 1.05), 0.07, IRON, verts=6))
+    return {"SM_Xmas_Sled": (build_mesh("SM_Xmas_Sled", parts), dict(collision="Box"))}
+
+
+def stone_path():
+    """Flagstone path 8 wide x 24 long from the origin toward +Y."""
+    parts = []
+    i = 0
+    y = 0.8
+    while y < 23.6:
+        row = 3 if i % 2 == 0 else 2
+        for k in range(row):
+            x = -3.2 + (k + 0.5) * 6.4 / row + 0.25 * math.sin(i * 1.3 + k)
+            r = 1.05 + 0.15 * ((i + k) % 3)
+            parts.append(blob(r, (x, y + 0.2 * math.cos(i + k), 0.05), STONE if (i + k) % 2 else STONE_DARK, squash=(1.0, 0.85, 0.12), lump=0.12, seed=i + k, segs=14, rings=5))
+        y += 1.9
+        i += 1
+    return {"SM_Xmas_StonePath": (build_mesh("SM_Xmas_StonePath", parts), dict(collision="None"))}
+
+
+def snow_pine():
+    """Snowy cartoon pine 24 tall: trunk, four tiered cones with snow caps."""
+    body = []
+    body.append(cyl(0.9, 4.0, (0, 0, 2.0), BARK, verts=10))
+    tiers = [(7.0, 2.8, 7.0), (5.6, 7.6, 6.2), (4.2, 12.0, 5.6), (2.7, 16.2, 4.6), (1.4, 19.6, 4.0)]
+    for i, (r, z0, h) in enumerate(tiers):
+        prof = [(0.0, 0.0), (r * 0.82, 0.0), (r, 0.35), (r * 0.9, 0.7), (r * 0.5, h * 0.55), (0.1, h), (0.0, h)]
+        body.append(lathe(prof, (0, 0, z0), mix(FOLIAGE_DARK, FOLIAGE, 0.3 + 0.15 * (i % 2)), verts=14))
+        cap = [(0.0, h * 0.62), (r * 0.38, h * 0.62), (r * 0.46, h * 0.55), (r * 0.36, h * 0.72), (0.1, h + 0.15), (0.0, h + 0.15)]
+        body.append(lathe(cap, (0, 0, z0 + 0.12), SNOW, verts=14))
+        for k in range(5):
+            a = k * 2 * math.pi / 5 + i
+            body.append(blob(r * 0.16 + 0.2, (math.cos(a) * r * 0.62, math.sin(a) * r * 0.62, z0 + h * 0.3), SNOW, squash=(1.3, 1.3, 0.5), lump=0.15, seed=k + i, segs=7, rings=4))
+    return {"SM_Xmas_SnowPine": (build_mesh("SM_Xmas_SnowPine", body), dict(collision="Hull"))}
+
+
+def snow_bush():
+    """Snow mound over a low shrub (3.4 wide, 1.6 tall)."""
+    parts = [blob(1.6, (0, 0, 0.35), SNOW, squash=(1.1, 0.95, 0.6), lump=0.15, segs=12, rings=7)]
+    for i, (x, y) in enumerate(((-1.1, 0.6), (0.9, 0.8), (1.3, -0.4), (-0.6, -0.9))):
+        parts.append(blob(0.5, (x, y, 0.7), XGREEN_DARK, squash=(1, 1, 0.7), lump=0.25, seed=i, segs=8, rings=5))
+    return {"SM_Xmas_SnowBush": (build_mesh("SM_Xmas_SnowBush", parts), dict(collision="None"))}
+
+
+# ======================================================================
 # Batch 4: interior furniture, lamps, pool / yard / road props
 # (prop-artist + cartoon-style). Sizes follow the part-built decor they
 # replace (MapDecor / MapBuilder); front = +Y (Roblox -Z), origin noted
@@ -3574,6 +4150,23 @@ BATCHES = {
         ("LobbyBoardM", lobby_board_m, "standard"),
         ("LobbyBoardW", lobby_board_w, "standard"),
     ],
+    "xmas": [
+        ("XmasHall", xmas_hall, "lobby_hall"),
+        ("XmasInterior", xmas_interior, "lobby_hall"),
+        ("XmasTree", xmas_tree, "hero_tree"),
+        ("StarLamp", star_lamp, "background"),
+        ("Fireplace", fireplace, "hero"),
+        ("CocoaBar", cocoa_bar, "hero"),
+        ("CocoaSet", cocoa_set, "standard"),
+        ("Poinsettia", poinsettia, "standard"),
+        ("Snowman", snowman, "standard"),
+        ("CandyCane", candy_cane, "background"),
+        ("PathLantern", path_lantern, "standard"),
+        ("Sled", sled, "standard"),
+        ("StonePath", stone_path, "standard"),
+        ("SnowPine", snow_pine, "tree"),
+        ("SnowBush", snow_bush, "standard"),
+    ],
     "batch4": [
         ("Couch", couch, "hero"),  # main lobby furniture, seen up close
         ("CoffeeTable", coffee_table, "standard"),
@@ -3617,7 +4210,7 @@ BATCHES = {
     ],
 }
 # Triangle budget per object group (prop-artist tiers, mobile-adjusted).
-BUDGET = {"hero": 8000, "standard": 3000, "tree": 4000, "vehicle": 8000, "building": 12000, "sign": 8000, "hero_building": 28000, "lobby_hall": 60000, "door": 2500, "background": 1000}
+BUDGET = {"hero": 8000, "standard": 3000, "tree": 4000, "vehicle": 8000, "building": 12000, "sign": 8000, "hero_building": 28000, "lobby_hall": 60000, "hero_tree": 12000, "door": 2500, "background": 1000}
 
 
 # ======================================================================
@@ -3987,7 +4580,7 @@ if BATCH == "rooms":
         bpy.ops.render.render(write_still=True)
 # Annex: each building on its own, door side 3/4 and back 3/4 (the sheet
 # above already turned the doors toward +Y).
-if BATCH in ("annex", "lobby"):
+if BATCH in ("annex", "lobby", "xmas"):
     scene.view_settings.view_transform = "Standard"
     scene.view_settings.look = "None"
     bg.inputs["Color"].default_value = (0.32, 0.46, 0.72, 1)
