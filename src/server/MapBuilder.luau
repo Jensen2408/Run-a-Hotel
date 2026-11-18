@@ -42,7 +42,7 @@ local LOBBY_X = 22
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 27
+MapBuilder.VERSION = 28
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -191,7 +191,7 @@ function MapBuilder.build(config)
 	part({
 		Name = "ParkingLot",
 		Size = Vector3.new(52, 0.24, 15),
-		Position = Vector3.new(-6, 0.12, -47.5),
+		Position = Vector3.new(-7, 0.12, -47.5), -- (placed by hand in Studio: lot ends at x 19)
 		Color = Color3.fromRGB(70, 70, 76),
 		Material = Enum.Material.Asphalt,
 		Parent = map,

@@ -934,7 +934,7 @@ local function buildGroundAndRoad(decor)
 	block(road, "SidewalkNorthE", Vector3.new(560, 0.5, 4), Vector3.new(312, 0.25, -53), CONCRETE)
 	-- Sidewalk between the parking entrance (lot ends at x 20) and the east
 	-- sidewalk, so the office path meets it and lines up with the crosswalk.
-	block(road, "SidewalkNorthMid", Vector3.new(12, 0.5, 4), Vector3.new(26, 0.25, -53), CONCRETE)
+	block(road, "SidewalkNorthMid", Vector3.new(13, 0.5, 4), Vector3.new(25.5, 0.25, -53), CONCRETE) -- x 19..32 (hand-placed)
 	for x = -300, 320, 8 do
 		detail(road, "RailPost", Vector3.new(0.4, 2, 0.4), Vector3.new(x, 1.5, -78.2), Color3.fromRGB(150, 150, 156))
 	end
@@ -1681,7 +1681,7 @@ local function buildShopBuilding(decor, rng)
 		Kit.place("ShopShelf", f, CFrame.new(x2 - 1.45, 0.4, SHOP_Z) * CFrame.Angles(0, math.pi / 2, 0))
 		Kit.place("CeilingLamp", f, CFrame.new(SHOP_X, 11.9, SHOP_Z), { scale = 1.2 })
 	end
-	pottedPlant(f, Vector3.new(x1 - 1.5, 0.2, SHOP_Z - 5.2), rng)
+	pottedPlant(f, Vector3.new(x1 - 1.5 - 32.94, 0.2, SHOP_Z - 5.2 + 15.72), rng) -- moved by hand: beside the linen shed
 	pottedPlant(f, Vector3.new(x1 - 1.5, 0.2, SHOP_Z + 5.2), rng)
 	lampPost(f, Vector3.new(x1 - 8, 0, SHOP_Z - 5), 11)
 end
@@ -2257,11 +2257,21 @@ local function buildForest(decor, rng)
 			end
 		end
 	end
+	-- Forest bushes the user moved by hand in Studio (index in placement
+	-- order -> offset in studs, scale 1). Applied to the bush position so
+	-- its mesh and invisible collider move together.
+	local BUSH_MOVES = {
+		[5] = Vector3.new(4.24, 0, -12.14),
+		[16] = Vector3.new(18.8, 0, 15.31),
+		[20] = Vector3.new(1.27, 0, 15.24),
+	}
+	local placed = 0
 	for _ = 1, 24 do
 		local a = rng:NextNumber(0, math.pi * 2)
 		local x, z = 18 + math.cos(a) * rng:NextNumber(75, 95), -6 + math.sin(a) * rng:NextNumber(52, 62)
 		if not onRoad(z) then
-			bush(forest, Vector3.new(x, 0, z), rng, false)
+			placed += 1
+			bush(forest, Vector3.new(x, 0, z) + (BUSH_MOVES[placed] or Vector3.zero), rng, false)
 		end
 	end
 end
