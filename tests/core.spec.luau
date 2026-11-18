@@ -54,6 +54,15 @@ local function newCore(opts)
 end
 
 -- Advance simulated time in small steps.
+-- Front desk: forward every ringing guest call (meal, towel, AC).
+local function fwd(core)
+	for _, room in ipairs(core.rooms) do
+		for _, kind in ipairs({ "Meal", "Towel", "AC" }) do
+			core:forwardCall("R", room.id, kind, core.lastNow or 0)
+		end
+	end
+end
+
 local function run(core, from, to, step, onTick)
 	local t = from
 	while t < to do
@@ -94,6 +103,7 @@ local function cleanRoom(core, pid, roomId)
 		assert(core:changeSheets(pid, roomId))
 	end
 	if room.acBroken then
+		fwd(core)
 		assert(core:repairAC(pid, roomId))
 	end
 end
@@ -228,6 +238,8 @@ test("M2: towel tip paid exactly once", function()
 	assert(core:takeSupply("A", "Towel"))
 	assert(core:takeSupply("B", "Towel"))
 	local cash = core.cash
+	eq(core:deliverTowel("A", 1), false, "call still at the desk")
+	fwd(core)
 	local okA = core:deliverTowel("A", 1)
 	local okB = core:deliverTowel("B", 1)
 	expect(okA and not okB, "one delivery accepted")
@@ -343,6 +355,8 @@ test("M3: broken AC blocks renting until repaired", function()
 	local t = nightWithQueue(core, 1)
 	core.rooms[1].acBroken = true
 	eq(serve(core, "A", 1, t), false, "blocked")
+	eq(core:repairAC("A", 1), false, "call not forwarded yet")
+	fwd(core)
 	assert(core:repairAC("A", 1))
 	assert(serve(core, "A", 1, t))
 end)
@@ -718,6 +732,7 @@ local function orderMeal(core, roomId, recipe, now)
 	local room = core.rooms[roomId]
 	room.occupant = room.occupant or 999
 	room.mealOrder = { recipe = recipe, placedAt = now, expiresAt = now + Config.kitchen.orderPatience }
+	fwd(core)
 end
 
 test("Kitchen: cook pancakes, pick up, deliver for price + fast tip", function()
@@ -808,6 +823,7 @@ test("Kitchen: slow delivery gets no tip; towel and meal on the same door", func
 	local core = newCore({ playerCount = 2 })
 	orderMeal(core, 1, "salad", 0)
 	core.rooms[1].towelRequest = true
+	fwd(core)
 	core.carries.A = { "Towel" }
 	core.carries.B = { "Dish:salad" }
 	local cash = core.cash
@@ -885,6 +901,7 @@ local function simulateRun(playerCount, competent, random, maxNights)
 				end
 				core:setReady("A")
 			elseif core.phase == P.Night or core.phase == P.Closing then
+				fwd(core)
 				if not core.power then
 					core:resetBreaker("A")
 				end
@@ -1006,6 +1023,8 @@ test("Repair minigame: win applies only for an open session after the minimum ti
 	local core = newCore()
 	core:update(0)
 	core.rooms[1].acBroken = true
+	eq(core:startFix("A", "AC", 1, 9), false, "call not forwarded")
+	fwd(core)
 	local ok = core:finishFix("A", "AC", 1, 10)
 	eq(ok, false, "no session")
 	assert(core:startFix("A", "AC", 1, 10))
@@ -1040,6 +1059,50 @@ test("Bed minigame: needs a clean sheet in hand, win changes the sheets", functi
 	eq(core.rooms[2].sheetsDirty, false, "sheets changed")
 	eq(#core:getCarry("A"), 0, "sheet used")
 	eq(core:startFix("A", "Sheets", 2, 9), false, "already clean")
+end)
+
+test("Calls: guest requests ring the desk, forwarding unlocks the job for the role", function()
+	local core = newCore({ playerCount = 3 })
+	core:setRole("C", "Chef")
+	core:setRole("H", "Housekeeper")
+	core:update(1)
+	local room = core.rooms[1]
+	room.occupant = 999
+	room.towelRequest = true
+	room.mealOrder = { recipe = "salad", placedAt = 1, expiresAt = 40 }
+	core:update(2)
+	local view = core:snapshot("C").calls
+	eq(#view, 2, "two calls ringing")
+	eq(view[1].sent, false, "not sent")
+	core.carries.H = { "Towel" }
+	eq(core:deliverTowel("H", 1), false, "locked")
+	assert(core:forwardCall("R", 1, "Towel", 3))
+	eq(core:forwardCall("R", 1, "Towel", 3), false, "sent once")
+	local forChef, forMaid = nil, nil
+	for _, c in ipairs(core:snapshot("C").calls) do
+		if c.kind == "Towel" then
+			forChef = c.forMe
+		end
+	end
+	for _, c in ipairs(core:snapshot("H").calls) do
+		if c.kind == "Towel" then
+			forMaid = c.forMe
+		end
+	end
+	eq(forChef, false, "not the chef's job")
+	eq(forMaid, true, "housekeeper's job")
+	assert(core:deliverTowel("H", 1))
+	core:update(4)
+	eq(#core:snapshot("C").calls, 1, "towel call closed")
+	-- AC goes to everyone when nobody plays Maintenance.
+	core.rooms[2].acBroken = true
+	core:update(5)
+	assert(core:forwardCall("R", 2, "AC", 5))
+	for _, c in ipairs(core:snapshot("C").calls) do
+		if c.kind == "AC" then
+			eq(c.forMe, true, "no maintenance player: everyone")
+		end
+	end
 end)
 
 print(("\n%d passed, %d failed"):format(passed, failed))

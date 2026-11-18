@@ -62,6 +62,7 @@ Constants.RemoteAction = {
 	SetRole = "SetRole", -- { role }
 	FinishFix = "FinishFix", -- { fix = "AC" | "Breaker" | "Sheets", roomId? }: minigame won
 	CancelFix = "CancelFix", -- repair minigame closed
+	ForwardCall = "ForwardCall", -- { roomId, call = "Meal" | "Towel" | "AC" }: front desk phone
 }
 
 -- Front desk terminal.

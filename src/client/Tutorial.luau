@@ -227,12 +227,46 @@ local CORE = {
 	},
 }
 
+-- Guest calls (snapshot.calls): ringing = not yet forwarded from the desk.
+local function callSent(s, roomId, kind: string): boolean
+	for _, c in ipairs(s.calls or {}) do
+		if c.roomId == roomId and c.kind == kind then
+			return c.sent
+		end
+	end
+	return false
+end
+local function ringing(s): number
+	local n = 0
+	for _, c in ipairs(s.calls or {}) do
+		if not c.sent then
+			n += 1
+		end
+	end
+	return n
+end
+
 local HINTS = {
+	{
+		id = "phone",
+		when = function(s)
+			return ringing(s) > 0
+				and (s.phase == "Night" or s.phase == "Closing" or s.phase == "Preparation")
+				and s.phoneForMe ~= false
+		end,
+		text = "The PHONE is ringing! Go to the FRONT DESK and SEND each guest ticket (receipt on the right) to the right role.",
+		target = function()
+			return interactable("Desk")
+		end,
+		done = function(s)
+			return ringing(s) == 0
+		end,
+	},
 	{
 		id = "meal",
 		when = function(s, ctx)
 			ctx.mealRoom = firstRoom(s, function(r)
-				return r.mealOrder ~= nil
+				return r.mealOrder ~= nil and callSent(s, r.id, "Meal")
 			end)
 			return ctx.mealRoom ~= nil
 		end,
@@ -272,7 +306,7 @@ local HINTS = {
 		id = "towel",
 		when = function(s, ctx)
 			ctx.towelRoom = firstRoom(s, function(r)
-				return r.towelRequest
+				return r.towelRequest and callSent(s, r.id, "Towel")
 			end)
 			return ctx.towelRoom ~= nil
 		end,
@@ -297,7 +331,7 @@ local HINTS = {
 		id = "ac",
 		when = function(s, ctx)
 			ctx.acRoom = firstRoom(s, function(r)
-				return r.acBroken
+				return r.acBroken and callSent(s, r.id, "AC")
 			end)
 			return ctx.acRoom ~= nil
 		end,

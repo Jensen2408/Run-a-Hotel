@@ -581,8 +581,8 @@ function KitchenHud:tick()
 	local orders = self:openOrders()
 
 	-- Orders card.
-	local active = s.phase == "Night" or s.phase == "Closing"
-	self.ordersCard.Visible = active and #orders > 0
+	-- (orders card replaced by the receipt)
+	self.ordersCard.Visible = false -- replaced by the receipt (ReceiptHud)
 	if self.ordersCard.Visible then
 		local shown = math.min(#orders, #self.orderRows)
 		self.ordersCard.Size = UDim2.fromOffset(282, 44 + shown * 36)

@@ -17,6 +17,7 @@ local Hud = require(script.Parent:WaitForChild("Hud"))
 local DeskHud = require(script.Parent:WaitForChild("DeskHud"))
 local KitchenHud = require(script.Parent:WaitForChild("KitchenHud"))
 local FixGame = require(script.Parent:WaitForChild("FixGame"))
+local ReceiptHud = require(script.Parent:WaitForChild("ReceiptHud"))
 local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
 local Sfx = require(script.Parent:WaitForChild("Sfx"))
 local Settings = require(script.Parent:WaitForChild("Settings"))
@@ -98,6 +99,13 @@ task.spawn(function()
 	end
 	motel.DescendantAdded:Connect(applyHold)
 end)
+-- Guest tickets receipt (right middle): desk phone + my forwarded tasks.
+local receipt = ReceiptHud.new(player:WaitForChild("PlayerGui"), {
+	send = function(payload)
+		actionRemote:FireServer(payload)
+	end,
+}, Config)
+
 openFixRemote.OnClientEvent:Connect(function(info)
 	fixGame:open(info)
 end)
@@ -117,6 +125,7 @@ stateRemote.OnClientEvent:Connect(function(snapshot)
 	desk:setState(snapshot)
 	kitchen:setState(snapshot)
 	fixGame:setState(snapshot)
+	receipt:setState(snapshot)
 	if snapshot.phase ~= lastPhase then
 		local banners = {
 			Preparation = {
@@ -206,6 +215,7 @@ RunService.RenderStepped:Connect(function()
 	tutorial:tick()
 	checkShopDistance()
 	fixGame:checkDistance()
+	receipt:tick()
 end)
 
 actionRemote:FireServer({ kind = RA.RequestState })

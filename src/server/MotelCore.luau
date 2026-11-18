@@ -105,6 +105,7 @@ function MotelCore:resetRun(now: number)
 			acBroken = false,
 			towelRequest = false,
 			mealOrder = nil, -- { recipe, placedAt, expiresAt }
+			calls = {}, -- [kind] = { at, sent } guest calls to the front desk
 		}
 	end
 	self.guests = {}
@@ -616,6 +617,7 @@ function MotelCore:allReady(): boolean
 end
 
 function MotelCore:update(now: number)
+	self.lastNow = now
 	local P = self.C.Phase
 	local phase = self.phase
 	if phase == P.Preparation then
@@ -656,6 +658,9 @@ function MotelCore:update(now: number)
 	end
 	self:deskTick(now)
 	self:updateKitchen(now)
+	for _, room in ipairs(self.rooms) do
+		self:syncCalls(room, now)
+	end
 end
 
 ------------------------------------------------------------------------
@@ -1390,6 +1395,9 @@ function MotelCore:deliverTowel(pid, roomId): (boolean, string)
 	if not room or not room.towelRequest or not room.occupant then
 		return false, "Nobody asked for a towel here."
 	end
+	if not self:callSent(room, "Towel") then
+		return false, ("Room %d's towel call is still at the front desk phone."):format(room.number)
+	end
 	local carry = self:getCarry(pid)
 	if not removeOne(carry, self.C.Item.Towel) then
 		return false, "Bring a clean towel from the linen room."
@@ -1412,6 +1420,9 @@ function MotelCore:repairAC(_pid, roomId): (boolean, string)
 	if not room or not room.acBroken then
 		return false, "The AC works fine."
 	end
+	if not self:callSent(room, "AC") then
+		return false, ("Room %d's AC call is still at the front desk phone."):format(room.number)
+	end
 	room.acBroken = false
 	self:bump()
 	return true, ("Repaired the AC in Room %d."):format(room.number)
@@ -1429,6 +1440,9 @@ function MotelCore:startFix(pid, kind: string, roomId: number?, now: number): (b
 		local room = roomId and self.rooms[roomId]
 		if not room or not room.acBroken then
 			return false, "The AC works fine."
+		end
+		if not self:callSent(room, "AC") then
+			return false, "Forward this AC call from the front desk phone first."
 		end
 	elseif kind == "Breaker" then
 		if self.power then
@@ -1806,6 +1820,9 @@ function MotelCore:deliverMeal(pid, roomId, now: number): (boolean, string)
 		return false, "Nobody ordered food here."
 	end
 	local r = self:recipe(order.recipe)
+	if not self:callSent(room, "Meal") then
+		return false, ("Room %d's order is still at the front desk phone."):format(room.number)
+	end
 	local carry = self:getCarry(pid)
 	if not removeOne(carry, self.C.DishPrefix .. order.recipe) then
 		return false, ("Room %d ordered %s. Cook it in the kitchen."):format(room.number, r.name)
@@ -1839,6 +1856,116 @@ function MotelCore:deliver(pid, roomId, now: number): (boolean, string)
 		return self:deliverMeal(pid, roomId, now)
 	end
 	return false, "Nothing to deliver here."
+end
+
+------------------------------------------------------------------------
+-- Guest calls: every guest request (meal, towel, broken AC) rings the
+-- front desk phone first. Someone at the desk forwards it to the role that
+-- handles it; until then the job is locked (towel / meal can't be handed
+-- over, the AC can't be repaired). A call lives as long as its request.
+------------------------------------------------------------------------
+
+local CALL_KINDS = { "Meal", "Towel", "AC" }
+local CALL_ROLE = { Meal = "Chef", Towel = "Housekeeper", AC = "Maintenance" }
+MotelCore.CallRole = CALL_ROLE
+
+local function requestActive(room, kind: string): boolean
+	if kind == "Meal" then
+		return room.mealOrder ~= nil
+	elseif kind == "Towel" then
+		return room.towelRequest == true
+	end
+	return room.acBroken == true
+end
+
+-- Opens a call for each new request, drops calls whose request ended.
+function MotelCore:syncCalls(room, now: number?)
+	room.calls = room.calls or {}
+	for _, kind in ipairs(CALL_KINDS) do
+		local active = requestActive(room, kind)
+		local call = room.calls[kind]
+		if active and not call then
+			room.calls[kind] = { at = now or self.lastNow or 0, sent = false }
+			self:emit("PhoneCall", { roomId = room.id, kind = kind })
+			self:bump()
+		elseif not active and call then
+			room.calls[kind] = nil
+			self:bump()
+		end
+	end
+end
+
+function MotelCore:callSent(room, kind: string): boolean
+	self:syncCalls(room)
+	local call = room.calls[kind]
+	return call ~= nil and call.sent
+end
+
+function MotelCore:forwardCall(pid, roomId, kind: string, now: number): (boolean, string)
+	local ok, err = self:requireActive()
+	if not ok then
+		return false, err
+	end
+	local room = self.rooms[roomId]
+	if not room or not CALL_ROLE[kind] then
+		return false, "Unknown call."
+	end
+	self:syncCalls(room, now)
+	local call = room.calls[kind]
+	if not call then
+		return false, "That call is over."
+	end
+	if call.sent then
+		return false, "Already sent."
+	end
+	call.sent = true
+	call.sentAt = now
+	call.by = pid
+	local role = CALL_ROLE[kind]
+	self:emit("CallForwarded", { roomId = room.id, kind = kind, role = role, by = pid })
+	self:bump()
+	local what = if kind == "Meal"
+		then (self:recipe(room.mealOrder.recipe) or { name = "meal" }).name
+		elseif kind == "Towel" then "towel"
+		else "AC repair"
+	return true, ("Room %d %s sent to %s."):format(room.number, what, role)
+end
+
+-- Is anyone in the game playing this role? (no: the call goes to everyone)
+function MotelCore:roleTaken(role: string): boolean
+	for _, r in pairs(self.roles) do
+		if r == role then
+			return true
+		end
+	end
+	return false
+end
+
+function MotelCore:callsView(pid)
+	local list = {}
+	for _, room in ipairs(self.rooms) do
+		for _, kind in ipairs(CALL_KINDS) do
+			local call = room.calls and room.calls[kind]
+			if call then
+				local role = CALL_ROLE[kind]
+				table.insert(list, {
+					roomId = room.id,
+					number = room.number,
+					kind = kind,
+					recipe = if kind == "Meal" and room.mealOrder then room.mealOrder.recipe else nil,
+					expiresAt = if kind == "Meal" and room.mealOrder then room.mealOrder.expiresAt else nil,
+					at = call.at,
+					sent = call.sent,
+					role = role,
+					forMe = call.sent and (self:hasRole(pid, role) or not self:roleTaken(role)),
+				})
+			end
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.at < b.at
+	end)
+	return list
 end
 
 ------------------------------------------------------------------------
@@ -1919,6 +2046,10 @@ function MotelCore:snapshot(pid)
 		slots = stoveView,
 		role = self.roles[pid],
 		soloRoles = self.playerCount <= 1,
+		calls = self:callsView(pid),
+		-- The desk phone section shows for the receptionist (or everyone
+		-- when nobody plays Receptionist); anyone at the desk may forward.
+		phoneForMe = self:hasRole(pid, "Receptionist") or not self:roleTaken("Receptionist"),
 	}
 end
 

@@ -466,7 +466,32 @@ function Visuals.new(layout, config, constants, timeScale: number)
 	self.lightingKey = nil
 	NpcRigs.preload(k)
 	self:dressShopkeeper()
+	self:buildDeskPhone()
 	return self
+end
+
+-- Ringing phone over the front desk: bell icon + number of open calls.
+function Visuals:buildDeskPhone()
+	local interact = self.layout.root and self.layout.root:FindFirstChild("Interactables")
+	local desk = interact and interact:FindFirstChild("Desk")
+	if not desk then
+		return
+	end
+	local old = desk:FindFirstChild("DeskPhone")
+	if old then
+		old:Destroy()
+	end
+	local gui, icon, text = makeMood(0)
+	gui.Name = "DeskPhone"
+	gui.Size = UDim2.fromScale(6, 1.3)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 6.5 * (self.config.mapScale or 1), 0)
+	gui.AlwaysOnTop = true
+	gui.MaxDistance = 120
+	gui.Enabled = false
+	gui.Adornee = desk
+	gui.Parent = desk
+	UiAssets.applyTo(icon, "bell")
+	self.phone = { gui = gui, text = text, count = 0 }
 end
 
 -- Swaps the blocky shopkeeper from MapDecor for an R15 one (background).
@@ -757,6 +782,21 @@ function Visuals:refreshWorld(core)
 	local P = self.C.Phase
 	local layout = self.layout
 	local active = core.phase == P.Preparation or core.phase == P.Night or core.phase == P.Closing
+
+	-- Front desk phone: calls not yet forwarded.
+	if self.phone then
+		local ringing = 0
+		for _, room in ipairs(core.rooms) do
+			for _, call in pairs(room.calls or {}) do
+				if not call.sent then
+					ringing += 1
+				end
+			end
+		end
+		self.phone.gui.Enabled = active and ringing > 0
+		self.phone.text.Text = ("PHONE! %d CALL%s"):format(ringing, if ringing == 1 then "" else "S")
+		self.phone.text.TextColor3 = AMBER
+	end
 
 	for i, room in ipairs(core.rooms) do
 		local v = layout.rooms[i]

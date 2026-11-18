@@ -110,6 +110,27 @@ local core = MotelCore.new(Config, Constants, {
 		return rng:NextNumber(a, b)
 	end,
 })
+if RunService:IsStudio() then
+	-- Studio only: test hook for the command bar / tools (scripts there run in
+	-- another Lua context, so a BindableFunction instead of _G).
+	-- ("setRoom", roomId, field, value) or (methodName, ...args).
+	local debugFn = Instance.new("BindableFunction")
+	debugFn.Name = "MotelDebug"
+	debugFn.OnInvoke = function(cmd, ...)
+		if cmd == "setRoom" then
+			local roomId, field, value = ...
+			core.rooms[roomId][field] = value
+			core:bump()
+			return true
+		end
+		local fn = core[cmd]
+		if typeof(fn) == "function" then
+			return fn(core, ...)
+		end
+		return core[cmd]
+	end
+	debugFn.Parent = game:GetService("ServerStorage")
+end
 local visuals = Visuals.new(layout, Config, Constants, timeScale)
 visuals:refreshWorld(core)
 
@@ -398,6 +419,16 @@ actionRemote.OnServerEvent:Connect(function(player: Player, payload)
 		else
 			ok, msg = core:discardDish(player.UserId, payload.slot)
 		end
+	elseif kind == RA.ForwardCall then
+		local call = payload.call
+		if not validRoomId(payload.roomId) or (call ~= "Meal" and call ~= "Towel" and call ~= "AC") then
+			return
+		end
+		if not atDesk(player) then
+			feedback(player, "Answer the phone at the FRONT DESK.", "error")
+			return
+		end
+		ok, msg = core:forwardCall(player.UserId, payload.roomId, call, now())
 	elseif kind == RA.CancelFix then
 		core:cancelFix(player.UserId)
 		fixSpots[player] = nil
@@ -594,7 +625,10 @@ end
 
 local eventMessages = {
 	MealOrder = function(e)
-		return ("Room %d ordered %s! Cook it in the KITCHEN."):format(core:roomNumber(e.roomId), recipeName(e.recipe)),
+		return ("Phone! Room %d wants %s. Answer at the FRONT DESK."):format(
+			core:roomNumber(e.roomId),
+			recipeName(e.recipe)
+		),
 			"alert"
 	end,
 	DishReady = function(e)
@@ -613,10 +647,14 @@ local eventMessages = {
 		return ("Room %d checked out. Clean it up!"):format(core:roomNumber(e.roomId or 0)), "info"
 	end,
 	TowelRequest = function(e)
-		return ("Room %d wants a towel!"):format(core:roomNumber(e.roomId)), "alert"
+		return ("Phone! Room %d wants a towel. Answer at the FRONT DESK."):format(core:roomNumber(e.roomId)), "alert"
 	end,
 	ACBroken = function(e)
-		return ("The AC in Room %d broke! Repair it."):format(core:roomNumber(e.roomId)), "alert"
+		return ("Phone! The AC in Room %d broke. Answer at the FRONT DESK."):format(core:roomNumber(e.roomId)), "alert"
+	end,
+	CallForwarded = function(e)
+		local what = if e.kind == "Meal" then "food order" elseif e.kind == "Towel" then "towel" else "AC repair"
+		return ("New ticket for %s: Room %d %s."):format(e.role, core:roomNumber(e.roomId), what), "info"
 	end,
 	PowerOut = function()
 		return "POWER OUTAGE! Reset the breaker in the lobby.", "alert"
