@@ -936,27 +936,17 @@ function Visuals:applyLighting(core)
 	local P = self.C.Phase
 	local nightLike = core.phase == P.Night or core.phase == P.Closing
 	-- Presets live in LightingFX (cartoon sky, softer light).
+	local mood = "Day"
 	if core.phase == P.Preparation then
-		LightingFX.phase("Preparation")
+		mood = "Preparation"
 	elseif nightLike then
-		if not core.power then
-			LightingFX.phase("Blackout")
-		elseif core.phase == P.Night then
-			LightingFX.phase("Night")
-		else
-			LightingFX.phase("Closing")
-		end
+		mood = if not core.power then "Blackout" elseif core.phase == P.Night then "Night" else "Closing"
 	elseif core.phase == P.Report then
-		LightingFX.phase("Report")
-	else
-		LightingFX.phase("Day")
+		mood = "Report"
 	end
-	if core.rain then
-		Lighting.FogColor = Color3.fromRGB(60, 65, 80)
-		Lighting.FogEnd = 260
-	else
-		Lighting.FogEnd = 100000
-	end
+	-- Rain thickens the atmosphere haze (no flat distance fog).
+	LightingFX.phase(mood, { rain = core.rain })
+	Lighting.FogEnd = 100000
 end
 
 return Visuals

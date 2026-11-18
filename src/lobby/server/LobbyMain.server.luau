@@ -77,10 +77,8 @@ for _, d in ipairs(Workspace:GetDescendants()) do
 		d.Enabled = false
 	end
 end
-LightingFX.apply()
-local lighting = game:GetService("Lighting")
-lighting.ClockTime = 19.2
-lighting.ExposureCompensation = -0.2
+-- Lobby mood: snowy blue hour with the Christmas dressing, warm dusk else.
+LightingFX.apply(if LobbyBuilder.activeTheme == "Christmas" then "LobbyXmas" else "Lobby")
 
 ------------------------------------------------------------------------
 -- Rooms / pads

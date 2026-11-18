@@ -177,12 +177,13 @@ function LobbyBuilder.build(scale: number)
 	Kit.load()
 	local kit = Kit.has("LobbyHall")
 	local xmas = kit and LobbyBuilder.THEME == "Christmas" and Kit.has("XmasHall")
+	LobbyBuilder.activeTheme = if xmas then "Christmas" else nil
 	-- Kit hall: the shell parts only collide (the meshes draw the hall).
 	local hidden = if kit then { Transparency = 1, CastShadow = false } else nil
 
 	-- Ground and hall shell ---------------------------------------------------
 	if xmas then
-		block(map, "Snow", Vector3.new(620, 1, 620), Vector3.new(0, -0.38, 0), Color3.fromRGB(236, 243, 252), {
+		block(map, "Snow", Vector3.new(620, 1, 620), Vector3.new(0, -0.38, 0), Color3.fromRGB(214, 226, 244), {
 			Material = Enum.Material.Snow,
 		})
 	else
@@ -228,8 +229,8 @@ function LobbyBuilder.build(scale: number)
 					CanQuery = false,
 				})
 				local l = Instance.new("PointLight")
-				l.Range = 24
-				l.Brightness = 0.6
+				l.Range = 20
+				l.Brightness = 0.42
 				l.Color = LAMP
 				l.Parent = anchor
 			end
@@ -631,27 +632,127 @@ function LobbyBuilder.dressChristmas(map: Instance)
 	}) do
 		put("Poinsettia", CFrame.new(p), { scale = 1.3 })
 	end
-	-- Light from the fireplace and the tree.
-	for _, l in ipairs({
-		{ Vector3.new(-37.5, 2.5, -19), Color3.fromRGB(255, 150, 70), 22, 1.6 },
-		{ Vector3.new(33.5, 7, 20.5), Color3.fromRGB(255, 214, 140), 18, 0.8 },
-	}) do
+	-- Lights: fireplace (flickers on the client), tree glow, warm pools on
+	-- the snow from the entrance, lanterns, windows and the outdoor tree.
+	local WARM = Color3.fromRGB(255, 200, 130)
+	local function light(name, pos, color, range, brightness, flicker, shadows)
 		local anchor = Instance.new("Part")
-		anchor.Name = "XmasLight"
+		anchor.Name = name
 		anchor.Anchored = true
 		anchor.CanCollide = false
 		anchor.CanQuery = false
 		anchor.CanTouch = false
 		anchor.Transparency = 1
 		anchor.Size = Vector3.new(0.4, 0.4, 0.4)
-		anchor.Position = l[1]
-		local light = Instance.new("PointLight")
-		light.Color = l[2]
-		light.Range = l[3]
-		light.Brightness = l[4]
-		light.Parent = anchor
+		anchor.Position = pos
+		local l = Instance.new("PointLight")
+		l.Color = color
+		l.Range = range
+		l.Brightness = brightness
+		l.Shadows = shadows == true
+		l.Parent = anchor
+		if flicker then
+			l:SetAttribute("Flicker", brightness)
+		end
 		anchor.Parent = map
+		return anchor
 	end
+	light("FireLight", Vector3.new(-37.8, 2.4, -19), Color3.fromRGB(255, 140, 60), 26, 2.2, true, true)
+	light("TreeLight", Vector3.new(33.5, 7, 20.5), Color3.fromRGB(255, 214, 140), 18, 0.9)
+	light("EntranceSpill", Vector3.new(0, 7, -30.5), WARM, 24, 0.55, false, true)
+	for _, x in ipairs({ -19.6, 19.6 }) do
+		light("PorchLantern", Vector3.new(x, 7, -29.4), WARM, 11, 0.6, true)
+	end
+	for _, x in ipairs({ -29, 29 }) do
+		light("WindowGlow", Vector3.new(x, 5.4, -30), Color3.fromRGB(255, 190, 110), 11, 0.5)
+	end
+	for i, z in ipairs({ -32, -37, -42, -47, -52 }) do
+		if i % 2 == 0 then
+			for _, x in ipairs({ -5.4, 5.4 }) do
+				light("PathLight", Vector3.new(x, 3.1, z), WARM, 8, 0.6, true)
+			end
+		end
+	end
+	light("YardTreeLight", Vector3.new(26, 8, -38), Color3.fromRGB(255, 220, 160), 13, 0.5)
+
+	-- Snowfall around the hall (not over it, so it does not snow indoors).
+	local function emitterPart(name, pos, size)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.Transparency = 1
+		p.Size = size
+		p.Position = pos
+		p.Parent = map
+		return p
+	end
+	for _, b in ipairs({
+		{ Vector3.new(0, 42, -95), Vector3.new(280, 1, 130), 150 },
+		{ Vector3.new(0, 42, 95), Vector3.new(280, 1, 130), 150 },
+		{ Vector3.new(-95, 42, 0), Vector3.new(110, 1, 60), 55 },
+		{ Vector3.new(95, 42, 0), Vector3.new(110, 1, 60), 55 },
+	}) do
+		local e = Instance.new("ParticleEmitter")
+		e.Name = "Snowfall"
+		e.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		e.Color = ColorSequence.new(Color3.fromRGB(245, 250, 255))
+		e.LightEmission = 0.35
+		e.LightInfluence = 0.6
+		e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 0.25) })
+		e.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.1, 0.1),
+			NumberSequenceKeypoint.new(0.85, 0.2),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		e.Lifetime = NumberRange.new(9, 13)
+		e.Rate = b[3]
+		e.Speed = NumberRange.new(3, 5)
+		e.EmissionDirection = Enum.NormalId.Bottom
+		e.SpreadAngle = Vector2.new(25, 25)
+		e.Acceleration = Vector3.new(1.2, -0.6, 0.4)
+		e.Drag = 0.4
+		e.RotSpeed = NumberRange.new(-60, 60)
+		e.Rotation = NumberRange.new(0, 360)
+		e.Parent = emitterPart("SnowEmitter", b[1], b[2])
+	end
+
+	-- Chimney smoke (chimney at x 28, z 14, top ~ y 27).
+	local smoke = Instance.new("ParticleEmitter")
+	smoke.Name = "ChimneySmoke"
+	smoke.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	smoke.Color = ColorSequence.new(Color3.fromRGB(226, 230, 240))
+	smoke.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.6), NumberSequenceKeypoint.new(1, 7) })
+	smoke.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.55),
+		NumberSequenceKeypoint.new(0.6, 0.75),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	smoke.Lifetime = NumberRange.new(6, 9)
+	smoke.Rate = 5
+	smoke.Speed = NumberRange.new(2.5, 3.5)
+	smoke.SpreadAngle = Vector2.new(8, 8)
+	smoke.Acceleration = Vector3.new(1.2, 0.4, 0.3)
+	smoke.RotSpeed = NumberRange.new(-20, 20)
+	smoke.LightInfluence = 0.8
+	smoke.Parent = emitterPart("SmokeEmitter", Vector3.new(28, 27.6, 14), Vector3.new(1.6, 0.4, 1.6))
+
+	-- Embers rising from the fireplace.
+	local embers = Instance.new("ParticleEmitter")
+	embers.Name = "Embers"
+	embers.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	embers.Color = ColorSequence.new(Color3.fromRGB(255, 170, 60), Color3.fromRGB(255, 90, 30))
+	embers.LightEmission = 1
+	embers.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.18), NumberSequenceKeypoint.new(1, 0.05) })
+	embers.Lifetime = NumberRange.new(0.8, 1.6)
+	embers.Rate = 10
+	embers.Speed = NumberRange.new(1.5, 3)
+	embers.SpreadAngle = Vector2.new(20, 20)
+	embers.EmissionDirection = Enum.NormalId.Top
+	embers.Parent = emitterPart("EmberEmitter", Vector3.new(-39.3, 1.6, -19), Vector3.new(0.4, 0.2, 3))
 	-- Outside: path, candy canes + lanterns, tree, snowman, sled, shrubs.
 	put("StonePath", CFrame.new(0, ground, -28.6))
 	for i, z in ipairs({ -32, -37, -42, -47, -52 }) do
