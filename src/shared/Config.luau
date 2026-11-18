@@ -11,7 +11,7 @@ Config.timeScale = 1
 -- Studio testing (ignored on live servers) ---------------------------------
 -- Which mode a Studio Play session runs: "Game" (motel) or "Lobby".
 -- Live servers decide by themselves (see Shared/Mode).
-Config.studioMode = "Game"
+Config.studioMode = "Lobby"
 
 -- Blender kit meshes (ServerStorage.MotelKit, see src/server/Kit.luau).
 -- false = the original part-built look.
