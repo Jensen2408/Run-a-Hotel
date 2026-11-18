@@ -910,7 +910,7 @@ local function buildGroundAndRoad(decor)
 			road,
 			"Crosswalk",
 			Vector3.new(1.4, 0.04, 15),
-			Vector3.new(21 + k * 2.2, 0.3, -64),
+			Vector3.new(21 + k * 2.2, 0.38, -64), -- above the centre lines (0.31) by ~0.1
 			Color3.fromRGB(245, 245, 245)
 		)
 	end
