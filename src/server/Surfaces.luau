@@ -1,6 +1,7 @@
 --!nonstrict
 --[[
 	Surfaces: tiling textures and decals from the generated texture sheet
+	(images owned by the experience's community, groups/556114983)
 	(assets/textures/motel_sheets.png, sliced by tools/slice_texture_sheet.py).
 
 	Runs after MapBuilder has built and scaled the map: texture sizes are in
@@ -13,25 +14,25 @@
 local Surfaces = {}
 
 local TEX = {
-	asphalt = "rbxassetid://113354080079742",
-	concrete = "rbxassetid://106331559327498",
-	grass = "rbxassetid://99578307583552",
-	wood = "rbxassetid://71508401952078",
-	carpet = "rbxassetid://77381752340009",
-	checker = "rbxassetid://123739783425000",
-	water = "rbxassetid://90253585143745",
-	gravel = "rbxassetid://107914650910709",
+	asphalt = "rbxassetid://72318672945290",
+	concrete = "rbxassetid://112390650345913",
+	grass = "rbxassetid://70920523238186",
+	wood = "rbxassetid://72277939586139",
+	carpet = "rbxassetid://96728838875988",
+	checker = "rbxassetid://127628666130291",
+	water = "rbxassetid://140076838754757",
+	gravel = "rbxassetid://110870592453496",
 }
 
 local DECAL = {
-	welcome = "rbxassetid://106234889657896",
-	pineLake = "rbxassetid://122794957897186",
-	logo = "rbxassetid://73445620269207",
-	menu = "rbxassetid://72777765075370",
-	supplies = "rbxassetid://112842911321355",
-	poolRules = "rbxassetid://113002194484803",
-	noSmoking = "rbxassetid://127182795410205",
-	manhole = "rbxassetid://92696236417631",
+	welcome = "rbxassetid://110641451677167",
+	pineLake = "rbxassetid://79303140864026",
+	logo = "rbxassetid://114612760438669",
+	menu = "rbxassetid://95837547860178",
+	supplies = "rbxassetid://111430138854445",
+	poolRules = "rbxassetid://130419018669279",
+	noSmoking = "rbxassetid://117184576385937",
+	manhole = "rbxassetid://71939509266990",
 }
 
 -- {path under Motel.Map, texture, studs per tile at scale 1}
@@ -156,7 +157,7 @@ function Surfaces.apply(root: Instance, scale: number)
 		folder,
 		"WelcomeMat",
 		DECAL.welcome,
-		{ pos = Vector3.new(22, 0.45, -33.4), size = { 4.2, 2.4 }, face = "Top", yaw = 180 },
+		{ pos = Vector3.new(22, 0.45, -33.4), size = { 4.2, 2.4 }, face = "Top", yaw = 0 },
 		scale
 	)
 	decal(
