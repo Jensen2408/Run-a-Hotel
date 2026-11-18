@@ -952,8 +952,19 @@ local function buildGroundAndRoad(decor)
 			Color3.fromRGB(240, 200, 70)
 		)
 	end
-	for _, x in ipairs({ -30, -14, 2, 13 }) do -- (13: clear of the crosswalk at x 17..27)
-		lampPost(decor, Vector3.new(x, 0, -57.5), 12)
+	-- Street lamps along both sidewalks (top at y 0.5), on the road side,
+	-- 32 apart and staggered between the sides. None in the parking
+	-- entrance (north, x -32..19), on the crosswalk (x 17..27) or by the
+	-- motel pylon (x -46).
+	for x = -192, 192, 32 do
+		if (x < -34 or x > 30) and math.abs(x + 46) > 6 then
+			lampPost(decor, Vector3.new(x, 0.5, -54.3), 12)
+		end
+	end
+	for x = -176, 208, 32 do
+		if math.abs(x - 22) > 8 then
+			lampPost(decor, Vector3.new(x, 0.5, -74.3), 12)
+		end
 	end
 	-- Mailbox on the lawn beside the office path (clear of the new sidewalk).
 	block(road, "MailboxPost", Vector3.new(0.4, 3.5, 0.4), Vector3.new(28.5, 1.75, -48.5), WOOD_DARK)
