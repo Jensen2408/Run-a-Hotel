@@ -42,7 +42,7 @@ local LOBBY_X = 22
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 24
+MapBuilder.VERSION = 25
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -198,8 +198,10 @@ function MapBuilder.build(config)
 	})
 	part({
 		Name = "Path",
-		Size = Vector3.new(6, 0.25, 18),
-		Position = Vector3.new(LOBBY_X, 0.12, -40),
+		-- From the office porch to the sidewalk in front of the motel; top 0.1
+		-- above the parking lot where they touch (far-camera depth).
+		Size = Vector3.new(6, 0.25, 20),
+		Position = Vector3.new(LOBBY_X, 0.225, -41),
 		Color = Color3.fromRGB(170, 160, 140),
 		Material = Enum.Material.Concrete,
 		Parent = map,

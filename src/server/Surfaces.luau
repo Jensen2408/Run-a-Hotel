@@ -42,6 +42,7 @@ local TEXTURED = {
 	{ "Decor.Road.SidewalkSouth", "concrete", 6 },
 	{ "Decor.Road.SidewalkNorthW", "concrete", 6 },
 	{ "Decor.Road.SidewalkNorthE", "concrete", 6 },
+	{ "Decor.Road.SidewalkNorthMid", "concrete", 6 },
 	{ "Decor.Ground.MotelLot", "concrete", 8 },
 	{ "Hallway", "concrete", 6 },
 	{ "LinenFloor", "concrete", 6 },

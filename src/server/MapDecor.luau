@@ -910,7 +910,7 @@ local function buildGroundAndRoad(decor)
 			road,
 			"Crosswalk",
 			Vector3.new(1.4, 0.04, 15),
-			Vector3.new(21 + k * 2.2, 0.38, -64), -- above the centre lines (0.31) by ~0.1
+			Vector3.new(16.5 + k * 2.2, 0.38, -64), -- centred on the office path (x 22), above the centre lines
 			Color3.fromRGB(245, 245, 245)
 		)
 	end
@@ -929,6 +929,9 @@ local function buildGroundAndRoad(decor)
 	block(road, "SidewalkSouth", Vector3.new(1200, 0.5, 5), Vector3.new(10, 0.25, -75.5), CONCRETE)
 	block(road, "SidewalkNorthW", Vector3.new(560, 0.5, 4), Vector3.new(-312, 0.25, -53), CONCRETE)
 	block(road, "SidewalkNorthE", Vector3.new(560, 0.5, 4), Vector3.new(312, 0.25, -53), CONCRETE)
+	-- Sidewalk between the parking entrance (lot ends at x 20) and the east
+	-- sidewalk, so the office path meets it and lines up with the crosswalk.
+	block(road, "SidewalkNorthMid", Vector3.new(12, 0.5, 4), Vector3.new(26, 0.25, -53), CONCRETE)
 	for x = -300, 320, 8 do
 		detail(road, "RailPost", Vector3.new(0.4, 2, 0.4), Vector3.new(x, 1.5, -78.2), Color3.fromRGB(150, 150, 156))
 	end
@@ -949,11 +952,12 @@ local function buildGroundAndRoad(decor)
 	for _, x in ipairs({ -30, -14, 2, 18 }) do
 		lampPost(decor, Vector3.new(x, 0, -57.5), 12)
 	end
-	block(road, "MailboxPost", Vector3.new(0.4, 3.5, 0.4), Vector3.new(31, 1.75, -54), WOOD_DARK)
-	block(road, "Mailbox", Vector3.new(1.2, 1.2, 2), Vector3.new(31, 3.9, -54), Color3.fromRGB(60, 90, 160))
-	detail(road, "MailFlag", Vector3.new(0.1, 0.9, 0.3), Vector3.new(31.7, 4.4, -53.6), ACCENT)
+	-- Mailbox on the lawn beside the office path (clear of the new sidewalk).
+	block(road, "MailboxPost", Vector3.new(0.4, 3.5, 0.4), Vector3.new(28.5, 1.75, -48.5), WOOD_DARK)
+	block(road, "Mailbox", Vector3.new(1.2, 1.2, 2), Vector3.new(28.5, 3.9, -48.5), Color3.fromRGB(60, 90, 160))
+	detail(road, "MailFlag", Vector3.new(0.1, 0.9, 0.3), Vector3.new(29.2, 4.4, -48.1), ACCENT)
 	-- Kit mailbox (same footprint: body along Z, flag on +X).
-	if Kit.place("Mailbox", road, CFrame.new(31, 0, -54)) then
+	if Kit.place("Mailbox", road, CFrame.new(28.5, 0, -48.5)) then
 		Kit.retireNamed(road, { "MailboxPost", "Mailbox", "MailFlag" })
 	end
 	-- Kit batch 4: wheel stops and guard rail sections (8 long, post at x).
