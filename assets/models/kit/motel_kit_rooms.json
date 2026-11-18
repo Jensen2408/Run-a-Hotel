@@ -1,0 +1,419 @@
+{
+  "batch": "rooms",
+  "units": "studs",
+  "axes": "roblox",
+  "meshes": {
+    "SM_Bld_RoomV2_Walls": {
+      "group": "RoomV2",
+      "size": [
+        15.26,
+        12.2,
+        17.26
+      ],
+      "center": [
+        -0.0,
+        6.1,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Precise",
+      "glass": false,
+      "place": [
+        [
+          2,
+          0,
+          30
+        ],
+        [
+          20,
+          0,
+          30
+        ],
+        [
+          38,
+          0,
+          30
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 564
+    },
+    "SM_Bld_RoomV2_Trim": {
+      "group": "RoomV2",
+      "size": [
+        16.24,
+        11.955,
+        18.649
+      ],
+      "center": [
+        0.0,
+        5.977,
+        -0.204
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          2,
+          0,
+          30
+        ],
+        [
+          20,
+          0,
+          30
+        ],
+        [
+          38,
+          0,
+          30
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 2086
+    },
+    "SM_Bld_RoomV2_Awning": {
+      "group": "RoomV2",
+      "size": [
+        4.1,
+        1.621,
+        2.021
+      ],
+      "center": [
+        -4.5,
+        6.915,
+        -9.461
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          2,
+          0,
+          30
+        ],
+        [
+          20,
+          0,
+          30
+        ],
+        [
+          38,
+          0,
+          30
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 182
+    },
+    "SM_Bld_RoomV2_Flowers": {
+      "group": "RoomV2",
+      "size": [
+        11.8,
+        3.87,
+        19.623
+      ],
+      "center": [
+        -0.45,
+        3.885,
+        0.005
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          2,
+          0,
+          30
+        ],
+        [
+          20,
+          0,
+          30
+        ],
+        [
+          38,
+          0,
+          30
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 972
+    },
+    "SM_Bld_RoomV2_Glass": {
+      "group": "RoomV2",
+      "size": [
+        11.0,
+        4.7,
+        16.12
+      ],
+      "center": [
+        -0.5,
+        5.65,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": true,
+      "place": [
+        [
+          2,
+          0,
+          30
+        ],
+        [
+          20,
+          0,
+          30
+        ],
+        [
+          38,
+          0,
+          30
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 88
+    },
+    "SM_Bld_RoomV2_Glow": {
+      "group": "RoomV2",
+      "size": [
+        9.526,
+        6.045,
+        0.933
+      ],
+      "center": [
+        0.0,
+        8.177,
+        -8.944
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          2,
+          0,
+          30
+        ],
+        [
+          20,
+          0,
+          30
+        ],
+        [
+          38,
+          0,
+          30
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 484
+    },
+    "SM_Bld_RoomRoofV2_Walls": {
+      "group": "RoomRoofV2",
+      "size": [
+        51.0,
+        7.75,
+        17.0
+      ],
+      "center": [
+        0.5,
+        14.075,
+        2.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          19.5,
+          0,
+          28
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 208
+    },
+    "SM_Bld_RoomRoofV2_Trim": {
+      "group": "RoomRoofV2",
+      "size": [
+        54.42,
+        18.054,
+        23.416
+      ],
+      "center": [
+        0.5,
+        9.027,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          19.5,
+          0,
+          28
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 2796
+    },
+    "SM_Bld_RoomRoofV2_Roof": {
+      "group": "RoomRoofV2",
+      "size": [
+        54.6,
+        8.283,
+        24.519
+      ],
+      "center": [
+        0.5,
+        15.808,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": [
+        [
+          19.5,
+          0,
+          28
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 3816
+    },
+    "SM_Bld_RoomRoofV2_Glow": {
+      "group": "RoomRoofV2",
+      "size": [
+        52.82,
+        5.301,
+        13.39
+      ],
+      "center": [
+        0.5,
+        12.754,
+        -4.485
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          19.5,
+          0,
+          28
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 1384
+    }
+  },
+  "validation": {
+    "SM_Bld_RoomV2_Walls": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 14,
+      "scale_applied": true
+    },
+    "SM_Bld_RoomV2_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_RoomV2_Awning": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 12,
+      "scale_applied": true
+    },
+    "SM_Bld_RoomV2_Flowers": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_RoomV2_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_RoomV2_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_RoomV2": {
+      "tris": 4376,
+      "budget": 12000,
+      "status": "OK"
+    },
+    "SM_Bld_RoomRoofV2_Walls": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_RoomRoofV2_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_RoomRoofV2_Roof": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_RoomRoofV2_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_RoomRoofV2": {
+      "tris": 8204,
+      "budget": 28000,
+      "status": "OK"
+    }
+  }
+}

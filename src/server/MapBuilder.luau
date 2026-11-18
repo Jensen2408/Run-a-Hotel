@@ -42,7 +42,7 @@ local LOBBY_X = 22
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 29
+MapBuilder.VERSION = 30
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -542,7 +542,9 @@ function MapBuilder.build(config)
 		-- Blender kit: room shell over the (now invisible) gameplay walls, and
 		-- skins on the bed, bin, trash bag and AC. Visuals drives their state
 		-- colours through Kit.set.
-		if Kit.place("RoomUnit", roomFolder, CFrame.new(cx, 0, 12)) then
+		-- RoomV2 = the office-style shell (batch "rooms"); RoomUnit until imported.
+		local roomV2 = Kit.has("RoomV2")
+		if Kit.place(if roomV2 then "RoomV2" else "RoomUnit", roomFolder, CFrame.new(cx, 0, 12)) then
 			for _, name in ipairs({ "BackWall", "LeftWall", "RightWall", "FrontWallL", "FrontWallR", "DoorLintel" }) do
 				local w = roomFolder:FindFirstChild(name)
 				if w then
@@ -552,7 +554,9 @@ function MapBuilder.build(config)
 				end
 			end
 			local doorColor = DOOR_COLORS[(i - 1) % #DOOR_COLORS + 1]
-			Kit.place("RoomDoor", roomFolder, CFrame.new(cx, 0, 4), { only = { SM_Prop_Door_Frame = true } })
+			if not roomV2 then -- RoomV2 has its own teal door frame
+				Kit.place("RoomDoor", roomFolder, CFrame.new(cx, 0, 4), { only = { SM_Prop_Door_Frame = true } })
+			end
 			-- Door leaf swung open against the inside of the front wall.
 			Kit.place("RoomDoor", roomFolder, CFrame.new(cx + 2.35, 0.4, 6.15) * CFrame.Angles(0, -math.pi / 2, 0), {
 				only = { SM_Prop_Door_Leaf = true, SM_Prop_Door_Hardware = true },

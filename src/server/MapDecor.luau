@@ -1372,7 +1372,9 @@ local function buildRoomBlock(decor)
 	)
 	-- Kit: the room shells themselves are placed by MapBuilder (with the
 	-- gameplay walls); here the long roof, walkway, nightstands, machines.
-	if Kit.place("RoomRoof", shell, CFrame.new(19.5, 0, 10)) then
+	-- RoomRoofV2 = office-style roof (batch "rooms"); RoomRoof until imported.
+	local roofGroup = if Kit.has("RoomRoofV2") then "RoomRoofV2" else "RoomRoof"
+	if Kit.place(roofGroup, shell, CFrame.new(19.5, 0, 10)) then
 		Kit.retireNamed(shell, {
 			"Roof.*",
 			"Shingle",

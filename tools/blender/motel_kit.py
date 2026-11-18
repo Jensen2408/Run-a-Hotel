@@ -2244,6 +2244,140 @@ def _office_v3():
 
 
 # ======================================================================
+# Batch "rooms": guest room block restyled to match office v3 (same
+# palette, clay-tile roof, teal plinths / capitals, cream eave band,
+# teal-framed windows with flower boxes, wall lanterns, colourful string
+# lights). Same footprints as RoomUnit / RoomRoof, so gameplay walls,
+# doors and NPC routes stay.
+# ======================================================================
+def room_v2():
+    """Guest room shell in the office v3 style (14 x 16, walls 12)."""
+    return with_palette(V3_PALETTE, _room_v3)
+
+
+def room_roof_v2():
+    """Long clay-tile roof over the three rooms + walkway (office v3 style)."""
+    return with_palette(V3_PALETTE, _room_roof_v3)
+
+
+def _room_v3():
+    H = 12
+    X1, X2, Y1, Y2 = -7.0, 7.0, -8.0, 8.0
+    W, T, A, F, WIN, L = [], [], [], [], [], []
+    front_open = [(-6.0, -3.0, 3.3, 6.3), (-2.0, 2.0, 0, 7.6)]
+    back_open = [(1.0, 5.0, 5.2, 8.0)]
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y2, H, WALL_CREAM, front_open, bevel=0.0)
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y1, H, WALL_CREAM, back_open, bevel=0.0)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X1, H, WALL_CREAM, bevel=0.0)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X2, H, WALL_CREAM, bevel=0.0)
+    W += siding("x", X1, X2, Y2, 1, H, WALL_LINE, front_open, step=1.3, margin=0.8)
+    W += siding("x", X1, X2, Y1, -1, H, WALL_LINE, back_open, step=1.3, margin=0.8)
+    W += siding("y", Y1, Y2, X1, -1, H, WALL_LINE, step=1.3, margin=0.8)
+    W += siding("y", Y1, Y2, X2, 1, H, WALL_LINE, step=1.3, margin=0.8)
+    W += ceiling(X1 + 0.5, X2 - 0.5, Y1 + 0.5, Y2 - 0.5, H)
+    # Teal base band, cream corner boards on teal plinths, teal capitals,
+    # cream eave band front and back (as the office).
+    T += base_trim("x", X1, X2, Y2, 1, TEAL, front_open, h=1.1)
+    T += base_trim("x", X1, X2, Y1, -1, TEAL, back_open, h=1.1)
+    T += base_trim("y", Y1, Y2, X1, -1, TEAL, h=1.1)
+    T += base_trim("y", Y1, Y2, X2, 1, TEAL, h=1.1)
+    T += corner_boards(X1, X2, Y1, Y2, H, CREAM)
+    for x in (X1 - 0.42, X2 + 0.42):
+        for y in (Y1 - 0.42, Y2 + 0.42):
+            T.append(box((1.4, 1.4, 1.5), (x, y, 0.75), TEAL_DARK, bevel=0.14, segments=2))
+            T.append(box((1.15, 1.15, 0.55), (x, y, H - 0.6), TEAL, bevel=0.1, segments=1))
+    for y, o in ((Y2, 1), (Y1, -1)):
+        T.append(box((X2 - X1 - 0.2, 0.45, 0.75), (0, y + o * 0.72, H - 0.42), CREAM, bevel=0.08, segments=1))
+    # Teal door frame with a brass threshold (the tinted door leaf is the
+    # gameplay RoomDoor mesh, placed by MapBuilder).
+    T += door_frame("x", -2.0, 2.0, Y2, 7.6, colour=TEAL)
+    T.append(box(_size("x", 4.0, 1.2, 0.12), _along("x", 0.0, Y2, 1, z=0.06), BRASS, bevel=0.03, segments=1))
+    # Front window: teal mullions, clear glass, flower box, striped awning.
+    t_, g_ = window("x", -4.5, Y2, 1, 3.0, 3.0, 4.8, shutters=False, glass_colour=GLASS_BLUE, mullion=TEAL, sill=False)
+    T += t_
+    WIN += g_
+    flower_box("x", -4.5, Y2, 1, 2.8, 4.8 - 1.5 - 0.95, 3, F)
+    A += awning("x", -4.5, Y2, 1, 3.8, 4.8 + 1.5 + 1.2, depth=2.0)
+    # Back window (bathroom side) with a flower box.
+    t_, g_ = window("x", 3.0, Y1, -1, 4.0, 2.8, 6.6, shutters=False, glass_colour=GLASS_BLUE, mullion=TEAL, sill=False)
+    T += t_
+    WIN += g_
+    flower_box("x", 3.0, Y1, -1, 4.0, 6.6 - 1.4 - 0.95, 5, F)
+    # Wall lantern beside the door, brass number plaque, eave downlights.
+    lantern((3.4, Y2 + 0.5, 5.6), L, T)
+    T.append(box((1.5, 0.25, 1.5), (5.3, Y2 + 0.62, 6.0), BRASS, bevel=0.1, segments=1))
+    T.append(box((1.2, 0.12, 1.2), (5.3, Y2 + 0.78, 6.0), TEAL_DARK, bevel=0.06, segments=1))
+    for x in (-4.5, 4.5):
+        L.append(cyl(0.27, 0.12, (x, Y2 + 0.74, H - 0.86), GLOW, verts=8))
+    places = [[cx, 0, 12 + ROOM_SHIFT] for cx in (2, 20, 38)]
+    return out(
+        {"Walls": W, "Trim": T, "Awning": A, "Flowers": F, "Glass": WIN, "Glow": L},
+        "RoomV2",
+        {"Walls": "Precise"},
+        dict(place=places),
+    )
+
+
+def _room_roof_v3():
+    W, T, R, L = [], [], [], []
+    BASE, RISE, D = 12.0, 6.0, 11.6
+    r, t = tile_roof(-26.3, 27.3, -D, D, BASE, RISE)
+    R += r
+    T += t
+    # Gable ends on the outer room walls, with siding lines (wall span is
+    # y -10.5..6.5 under a roof centred on y 0).
+    for x, o in ((-24.5, -1), (25.5, 1)):
+        w_, t_ = gable_infill(x, -10.5, 6.5, 0.0, D, BASE, RISE, WALL_CREAM, vent=False)
+        W += w_
+        z = BASE + 0.8
+        while z < BASE + RISE - 0.8:
+            half = D * (1 - (z - BASE) / RISE) - 0.25
+            ya, yb = max(-10.5 + 0.25, -half), min(6.5 - 0.25, half)
+            if yb - ya > 0.8:
+                T.append(box((0.14, yb - ya, 0.16), (x + o * 0.56, (ya + yb) / 2, z), WALL_LINE, bevel=0.0))
+            z += 1.2
+        lantern((x + o * 0.5, -2.0, 15.0), L, T, facing=(o, 0))
+    # Lintels across the gaps between rooms (front and back) under the eave.
+    for x1, x2 in ((-10.5, -6.5), (7.5, 11.5)):
+        for y in (6.0, -10.0):
+            W.append(box((x2 - x1 + 1.0, 1.0, 1.8), ((x1 + x2) / 2, y, 11.1), WALL_CREAM, bevel=0.05, segments=1))
+            T.append(box((x2 - x1 + 1.0, 1.15, 0.5), ((x1 + x2) / 2, y, 10.05), TEAL, bevel=0.08, segments=1))
+    # Walkway: slim cream posts on teal plinths, teal beam, string lights.
+    posts = (-25.5, -8.5, 9.5, 25.5)
+    for x in posts:
+        T.append(cyl(0.34, 11.0, (x, 10.6, 5.75), CREAM, verts=12))
+        T.append(box((1.0, 1.0, 0.9), (x, 10.6, 0.45), TEAL_DARK, bevel=0.12, segments=1))
+        T.append(box((0.9, 0.9, 0.4), (x, 10.6, 11.2), TEAL, bevel=0.1, segments=1))
+    T.append(box((52.4, 0.6, 0.6), (0.0, 10.6, 11.7), TEAL, bevel=0.12, segments=1))
+    T.append(box((52.6, 0.62, 0.16), (0.0, 10.62, 11.33), CREAM, bevel=0.04, segments=1))
+    k = 0
+    for a, b in zip(posts, posts[1:]):
+        n = 12
+        pts = []
+        for i in range(n + 1):
+            tt = i / n
+            pts.append((a + (b - a) * tt, 10.98, 11.05 - 0.55 * 4 * tt * (1 - tt)))
+        for p0, p1 in zip(pts, pts[1:]):
+            T.append(segment(p0, p1, 0.03, IRON, verts=4))
+        for i in range(n):
+            tt = (i + 0.5) / n
+            L.append(bulb((a + (b - a) * tt, 10.98, 10.85 - 0.55 * 4 * tt * (1 - tt)), 0.2, STRING_COLOURS[k % len(STRING_COLOURS)]))
+            k += 1
+    # Brick chimney (left) and metal vent (right), as on the office.
+    R += chimney(-15.5, -5.0, 14.6, 4.6, colour=BRICK_LIGHT)
+    mortar_lines(-15.5, -5.0, 14.6, 4.6, 2.6, R)
+    R.append(cyl(0.62, 3.0, (16.5, -5.0, 16.7), STEEL, verts=16))
+    R.append(cyl(0.78, 0.25, (16.5, -5.0, 18.25), STEEL_DARK, verts=16))
+    R.append(cyl(0.95, 0.5, (16.5, -5.0, 18.65), STEEL, verts=16, radius2=0.35))
+    return out(
+        {"Walls": W, "Trim": T, "Roof": R, "Glow": L},
+        "RoomRoofV2",
+        {"Roof": "Hull"},
+        dict(place=[[19.5, 0, 10 + ROOM_SHIFT]]),
+    )
+
+
+# ======================================================================
 # Batch 4: interior furniture, lamps, pool / yard / road props
 # (prop-artist + cartoon-style). Sizes follow the part-built decor they
 # replace (MapDecor / MapBuilder); front = +Y (Roblox -Z), origin noted
@@ -2976,6 +3110,10 @@ BATCHES = {
         ("OfficeDoorSide", office_door_side, "door"),
         ("OfficeDoorBack", office_door_back, "door"),
     ],
+    "rooms": [
+        ("RoomV2", room_v2, "building"),
+        ("RoomRoofV2", room_roof_v2, "hero_building"),
+    ],
     "batch4": [
         ("Couch", couch, "hero"),  # main lobby furniture, seen up close
         ("CoffeeTable", coffee_table, "standard"),
@@ -3254,7 +3392,7 @@ for g, yaw in PREVIEW_YAW.items():
 bpy.context.view_layer.update()
 names = [g for g, _b, _t in BATCHES[BATCH]]
 sheets = [names[i : i + 6] for i in range(0, len(names), 6)]
-for k, sheet in enumerate(sheets if BATCH != "office" else []):
+for k, sheet in enumerate(sheets if BATCH not in ("office", "rooms") else []):
     # Hide everything, then lay this sheet out in two rows of three.
     for o in built:
         o.hide_render = True
@@ -3350,5 +3488,38 @@ if BATCH == "office":
         cam.rotation_euler = (look - cam.location).to_track_quat("-Z", "Y").to_euler()
         sun.rotation_euler = (math.radians(-50), 0, math.atan2(-vx, vy) + math.radians(-28))
         scene.render.filepath = os.path.join(OUT, "previews", f"motel_kit_office_{name}.png")
+        bpy.ops.render.render(write_still=True)
+# Rooms: the block assembled (roof + three rooms at their places, relative
+# to the roof), front 3/4, back and close-up views.
+if BATCH == "rooms":
+    roof_place = manifest["SM_Bld_RoomRoofV2_Roof"]["place"][0]
+    for o in list(built):
+        for i, (px, py, pz) in enumerate(manifest[o.name]["place"]):
+            inst = o if i == 0 else o.copy()
+            if i > 0:
+                col_geo.objects.link(inst)
+            dx, dz = px - roof_place[0], pz - roof_place[2]
+            inst.matrix_world = Matrix.Translation((dx, -dz, 0)) @ orig_matrix[o.name]
+            inst.hide_render = False
+    bpy.context.view_layer.update()
+    ground.location = (0, 0, 0)
+    ground.scale = (300, 300, 1)
+    scene.view_settings.view_transform = "Standard"
+    scene.view_settings.look = "None"
+    bg.inputs["Color"].default_value = (0.32, 0.46, 0.72, 1)
+    bg.inputs["Strength"].default_value = 0.75
+    sun_data.energy = 2.4
+    sun_data.color = (1.0, 0.92, 0.8)
+    fov = 2 * math.atan(cam_data.sensor_width / (2 * cam_data.lens))
+    views = {"front": (0.35, 1, 14, 70.0), "back": (-0.3, -1, 14, 70.0), "close": (0.2, 1, 8, 26.0)}
+    for name, (vx, vy, elev, span) in views.items():
+        e = math.radians(elev)
+        dist = (span / 2) / math.tan(fov / 2)
+        look = Vector((0, 0, 7.5)) if name != "close" else Vector((0.5, 6.0, 5.5))
+        d = Vector((vx, vy, 0)).normalized()
+        cam.location = look + Vector((d.x * math.cos(e), d.y * math.cos(e), math.sin(e))) * dist
+        cam.rotation_euler = (look - cam.location).to_track_quat("-Z", "Y").to_euler()
+        sun.rotation_euler = (math.radians(-50), 0, math.atan2(-d.x, d.y) + math.radians(-28))
+        scene.render.filepath = os.path.join(OUT, "previews", f"motel_kit_rooms_{name}.png")
         bpy.ops.render.render(write_still=True)
 print("[kit] previews done")
