@@ -28,11 +28,15 @@ local MapDecor = require(script.Parent:WaitForChild("MapDecor"))
 -- Supply shop building centre (scale-1 coordinates), shared with MapDecor.
 local SHOP_X, SHOP_Z = MapDecor.SHOP_X, MapDecor.SHOP_Z
 local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
+local Kit = require(script.Parent:WaitForChild("Kit"))
+
+-- Room door leaf colours (Blender kit door, one per room).
+local DOOR_COLORS = { Color3.fromRGB(64, 150, 146), Color3.fromRGB(230, 120, 70), Color3.fromRGB(110, 120, 200) }
 
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 12
+MapBuilder.VERSION = 13
 
 local function part(props)
 	local p = Instance.new("Part")
@@ -149,6 +153,10 @@ function MapBuilder.build(config)
 		old:Destroy()
 	end
 
+	-- Blender kit meshes (templates in ServerStorage.MotelKit); props fall
+	-- back to the part look when a mesh is missing.
+	Kit.load()
+
 	local root = Instance.new("Folder")
 	root.Name = "Motel"
 	local map = Instance.new("Folder")
@@ -231,6 +239,8 @@ function MapBuilder.build(config)
 		offset = Vector3.new(0, 1.5, -1.2),
 	})
 	label(desk, "FRONT DESK", 3.2, 5.2, "guests")
+	Kit.skin(desk, "FrontDesk", CFrame.new(26, 0.4, -14), { only = { SM_Prop_FrontDesk = true } })
+	Kit.place("FrontDesk", map, CFrame.new(23.5, 3.68, -14.8), { only = { SM_Prop_DeskBell = true } })
 	local deskLamp = part({
 		Name = "DeskLamp",
 		Size = Vector3.new(1, 1, 1),
@@ -278,6 +288,7 @@ function MapBuilder.build(config)
 		offset = Vector3.new(1, 0, 0),
 	})
 	layout.breakerLabel = label(breaker, "BREAKER", 3, 4.6, "lightning")
+	Kit.skin(breaker, "Breaker", CFrame.new(5, 4, -10))
 
 	-- Supply shop counter, inside the shop building east of the motel
 	-- (building shell in MapDecor.buildShopBuilding). The prompt opens the
@@ -297,6 +308,7 @@ function MapBuilder.build(config)
 		offset = Vector3.new(-1.8, 1, 0),
 	})
 	label(shop, "SUPPLY SHOP", 3.4, 5.8, "trolley")
+	Kit.skin(shop, "ShopCounter", CFrame.new(SHOP_X + 5, 0.4, SHOP_Z))
 
 	-- Kitchen (room service): stove counter with two burners and a prep board
 	-- inside the kitchen building (MapDecor.KITCHEN). One prompt opens the
@@ -318,6 +330,7 @@ function MapBuilder.build(config)
 		offset = Vector3.new(1.6, 1, 0),
 	})
 	label(stove, "KITCHEN", 4.4, 5.4, "stove")
+	Kit.skin(stove, "Stove", CFrame.new(stoveX, 0.45, 2))
 	for i, kind in ipairs(config.kitchen.slots) do
 		local z = -0.5 + (i - 1) * 2.5
 		local slot
@@ -514,6 +527,37 @@ function MapBuilder.build(config)
 			Parent = roomFolder,
 		})
 
+		-- Blender kit: room shell over the (now invisible) gameplay walls, and
+		-- skins on the bed, bin, trash bag and AC. Visuals drives their state
+		-- colours through Kit.set.
+		if Kit.place("RoomUnit", roomFolder, CFrame.new(cx, 0, 12)) then
+			for _, name in ipairs({ "BackWall", "LeftWall", "RightWall", "FrontWallL", "FrontWallR", "DoorLintel" }) do
+				local w = roomFolder:FindFirstChild(name)
+				if w then
+					w.Transparency = 1
+					w.CastShadow = false
+					w:SetAttribute("Occluder", true)
+				end
+			end
+			local doorColor = DOOR_COLORS[(i - 1) % #DOOR_COLORS + 1]
+			Kit.place("RoomDoor", roomFolder, CFrame.new(cx, 0, 4), { only = { SM_Prop_Door_Frame = true } })
+			-- Door leaf swung open against the inside of the front wall.
+			Kit.place("RoomDoor", roomFolder, CFrame.new(cx + 2.35, 0.4, 6.15) * CFrame.Angles(0, -math.pi / 2, 0), {
+				only = { SM_Prop_Door_Leaf = true, SM_Prop_Door_Hardware = true },
+				tint = { SM_Prop_Door_Leaf = doorColor },
+			})
+			Kit.skin(bed, "Bed", CFrame.new(cx + 3, 0.4, 15), {
+				follow = { SM_Prop_Bed_Sheet = true },
+				tint = { SM_Prop_Bed_Blanket = doorColor },
+			})
+			Kit.skin(bin, "Trash", CFrame.new(cx - 5, 0.4, 7), { only = { SM_Prop_TrashBin = true } })
+			Kit.skin(trashBag, "Trash", CFrame.new(cx - 5, 1.7, 7), {
+				only = { SM_Prop_TrashBag = true },
+				transparency = { SM_Prop_TrashBag = trashBag.Transparency },
+			})
+			Kit.skin(ac, "ACUnit", CFrame.new(cx - 2, 6, 19.4), { follow = { SM_Prop_AC_Body = true } })
+		end
+
 		local room = {
 			id = i,
 			center = Vector3.new(cx, 1, 12),
@@ -585,6 +629,7 @@ function MapBuilder.build(config)
 		offset = Vector3.new(0, 0, 1.2),
 	})
 	layout.linenLabel = label(shelf, "LINEN", 4, 8.2, "sheet")
+	Kit.skin(shelf, "LinenShelf", CFrame.new(60, 0.4, -22))
 
 	-- Dumpster ---------------------------------------------------------------
 	local dumpster = part({
@@ -601,6 +646,7 @@ function MapBuilder.build(config)
 		objectText = "Dumpster",
 	})
 	label(dumpster, "DUMPSTER", 3.2, 5.2, "trash")
+	Kit.skin(dumpster, "Dumpster", CFrame.new(64, 0.3, 6))
 
 	-- Rain emitter (enabled by the server on rainy nights) ----------------------
 	local rainPart = part({

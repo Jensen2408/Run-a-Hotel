@@ -13,12 +13,20 @@
 	  Blink = period      slow twinkle, animated by the client
 	  Flicker = base      PointLight brightness that flickers (fire)
 	  Fireflies = true    ParticleEmitter enabled at night by the client
+	  Retired / Occluder  old part kept invisible under a Blender kit mesh (Kit)
+
+	Blender kit: when the imported meshes are available (Kit.has), the
+	builders still create the old parts (so colliders, lights, smoke and
+	text labels stay exactly where gameplay expects them), then retire the
+	visual ones and place the meshes on the same spots.
 
 	Geometry notes (measured in Studio):
 	  WedgePart       high edge at local +Z, low edge at local -Z.
 	  CornerWedgePart peak at the local (+X, -Z) corner.
 	  Cylinder        axis along local X.
 ]]
+
+local Kit = require(script.Parent:WaitForChild("Kit"))
 
 local MapDecor = {}
 
@@ -403,7 +411,7 @@ local function surfaceText(part, face, lines, opts)
 	return gui
 end
 
-local function lampPost(parent, pos: Vector3, heightArg: number?)
+local function lampPostParts(parent, pos: Vector3, heightArg: number?)
 	local height: number = heightArg or 12
 	cylY(parent, "LampPole", height, 0.7, pos + Vector3.new(0, height / 2, 0), METAL_DARK)
 	cylY(parent, "LampBase", 1, 1.4, pos + Vector3.new(0, 0.5, 0), METAL_DARK)
@@ -449,7 +457,7 @@ local function stringLights(parent, a: Vector3, b: Vector3, count: number)
 	end
 end
 
-local function fenceLine(parent, a: Vector3, b: Vector3, spacing: number?)
+local function fenceLineParts(parent, a: Vector3, b: Vector3, spacing: number?)
 	spacing = spacing or 6
 	local delta = b - a
 	local length = delta.Magnitude
@@ -535,7 +543,7 @@ local AUTUMN = {
 	Color3.fromRGB(214, 92, 50),
 	Color3.fromRGB(190, 70, 60),
 }
-local function roundTree(parent, x: number, z: number, rng: Random, scale: number?)
+local function roundTreeParts(parent, x: number, z: number, rng: Random, scale: number?)
 	local s = scale or 1
 	local model = Instance.new("Model")
 	model.Name = "RoundTree"
@@ -570,7 +578,7 @@ local function birch(parent, x: number, z: number, rng: Random)
 	model.Parent = parent
 end
 
-local function bush(parent, pos: Vector3, rng: Random, flowers: boolean?)
+local function bushParts(parent, pos: Vector3, rng: Random, flowers: boolean?)
 	local base = Color3.fromRGB(62, 122, 58)
 	for i = 1, 3 do
 		local s = rng:NextNumber(2.2, 3.6)
@@ -633,7 +641,7 @@ end
 -- Furniture
 ------------------------------------------------------------------------
 
-local function bench(parent, pos: Vector3, yaw: number)
+local function benchParts(parent, pos: Vector3, yaw: number)
 	local cf = CFrame.new(pos) * CFrame.Angles(0, yaw, 0)
 	block(parent, "BenchSeat", Vector3.new(5, 0.4, 1.6), cf * CFrame.new(0, 1.6, 0), WOOD)
 	detail(parent, "BenchBack", Vector3.new(5, 1.4, 0.3), cf * CFrame.new(0, 2.6, 0.75), WOOD)
@@ -642,7 +650,7 @@ local function bench(parent, pos: Vector3, yaw: number)
 	end
 end
 
-local function pottedPlant(parent, pos: Vector3, rng: Random)
+local function pottedPlantParts(parent, pos: Vector3, rng: Random)
 	cylY(parent, "Pot", 1.6, 1.8, pos + Vector3.new(0, 0.8, 0), Color3.fromRGB(196, 110, 70))
 	for _ = 1, 3 do
 		local p = pos + Vector3.new(rng:NextNumber(-0.5, 0.5), rng:NextNumber(2, 3), rng:NextNumber(-0.5, 0.5))
@@ -657,9 +665,115 @@ local function pottedPlant(parent, pos: Vector3, rng: Random)
 	end
 end
 
-local function umbrella(parent, pos: Vector3)
+local function umbrellaParts(parent, pos: Vector3)
 	cylY(parent, "UmbrellaPole", 6, 0.3, pos + Vector3.new(0, 3, 0), Color3.fromRGB(230, 230, 230), DETAIL)
 	pyramid(parent, pos.X, pos.Y + 5.2, pos.Z, 7, 1.8, nil, math.pi / 4, { ACCENT, CREAM })
+end
+
+------------------------------------------------------------------------
+-- Blender kit versions of the props (old parts become colliders / lights)
+------------------------------------------------------------------------
+
+-- Builds the old part version, then (when the kit has `group`) retires the
+-- parts it just added to `parent` and places the meshes instead.
+local function skinned(parent, group, buildOld, placeNew)
+	local before = {}
+	for _, c in ipairs(parent:GetChildren()) do
+		before[c] = true
+	end
+	local result = buildOld()
+	if Kit.has(group) then
+		for _, c in ipairs(parent:GetChildren()) do
+			if not before[c] then
+				Kit.retire(c)
+			end
+		end
+		placeNew()
+	end
+	return result
+end
+
+local function lampPost(parent, pos: Vector3, heightArg: number?)
+	local head
+	skinned(parent, "LampPost", function()
+		head = lampPostParts(parent, pos, heightArg)
+	end, function()
+		Kit.place("LampPost", parent, CFrame.new(pos))
+		-- The (invisible) head keeps the light; move it into the lantern.
+		head.CFrame = CFrame.new(pos + Vector3.new(0, 9.8, 0))
+	end)
+	return head
+end
+
+local function bench(parent, pos: Vector3, yaw: number)
+	skinned(parent, "Bench", function()
+		benchParts(parent, pos, yaw)
+	end, function()
+		Kit.place("Bench", parent, CFrame.new(pos) * CFrame.Angles(0, yaw, 0))
+	end)
+end
+
+local function pottedPlant(parent, pos: Vector3, rng: Random)
+	skinned(parent, "PottedPlant", function()
+		pottedPlantParts(parent, pos, rng)
+	end, function()
+		Kit.place("PottedPlant", parent, CFrame.new(pos) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0))
+	end)
+end
+
+local function bush(parent, pos: Vector3, rng: Random, flowers: boolean?)
+	skinned(parent, "FlowerBush", function()
+		bushParts(parent, pos, rng, flowers)
+	end, function()
+		Kit.place(
+			"FlowerBush",
+			parent,
+			CFrame.new(pos.X, pos.Y, pos.Z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
+			{ scale = rng:NextNumber(0.75, 1.05) }
+		)
+	end)
+end
+
+local function roundTree(parent, x: number, z: number, rng: Random, scale: number?)
+	skinned(parent, "RoundTree", function()
+		roundTreeParts(parent, x, z, rng, scale)
+	end, function()
+		local canopy = AUTUMN[rng:NextInteger(1, #AUTUMN)]
+		Kit.place("RoundTree", parent, CFrame.new(x, 0, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0), {
+			scale = (scale or 1) * rng:NextNumber(0.85, 1.05),
+			tint = { SM_Veg_RoundTree_Canopy = canopy:Lerp(Color3.fromRGB(255, 232, 130), rng:NextNumber(0, 0.2)) },
+		})
+	end)
+end
+
+local function umbrella(parent, pos: Vector3)
+	skinned(parent, "Parasol", function()
+		umbrellaParts(parent, pos)
+	end, function()
+		Kit.place("Parasol", parent, CFrame.new(pos))
+	end)
+end
+
+-- Fence: old posts and rails stay as invisible colliders; the kit sections
+-- (post + two rails, 6 long) are stretched a little to fit the line evenly.
+local function fenceLine(parent, a: Vector3, b: Vector3, spacing: number?)
+	skinned(parent, "Fence", function()
+		fenceLineParts(parent, a, b, spacing)
+	end, function()
+		local flat = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+		local count = math.max(1, math.floor(flat.Magnitude / 6 + 0.5))
+		local dir = flat.Unit
+		for i = 0, count - 1 do
+			local p = a + flat * (i / count)
+			Kit.place(
+				"Fence",
+				parent,
+				CFrame.fromMatrix(Vector3.new(p.X, 0, p.Z), dir, Vector3.yAxis),
+				{ only = { SM_Yard_FenceSection = true }, scaleX = flat.Magnitude / count / 6 }
+			)
+		end
+		Kit.place("Fence", parent, CFrame.new(b.X, 0, b.Z), { only = { SM_Yard_FencePost = true } })
+	end)
 end
 
 ------------------------------------------------------------------------
@@ -814,6 +928,11 @@ local function buildMotelSign(decor)
 			strokeColor = Color3.fromRGB(0, 70, 30),
 		},
 	})
+	-- Kit: the pylon mesh has its own 3D letters and bulbs; the vacancy board
+	-- part stays (invisible) so the game can keep changing its text.
+	if Kit.place("MotelSign", sign, CFrame.new(sx, 0, sz)) then
+		Kit.retireNamed(sign, { "Pole", "Footing", "VacancyBoard" }, { "Board", "Bulb", "ArrowShaft", "ArrowHead" })
+	end
 end
 
 local function buildLobby(decor, rng)
@@ -908,6 +1027,33 @@ local function buildLobby(decor, rng)
 			rack.Position + Vector3.new(-2.5 + k, -0.2, -0.25),
 			Color3.fromRGB(240, 200, 80)
 		)
+	end
+	if Kit.place("Office", lobby, CFrame.new(22, 0, -19)) then
+		Kit.retireNamed(lobby, {
+			"WestWall.*",
+			"NorthWall.*",
+			"SouthWall.*",
+			"EastWall.*",
+			"Siding",
+			"BaseTrim",
+			"Window",
+			"Sill",
+			"Shutter",
+			"Awning",
+			"Valance",
+			"DoorFrame",
+			"Roof.*",
+			"Shingle",
+			"Ceiling",
+			"Chimney",
+			"ChimneyCap",
+			"Canopy",
+			"CanopyTrim",
+			"CanopyPost",
+			"Bulb",
+			"Wire",
+			"DeskBell",
+		}, { "OfficeSign" })
 	end
 	cylZ(lobby, "Clock", 0.2, 2, Vector3.new(19, 9, -6.6), Color3.fromRGB(250, 250, 245), DETAIL)
 	detail(lobby, "ClockHand", Vector3.new(0.12, 0.8, 0.05), Vector3.new(19, 9.3, -6.75), METAL_DARK)
@@ -1064,6 +1210,45 @@ local function buildRoomBlock(decor)
 		Enum.NormalId.Front,
 		{ { text = "ICE", color = Color3.fromRGB(60, 120, 200), scale = 0.9, stroke = 0 } }
 	)
+	-- Kit: the room shells themselves are placed by MapBuilder (with the
+	-- gameplay walls); here the long roof, walkway, nightstands, machines.
+	if Kit.place("RoomRoof", shell, CFrame.new(19.5, 0, 10)) then
+		Kit.retireNamed(shell, {
+			"Roof.*",
+			"Shingle",
+			"Ceiling",
+			"Chimney",
+			"ChimneyCap",
+			"WalkwayPost",
+			"WalkwayBeam",
+			"Wire",
+			"Bulb",
+			"Window",
+			"Planter",
+			"Flower",
+			"DoorFrameL",
+			"DoorFrameR",
+			"DoorFrameTop",
+			"Door",
+			"DoorKnob",
+			"Plaque",
+			"WallLampBack",
+			"WallLamp",
+			"Headboard",
+			"Pillow",
+			"Blanket",
+			"Nightstand",
+			"BedsideLamp",
+			"VendingMachine",
+			"VendingGlow",
+			"IceMachine",
+		}, { "IceSign" })
+		for _, cx in ipairs({ 2, 20, 38 }) do
+			Kit.place("Nightstand", shell, CFrame.new(cx - 0.6, 0.4, 18.4))
+		end
+		Kit.place("Vending", shell, CFrame.new(48.5, 0, 1.5))
+		Kit.place("IceMachine", shell, CFrame.new(52, 0, 1.5))
+	end
 end
 
 local function buildShedAndYard(decor)
@@ -1087,6 +1272,13 @@ local function buildShedAndYard(decor)
 		cylZ(shed, "WasherDoor", 0.1, 2, Vector3.new(56 + k * 3.4, 2, -12.15), Color3.fromRGB(120, 170, 210), DETAIL)
 	end
 	detail(shed, "LaundryCart", Vector3.new(2.4, 2, 3.4), Vector3.new(64.5, 1.4, -12), Color3.fromRGB(110, 120, 140))
+	if Kit.place("LinenShed", shed, CFrame.new(60, 0, -16)) then
+		Kit.retireNamed(
+			shed,
+			{ "SouthWall.*", "NorthWall.*", "EastWall.*", "WestWall.*", "Roof.*", "Shingle", "Ceiling" },
+			{ "LaundrySign" }
+		)
+	end
 	block(shed, "Path", Vector3.new(14, 0.25, 8), Vector3.new(46.5, 0.15, -16), Color3.fromRGB(176, 166, 146))
 	lampPost(shed, Vector3.new(50, 0, -26), 10)
 
@@ -1253,6 +1445,32 @@ local function buildShopBuilding(decor, rng)
 		Material = Enum.Material.Neon,
 	})
 	pointLight(lamp, 26, 1)
+
+	local shopMeshes = Kit.place("Shop", f, CFrame.new(SHOP_X, 0, SHOP_Z))
+	if shopMeshes then
+		Kit.retireNamed(f, {
+			"SouthWall.*",
+			"NorthWall.*",
+			"EastWall.*",
+			"WestWall.*",
+			"Ceiling",
+			"Roof.*",
+			"Shingle",
+			"ShopWindow",
+			"Sill",
+			"DoorFrame",
+			"Canopy",
+			"Bulb",
+			"ShelfPost",
+			"ShelfBoard",
+			"Goods",
+			"Register",
+			"RegisterScreen",
+		}, { "ShopSign", "OpenSign" })
+		shopMeshes.SM_Bld_Shop_OpenSign:SetAttribute("Blink", 1.4)
+		Kit.place("ShopShelf", f, CFrame.new(SHOP_X - 3.25, 0.4, SHOP_Z + 6.4))
+		Kit.place("ShopShelf", f, CFrame.new(SHOP_X - 3.25, 0.4, SHOP_Z - 6.4) * CFrame.Angles(0, math.pi, 0))
+	end
 
 	-- Outside: path from the fence gap, front pad, crates, barrel, plants, lamp.
 	block(f, "Path", Vector3.new(22, 0.26, 7), Vector3.new(x1 - 11, 0.14, SHOP_Z), Color3.fromRGB(196, 186, 166), {
@@ -1432,6 +1650,37 @@ local function buildKitchenBuilding(decor, rng)
 	})
 	pointLight(lamp, 22, 1)
 	pottedPlant(f, Vector3.new(x2 + 1.5, 0.2, door[1] - 2.2), rng)
+	if Kit.place("Kitchen", f, CFrame.new(cx, 0, cz)) then
+		Kit.retireNamed(f, {
+			"SouthWall.*",
+			"NorthWall.*",
+			"WestWall.*",
+			"EastWall.*",
+			"Ceiling",
+			"Roof.*",
+			"Shingle",
+			"Chimney",
+			"ChimneyCap",
+			"DoorFrame",
+			"Bulb",
+			"Canopy",
+			"Window",
+			"Sill",
+			"Fridge",
+			"FridgeHandle",
+			"FridgeLine",
+			"PantryPost",
+			"PantryBoard",
+			"Ingredient",
+			"SinkCounter",
+			"Sink",
+			"Tap",
+		}, { "KitchenSign" })
+		local floorY = 0.45
+		Kit.place("Fridge", f, CFrame.new(x1 + 1.9, floorY, z2 - 1.8))
+		Kit.place("Pantry", f, CFrame.new(x1 + 6.5, floorY, z2 - 1.3))
+		Kit.place("Sink", f, CFrame.new(x2 - 3, floorY, z2 - 1.5))
+	end
 end
 
 local function buildPool(decor)
@@ -1533,6 +1782,28 @@ local function buildCampfire(decor, rng)
 		cylY(camp, "LightPole", 7.2, 0.5, p + Vector3.new(0, 3.6, 0), WOOD_DARK)
 	end
 	stringLights(camp, Vector3.new(-36, 7, -34), Vector3.new(-14, 7, -16), 16)
+	if Kit.has("Campfire") then
+		Kit.retireNamed(
+			camp,
+			{ "FirePit", "Rock", "Log", "Embers", "LogSeat", "PicnicTop", "PicnicBench", "PicnicLeg" }
+		)
+		Kit.place(
+			"Campfire",
+			camp,
+			CFrame.new(fx, 0, fz),
+			{ only = { SM_Yard_Campfire = true, SM_Yard_Campfire_Flames = true } }
+		)
+		for k = 0, 2 do
+			local a = k / 3 * math.pi * 2 + 0.5
+			Kit.place(
+				"Campfire",
+				camp,
+				CFrame.new(fx + math.cos(a) * 7, 0, fz + math.sin(a) * 7) * CFrame.Angles(0, -a + math.pi / 2, 0),
+				{ only = { SM_Yard_LogSeat = true } }
+			)
+		end
+		Kit.place("PicnicTable", camp, CFrame.new(-16, 0, -32))
+	end
 end
 
 local function buildGreenery(decor, rng)
@@ -1628,6 +1899,10 @@ local function buildCourtyard(decor, rng)
 		EmissionDirection = Enum.NormalId.Right, -- cylinder axis (local X) points up
 		Parent = top,
 	})
+	if Kit.place("Fountain", yard, CFrame.new(fx, 0.1, fz), { transparency = { SM_Yard_Fountain_Water = 0.25 } }) then
+		Kit.retireNamed(yard, { "FountainBasin", "FountainWater", "FountainColumn", "FountainTop" })
+		top.CFrame = CFrame.new(fx, 4.7, fz) * CFrame.Angles(0, 0, math.pi / 2) -- spray from the spout
+	end
 	-- A couple of autumn trees and bushes on the lawns.
 	roundTree(yard, 52, zc - 2, rng, 0.9)
 	bush(yard, Vector3.new(32, 0, zc - 5), rng, true)

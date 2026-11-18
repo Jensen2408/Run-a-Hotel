@@ -62,9 +62,11 @@ local function anchorOf(gui: BillboardGui): Vector3?
 	return base + gui.StudsOffsetWorldSpace + Vector3.new(0, gui.StudsOffset.Y, 0)
 end
 
--- A part blocks the view when it is solid and mostly opaque.
+-- A part blocks the view when it is solid and mostly opaque. Walls hidden
+-- under a Blender kit mesh (Occluder) still block: the mesh itself is not
+-- queryable, so its invisible gameplay wall stands in for it.
 local function blocks(part: BasePart): boolean
-	return part.Transparency < 0.25 and part.CanCollide
+	return part.CanCollide and (part.Transparency < 0.25 or part:GetAttribute("Occluder") == true)
 end
 
 local params = RaycastParams.new()

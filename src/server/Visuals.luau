@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local UiAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiAssets"))
 local NpcRigs = require(script.Parent:WaitForChild("NpcRigs"))
+local Kit = require(script.Parent:WaitForChild("Kit"))
 
 local Visuals = {}
 Visuals.__index = Visuals
@@ -386,6 +387,23 @@ local function makeCar(id: number, parent: Instance)
 		)
 	end
 	part("Grille", Vector3.new(1.8, 0.4, 0.12), CFrame.new(0, 0.1, -4.55), Color3.fromRGB(60, 60, 66))
+	-- Blender kit car: the part car stays as an invisible frame (Body is the
+	-- PrimaryPart, the headlight keeps its SpotLight), the meshes ride on it.
+	local kitGroup = if wagon then "CarWagon" else "CarSedan"
+	if Kit.has(kitGroup) then
+		for _, d in ipairs(model:GetChildren()) do
+			if d:IsA("BasePart") then
+				d.Transparency = 1
+				d.CastShadow = false
+			end
+		end
+		Kit.place(
+			kitGroup,
+			model,
+			CFrame.new(0, CAR_Y - 1.2, 0),
+			{ tint = { ["SM_Vehicle_" .. (if wagon then "Wagon" else "Sedan") .. "_Body"] = color } }
+		)
+	end
 	if NPC_SCALE ~= 1 then
 		local pivot = CFrame.new(0, CAR_Y, 0)
 		for _, d in ipairs(model:GetDescendants()) do
@@ -769,9 +787,14 @@ function Visuals:refreshWorld(core)
 		if signIconLabel then
 			UiAssets.applyTo(signIconLabel, signIcon)
 		end
-		v.bed.Color = if room.sheetsDirty then Color3.fromRGB(150, 120, 80) else Color3.fromRGB(245, 245, 245)
-		v.trashBag.Transparency = if room.trash then 0 else 1
-		v.ac.Color = if room.acBroken then Color3.fromRGB(200, 60, 50) else Color3.fromRGB(210, 215, 220)
+		-- Kit.set forwards to the Blender kit meshes when the part is skinned.
+		Kit.set(
+			v.bed,
+			"Color",
+			if room.sheetsDirty then Color3.fromRGB(150, 120, 80) else Color3.fromRGB(245, 245, 245)
+		)
+		Kit.set(v.trashBag, "Transparency", if room.trash then 0 else 1)
+		Kit.set(v.ac, "Color", if room.acBroken then Color3.fromRGB(200, 60, 50) else Color3.fromRGB(210, 215, 220))
 		local smoke = v.ac:FindFirstChild("Smoke")
 		if room.acBroken and not smoke then
 			smoke = Instance.new("Smoke")
