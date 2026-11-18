@@ -398,10 +398,11 @@ function Hud.new(playerGui: PlayerGui, config, callbacks)
 		Parent = gui,
 	})
 	local uiScale = make("UIScale", { Parent = root })
+	local HUD_SCALE = (config.ui and config.ui.scale) or 1
 	local function rescale()
 		local cam = Workspace.CurrentCamera
 		local vp = if cam then cam.ViewportSize else Vector2.new(1280, 720)
-		local s = math.clamp(math.min(vp.X / 1280, vp.Y / 720), 0.5, 1.4)
+		local s = math.clamp(math.min(vp.X / 1280, vp.Y / 720), 0.5, 1.4) * HUD_SCALE
 		uiScale.Scale = s
 		root.Size = UDim2.fromScale(1 / s, 1 / s)
 	end

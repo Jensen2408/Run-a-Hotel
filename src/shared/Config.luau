@@ -269,6 +269,12 @@ Config.desk = {
 -- waypoints, prompt ranges). Bigger = roomier relative to the player.
 Config.mapScale = 1.4
 
+-- HUD size: every screen is authored at 1280x720 and fitted to the
+-- viewport, then multiplied by this (1 = original size).
+Config.ui = {
+	scale = 0.8,
+}
+
 -- Player movement (default Roblox is 16); raised because the map is larger.
 Config.player = {
 	walkSpeed = 20,

@@ -19,6 +19,12 @@ local Icons = require(script.Parent:WaitForChild("Icons"))
 
 local UiKit = {}
 
+-- Global HUD size multiplier (Config.ui.scale).
+local okConfig, Config = pcall(function()
+	return require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Config"))
+end)
+UiKit.HUD_SCALE = if okConfig and Config.ui and Config.ui.scale then Config.ui.scale else 1
+
 UiKit.FONT = Enum.Font.FredokaOne
 UiKit.OUTLINE = Color3.fromRGB(46, 32, 22)
 UiKit.WHITE = Color3.new(1, 1, 1)
@@ -304,7 +310,7 @@ function UiKit.screen(playerGui: PlayerGui, name: string, displayOrder: number?,
 	local function rescale()
 		local cam = Workspace.CurrentCamera
 		local vp = if cam then cam.ViewportSize else Vector2.new(1280, 720)
-		local s = math.clamp(math.min(vp.X / 1280, vp.Y / 720), 0.5, 1.4)
+		local s = math.clamp(math.min(vp.X / 1280, vp.Y / 720), 0.5, 1.4) * UiKit.HUD_SCALE
 		uiScale.Scale = s
 		root.Size = UDim2.fromScale(1 / s, 1 / s)
 	end
