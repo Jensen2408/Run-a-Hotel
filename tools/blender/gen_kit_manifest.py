@@ -26,7 +26,7 @@ lines = [
     "return {",
 ]
 missing = []
-for batch in ("batch1", "batch2", "batch3", "office", "rooms", "batch4", "batch5"):
+for batch in ("batch1", "batch2", "batch3", "office", "rooms", "annex", "batch4", "batch5"):
     data = json.load(open(os.path.join(KIT, f"motel_kit_{batch}.json"), encoding="utf-8"))
     for name, m in data["meshes"].items():
         # Meshes not imported yet get no id: the game uses them only once a

@@ -1444,7 +1444,9 @@ local function buildShedAndYard(decor)
 		cylZ(shed, "WasherDoor", 0.1, 2, Vector3.new(56 + k * 3.4, 2, -12.15), Color3.fromRGB(120, 170, 210), DETAIL)
 	end
 	detail(shed, "LaundryCart", Vector3.new(2.4, 2, 3.4), Vector3.new(64.5, 1.4, -12), Color3.fromRGB(110, 120, 140))
-	if Kit.place("LinenShed", shed, CFrame.new(60, 0, -16)) then
+	-- "annex" kit (office v3 style) when imported, else the batch 3 shed.
+	local shedGroup = if Kit.has("LinenShedV2") then "LinenShedV2" else "LinenShed"
+	if Kit.place(shedGroup, shed, CFrame.new(60, 0, -16)) then
 		Kit.retireNamed(
 			shed,
 			{ "SouthWall.*", "NorthWall.*", "EastWall.*", "WestWall.*", "Roof.*", "Shingle", "Ceiling" },
@@ -1630,7 +1632,8 @@ local function buildShopBuilding(decor, rng)
 	})
 	pointLight(lamp, 26, 1)
 
-	local shopMeshes = Kit.place("Shop", f, CFrame.new(SHOP_X, 0, SHOP_Z))
+	local shopV2 = Kit.has("ShopV2")
+	local shopMeshes = Kit.place(if shopV2 then "ShopV2" else "Shop", f, CFrame.new(SHOP_X, 0, SHOP_Z))
 	if shopMeshes then
 		Kit.retireNamed(f, {
 			"SouthWall.*",
@@ -1651,7 +1654,8 @@ local function buildShopBuilding(decor, rng)
 			"Register",
 			"RegisterScreen",
 		}, { "ShopSign", "OpenSign" })
-		shopMeshes.SM_Bld_Shop_OpenSign:SetAttribute("Blink", 1.4)
+		local openSign = if shopV2 then shopMeshes.SM_Bld_ShopV2_OpenSign else shopMeshes.SM_Bld_Shop_OpenSign
+		openSign:SetAttribute("Blink", 1.4)
 		Kit.place("ShopShelf", f, CFrame.new(SHOP_X - 3.25, 0.4, SHOP_Z + 6.4))
 		Kit.place("ShopShelf", f, CFrame.new(SHOP_X - 3.25, 0.4, SHOP_Z - 6.4) * CFrame.Angles(0, math.pi, 0))
 	end
@@ -1855,7 +1859,7 @@ local function buildKitchenBuilding(decor, rng)
 		Kit.place("TicketRail", f, CFrame.new(x1 + 0.7, 6.3, cz - 1) * CFrame.Angles(0, -math.pi / 2, 0))
 		Kit.place("CeilingLamp", f, CFrame.new(cx, H - 0.1, cz), { scale = 1.2 })
 	end
-	if Kit.place("Kitchen", f, CFrame.new(cx, 0, cz)) then
+	if Kit.place(if Kit.has("KitchenV2") then "KitchenV2" else "Kitchen", f, CFrame.new(cx, 0, cz)) then
 		Kit.retireNamed(f, {
 			"SouthWall.*",
 			"NorthWall.*",

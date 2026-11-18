@@ -96,7 +96,7 @@ local LOBBY_X = 22
 local MapBuilder = {}
 
 -- Bump when the layout changes so stale saved maps are rebuilt.
-MapBuilder.VERSION = 31
+MapBuilder.VERSION = 32
 
 local function part(props)
 	local p = Instance.new("Part")

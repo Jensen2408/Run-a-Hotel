@@ -2378,6 +2378,241 @@ def _room_roof_v3():
 
 
 # ======================================================================
+# Batch "annex": linen shed, supply shop and kitchen restyled to match
+# office v3 (cream siding, teal base band / plinths / capitals, cream eave
+# band, clay-tile roof, teal-framed windows with flower boxes and striped
+# awnings, lanterns, arched wooden signs with a gold border and marquee
+# bulbs). Same footprints, wall heights and door gaps as LinenShed / Shop /
+# Kitchen, so gameplay walls, prompts and NPC routes stay.
+# ======================================================================
+def extrude_yz(points_uz, cx, cy, thickness, colour, bevel=0.05):
+    """Flat shape from a closed (u, z) outline in the YZ plane (u along Y),
+    extruded along X and centred on (cx, cy): upright signs facing +-X."""
+    bm = bmesh.new()
+    front = [bm.verts.new((cx + thickness / 2, cy + u, z)) for u, z in points_uz]
+    back = [bm.verts.new((cx - thickness / 2, cy + u, z)) for u, z in points_uz]
+    bm.faces.new(front)
+    bm.faces.new(list(reversed(back)))
+    n = len(points_uz)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((front[i], back[i], back[j], front[j]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new("yz")
+    bm.to_mesh(mesh)
+    bm.free()
+    o = bpy.data.objects.new("yz", mesh)
+    scene.collection.objects.link(o)
+    return finish(o, colour, bevel=bevel, segments=2)
+
+
+def v3_shell(X1, X2, Y1, Y2, H, opens, W, T):
+    """Office-v3 walls on a footprint: siding, teal base band, cream corner
+    boards on teal plinths with teal capitals, cream eave band on the long
+    (+-Y) walls. opens: {"+y"/"-y"/"+x"/"-x": [(o1, o2, bottom, top)]}."""
+    sides = {
+        "+y": ("x", X1, X2, Y2, 1),
+        "-y": ("x", X1, X2, Y1, -1),
+        "-x": ("y", Y1, Y2, X1, -1),
+        "+x": ("y", Y1, Y2, X2, 1),
+    }
+    for key, (axis, a, b, c, o) in sides.items():
+        op = opens.get(key, [])
+        if axis == "x":
+            W += wall("x", a - 0.5, b + 0.5, c, H, WALL_CREAM, op, bevel=0.0)
+        else:
+            W += wall("y", a + 0.5, b - 0.5, c, H, WALL_CREAM, op, bevel=0.0)
+        W += siding(axis, a, b, c, o, H, WALL_LINE, op, step=1.3, margin=0.8)
+        T += base_trim(axis, a, b, c, o, TEAL, op, h=1.1)
+    W += ceiling(X1 + 0.5, X2 - 0.5, Y1 + 0.5, Y2 - 0.5, H)
+    T += corner_boards(X1, X2, Y1, Y2, H, CREAM)
+    for x in (X1 - 0.42, X2 + 0.42):
+        for y in (Y1 - 0.42, Y2 + 0.42):
+            T.append(box((1.4, 1.4, 1.5), (x, y, 0.75), TEAL_DARK, bevel=0.14, segments=2))
+            T.append(box((1.15, 1.15, 0.55), (x, y, H - 0.6), TEAL, bevel=0.1, segments=1))
+    for y, o in ((Y2, 1), (Y1, -1)):
+        T.append(box((X2 - X1 - 0.2, 0.45, 0.75), (0, y + o * 0.72, H - 0.42), CREAM, bevel=0.08, segments=1))
+
+
+def v3_door(axis, p1, p2, c, top, T):
+    """Teal door frame with a brass threshold (open doorway)."""
+    T += door_frame(axis, p1, p2, c, top, colour=TEAL)
+    T.append(box(_size(axis, p2 - p1, 1.2, 0.12), _along(axis, (p1 + p2) / 2, c, 1, z=0.06), BRASS, bevel=0.03, segments=1))
+
+
+def v3_window(axis, p, c, o, w, h, zc, seed, T, WIN, F, A, awn=True):
+    """Teal-framed window, clear glass, flower box, optional striped awning."""
+    t_, g_ = window(axis, p, c, o, w, h, zc, shutters=False, glass_colour=GLASS_BLUE, mullion=TEAL, sill=False)
+    T += t_
+    WIN += g_
+    flower_box(axis, p, c, o, w, zc - h / 2 - 0.95, seed, F)
+    if awn:
+        A += awning(axis, p, c, o, w + 1.2, zc + h / 2 + 1.2, depth=2.0)
+
+
+def v3_roof(X1, X2, Y1, Y2, H, rise, d, over, W, T, R):
+    """Clay-tile roof (ridge along X) with sided gable ends at x = X1 / X2."""
+    r, t = tile_roof(X1 - over, X2 + over, -d, d, H, rise)
+    R += r
+    T += t
+    for x, o in ((X1, -1), (X2, 1)):
+        w_, t_ = gable_infill(x, Y1 - 0.5, Y2 + 0.5, 0.0, d, H, rise, WALL_CREAM, vent=False)
+        W += w_
+        gable_siding(x, o, H, rise, d, (Y2 - Y1) / 2, T)
+
+
+def roof_deck(H, rise, d, y):
+    """Height of the roof deck line above y (for chimneys and vents)."""
+    return H + rise * (1 - abs(y) / d)
+
+
+def arch_sign(facing, xw, z0, iw, ih, word, size, S, L, T, crest=1.0):
+    """Arched wooden sign (office style) on the wall at x = xw facing +-X:
+    gold border, wooden board, outlined cream letters, marquee bulbs on the
+    border, gold badge on the crest, iron brackets to the wall. z0 = bottom
+    of the gold border."""
+    o = 1 if facing == "+x" else -1
+    sx = xw + o * 1.15
+    ir, ic, icw = ih * 0.28 * crest, ih * 0.38 * crest, iw * 0.11
+    bw, bh, br, bc, bcw = iw + 0.9, ih + 0.5, ir + 0.15, ic + 0.2, icw + 0.15
+    S.append(extrude_yz([(u, z0 + z) for u, z in sign_outline(bw, bh, br, bc, bcw)], sx - o * 0.08, 0.0, 0.4, SIGN_GOLD, bevel=0.08))
+    S.append(extrude_yz([(u, z0 + 0.25 + z) for u, z in sign_outline(iw, ih, ir, ic, icw)], sx + o * 0.06, 0.0, 0.4, SIGN_WOOD, bevel=0.08))
+    for y in (-iw * 0.3, iw * 0.3):
+        S.append(segment((xw + o * 0.45, y, z0 + ih * 0.55), (sx - o * 0.26, y, z0 + ih * 0.55), 0.14, IRON, verts=6))
+    ring = [(u, z0 + 0.12 + z) for u, z in sign_outline(bw - 0.45, bh - 0.22, br, bc, bcw)]
+    ring.append(ring[0])
+    for p0, p1 in zip(ring, ring[1:]):
+        seglen = math.hypot(p1[0] - p0[0], p1[1] - p0[1])
+        n = max(1, int(seglen / 1.1))
+        for k in range(n):
+            tt = k / n
+            L.append(bulb((sx + o * 0.2, p0[0] + (p1[0] - p0[0]) * tt, p0[1] + (p1[1] - p0[1]) * tt), 0.13))
+    zt = z0 + 0.25 + ih / 2
+    S.append(text3d(word, size, (sx + o * 0.28, 0.0, zt), facing, LETTER_EDGE, depth=0.1, bold=0.11))
+    L.append(text3d(word, size, (sx + o * 0.36, 0.0, zt), facing, LETTER_WHITE, depth=0.16, bold=0.035))
+    zc = z0 + 0.25 + ih + ir + ic * 0.55
+    S.append(cyl(ic * 0.62, 0.14, (sx + o * 0.3, 0.0, zc), SIGN_GOLD, verts=16, rot=(0, math.pi / 2, 0)))
+    S.append(cyl(ic * 0.42, 0.14, (sx + o * 0.36, 0.0, zc), EMBLEM_SNOW, verts=16, rot=(0, math.pi / 2, 0)))
+
+
+def linen_shed_v2():
+    """Laundry / linen shed in the office v3 style (footprint of LinenShed)."""
+    return with_palette(V3_PALETTE, _linen_shed_v3)
+
+
+def shop_v2():
+    """Supply shop in the office v3 style (footprint of Shop)."""
+    return with_palette(V3_PALETTE, _shop_v3)
+
+
+def kitchen_v2():
+    """Kitchen in the office v3 style (footprint of Kitchen)."""
+    return with_palette(V3_PALETTE, _kitchen_v3)
+
+
+def _linen_shed_v3():
+    H = 12
+    X1, X2, Y1, Y2 = -7.0, 7.0, -7.5, 7.5
+    RISE, D = 5.0, 9.1
+    W, T, R, A, F, S, WIN, L = [], [], [], [], [], [], [], []
+    opens = {"-x": [(-4.0, 4.0, 0, DOOR_TOP)], "+y": [(-5.0, -2.0, 4.0, 7.0), (2.0, 5.0, 4.0, 7.0)]}
+    v3_shell(X1, X2, Y1, Y2, H, opens, W, T)
+    v3_door("y", -4.0, 4.0, X1, DOOR_TOP, T)
+    for cx, seed in ((-3.5, 11), (3.5, 12)):
+        v3_window("x", cx, Y2, 1, 3.0, 3.0, 5.5, seed, T, WIN, F, A)
+    A += awning("y", 0.0, X1, -1, 9.4, 9.8, depth=2.6)
+    for y in (-5.4, 5.4):
+        lantern((X1 - 0.5, y, 6.4), L, T, facing=(-1, 0))
+    for x in (-4.0, 4.0):
+        L.append(cyl(0.27, 0.12, (x, Y2 + 0.74, H - 0.86), GLOW, verts=8))
+        L.append(cyl(0.27, 0.12, (x, Y1 - 0.74, H - 0.86), GLOW, verts=8))
+    # Dryer vent on the east wall, steel roof vent.
+    T.append(cyl(0.55, 1.2, (X2 + 0.9, 3.0, 8.0), STEEL, verts=12, rot=(0, math.pi / 2, 0)))
+    T.append(box((0.3, 1.6, 1.6), (X2 + 1.5, 3.0, 8.0), STEEL_DARK, bevel=0.08, segments=1))
+    v3_roof(X1, X2, Y1, Y2, H, RISE, D, 1.6, W, T, R)
+    vz = roof_deck(H, RISE, D, -3.8)
+    R.append(cyl(0.55, 2.6, (3.5, -3.8, vz + 1.1), STEEL, verts=16))
+    R.append(cyl(0.7, 0.22, (3.5, -3.8, vz + 2.45), STEEL_DARK, verts=16))
+    R.append(cyl(0.85, 0.45, (3.5, -3.8, vz + 2.8), STEEL, verts=16, radius2=0.3))
+    arch_sign("-x", X1, 10.1, 9.0, 2.0, "LAUNDRY", 1.35, S, L, T)
+    return out(
+        {"Walls": W, "Trim": T, "Roof": R, "Awning": A, "Flowers": F, "Sign": S, "Glass": WIN, "Glow": L},
+        "LinenShedV2",
+        {"Walls": "Precise", "Roof": "Hull"},
+        dict(place=[[60, 0, -16]]),
+    )
+
+
+def _shop_v3():
+    H = 12
+    X1, X2, Y1, Y2 = -10.0, 10.0, -8.0, 8.0
+    RISE, D = 6.0, 9.8
+    W, T, R, A, F, S, WIN, L = [], [], [], [], [], [], [], []
+    side = [(-4.0, 4.0, 6.6, 9.4)]
+    opens = {"-x": [(-7.3, -4.9, 2.4, 6.8), (-4.0, 4.0, 0, DOOR_TOP), (4.9, 7.3, 2.4, 6.8)], "+y": side, "-y": side}
+    v3_shell(X1, X2, Y1, Y2, H, opens, W, T)
+    v3_door("y", -4.0, 4.0, X1, DOOR_TOP, T)
+    for cy, seed in ((-6.1, 21), (6.1, 22)):
+        v3_window("y", cy, X1, -1, 2.4, 4.4, 4.6, seed, T, WIN, F, A, awn=False)
+    for y, o, seed in ((Y1, -1, 23), (Y2, 1, 24)):
+        v3_window("x", 0.0, y, o, 8.0, 2.8, 8.0, seed, T, WIN, F, A, awn=False)
+    A += awning("y", 0.0, X1, -1, 10.0, 9.7, depth=3.0)
+    for x in (-7.0, 7.0):
+        L.append(cyl(0.27, 0.12, (x, Y2 + 0.74, H - 0.86), GLOW, verts=8))
+        L.append(cyl(0.27, 0.12, (x, Y1 - 0.74, H - 0.86), GLOW, verts=8))
+    for y in (-6.1, 6.1):
+        gooseneck((X1 - 0.55, y, 8.2), 0.8, 1.0, (-1, 0), L, T, size=0.85)
+    v3_roof(X1, X2, Y1, Y2, H, RISE, D, 1.7, W, T, R)
+    cz = roof_deck(H, RISE, D, 4.0 + 1.3)
+    R += chimney(5.5, -4.0, cz, H + RISE + 1.6 - cz, colour=BRICK_LIGHT)
+    mortar_lines(5.5, -4.0, cz, H + RISE + 1.6 - cz, 2.6, R)
+    arch_sign("-x", X1, 10.0, 12.6, 2.2, "SUPPLY SHOP", 1.45, S, L, T)
+    # OPEN sign hanging in the north window (Roblox z -29.8): own glow mesh
+    # so the game can blink it.
+    open_parts = [box((0.2, 2.4, 1.2), (X1 - 0.85, -6.1, 5.3), srgb(255, 72, 96), bevel=0.08, segments=1)]
+    open_parts.append(text3d("OPEN", 0.75, (X1 - 0.98, -6.1, 5.25), "-x", LETTER_WHITE, depth=0.08))
+    res = out(
+        {"Walls": W, "Trim": T, "Roof": R, "Awning": A, "Flowers": F, "Sign": S, "Glass": WIN, "Glow": L},
+        "ShopV2",
+        {"Walls": "Precise", "Roof": "Hull"},
+        dict(place=[[100, 0, -36]]),
+    )
+    res["SM_Bld_ShopV2_OpenSign"] = (build_mesh("SM_Bld_ShopV2_OpenSign", open_parts, "glow"), dict(glow=True, collision="None", place=[[100, 0, -36]]))
+    return res
+
+
+def _kitchen_v3():
+    H = 10
+    X1, X2, Y1, Y2 = -7.0, 7.0, -7.0, 7.0
+    RISE, D = 4.6, 8.8
+    W, T, R, A, F, S, WIN, L = [], [], [], [], [], [], [], []
+    opens = {"+x": [(-2.0, 2.0, 0, DOOR_TOP)], "+y": [(-4.5, -1.5, 3.3, 6.7), (1.5, 4.5, 3.3, 6.7)]}
+    v3_shell(X1, X2, Y1, Y2, H, opens, W, T)
+    v3_door("y", -2.0, 2.0, X2, DOOR_TOP, T)
+    for cx, seed in ((-3.0, 31), (3.0, 32)):
+        v3_window("x", cx, Y2, 1, 3.0, 3.4, 5.0, seed, T, WIN, F, A)
+    A += awning("y", 0.0, X2, 1, 5.4, 9.6)
+    for y in (-3.4, 3.4):
+        lantern((X2 + 0.5, y, 6.2), L, T, facing=(1, 0))
+    for x in (-4.0, 4.0):
+        L.append(cyl(0.27, 0.12, (x, Y2 + 0.74, H - 0.86), GLOW, verts=8))
+        L.append(cyl(0.27, 0.12, (x, Y1 - 0.74, H - 0.86), GLOW, verts=8))
+    v3_roof(X1, X2, Y1, Y2, H, RISE, D, 1.6, W, T, R)
+    # Stainless kitchen exhaust (as before) through the back slope.
+    ez = roof_deck(H, RISE, D, -4.0)
+    R.append(cyl(0.75, 5.0, (-4.5, -4.0, ez + 2.0), STEEL, verts=14))
+    R.append(cyl(1.2, 0.5, (-4.5, -4.0, ez + 4.7), STEEL_DARK, verts=14, radius2=0.5))
+    R.append(cyl(1.05, 0.4, (-4.5, -4.0, ez + 0.1), STEEL_DARK, verts=14))
+    arch_sign("+x", X2, 9.8, 6.6, 1.5, "KITCHEN", 1.02, S, L, T, crest=0.7)
+    return out(
+        {"Walls": W, "Trim": T, "Roof": R, "Awning": A, "Flowers": F, "Sign": S, "Glass": WIN, "Glow": L},
+        "KitchenV2",
+        {"Walls": "Precise", "Roof": "Hull"},
+        dict(place=[[-1, 0, 5]]),
+    )
+
+
+# ======================================================================
 # Batch 4: interior furniture, lamps, pool / yard / road props
 # (prop-artist + cartoon-style). Sizes follow the part-built decor they
 # replace (MapDecor / MapBuilder); front = +Y (Roblox -Z), origin noted
@@ -3114,6 +3349,11 @@ BATCHES = {
         ("RoomV2", room_v2, "building"),
         ("RoomRoofV2", room_roof_v2, "hero_building"),
     ],
+    "annex": [
+        ("LinenShedV2", linen_shed_v2, "hero_building"),
+        ("ShopV2", shop_v2, "hero_building"),
+        ("KitchenV2", kitchen_v2, "hero_building"),
+    ],
     "batch4": [
         ("Couch", couch, "hero"),  # main lobby furniture, seen up close
         ("CoffeeTable", coffee_table, "standard"),
@@ -3378,6 +3618,9 @@ PREVIEW_YAW = {
     "LinenShed": -math.pi / 2,
     "Shop": -math.pi / 2,
     "Kitchen": math.pi / 2,
+    "LinenShedV2": -math.pi / 2,
+    "ShopV2": -math.pi / 2,
+    "KitchenV2": math.pi / 2,
 }
 from mathutils import Matrix
 
@@ -3522,4 +3765,32 @@ if BATCH == "rooms":
         sun.rotation_euler = (math.radians(-50), 0, math.atan2(-d.x, d.y) + math.radians(-28))
         scene.render.filepath = os.path.join(OUT, "previews", f"motel_kit_rooms_{name}.png")
         bpy.ops.render.render(write_still=True)
+# Annex: each building on its own, door side 3/4 and back 3/4 (the sheet
+# above already turned the doors toward +Y).
+if BATCH == "annex":
+    scene.view_settings.view_transform = "Standard"
+    scene.view_settings.look = "None"
+    bg.inputs["Color"].default_value = (0.32, 0.46, 0.72, 1)
+    bg.inputs["Strength"].default_value = 0.75
+    sun_data.energy = 2.4
+    sun_data.color = (1.0, 0.92, 0.8)
+    fov = 2 * math.atan(cam_data.sensor_width / (2 * cam_data.lens))
+    for g, _b, _t in BATCHES[BATCH]:
+        objs = group_objects(g)
+        for o in built:
+            o.hide_render = o not in objs
+        lo, hi = group_box(objs)
+        centre = (lo + hi) / 2
+        ground.location = (centre.x, centre.y, 0)
+        span = max(hi.x - lo.x, hi.y - lo.y) * 2.1
+        for name, (vx, vy, elev) in {"front": (0.45, 1, 14), "back": (-0.5, -1, 16)}.items():
+            e = math.radians(elev)
+            dist = (span / 2) / math.tan(fov / 2)
+            look = Vector((centre.x, centre.y, hi.z * 0.5))
+            d = Vector((vx, vy, 0)).normalized()
+            cam.location = look + Vector((d.x * math.cos(e), d.y * math.cos(e), math.sin(e))) * dist
+            cam.rotation_euler = (look - cam.location).to_track_quat("-Z", "Y").to_euler()
+            sun.rotation_euler = (math.radians(-50), 0, math.atan2(-d.x, d.y) + math.radians(-28))
+            scene.render.filepath = os.path.join(OUT, "previews", f"motel_kit_annex_{g}_{name}.png")
+            bpy.ops.render.render(write_still=True)
 print("[kit] previews done")
