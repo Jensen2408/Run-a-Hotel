@@ -1,0 +1,826 @@
+{
+  "batch": "lobby",
+  "units": "studs",
+  "axes": "roblox",
+  "meshes": {
+    "SM_Bld_LobbyHall_Walls": {
+      "group": "LobbyHall",
+      "size": [
+        83.26,
+        24.95,
+        57.26
+      ],
+      "center": [
+        -0.0,
+        12.475,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 848
+    },
+    "SM_Bld_LobbyHall_Trim": {
+      "group": "LobbyHall",
+      "size": [
+        86.42,
+        25.044,
+        59.928
+      ],
+      "center": [
+        -0.0,
+        12.522,
+        -0.036
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 3480
+    },
+    "SM_Bld_LobbyHall_Roof": {
+      "group": "LobbyHall",
+      "size": [
+        86.6,
+        11.628,
+        60.746
+      ],
+      "center": [
+        0.0,
+        21.536,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 6072
+    },
+    "SM_Bld_LobbyHall_Awning": {
+      "group": "LobbyHall",
+      "size": [
+        65.5,
+        1.603,
+        2.013
+      ],
+      "center": [
+        0.0,
+        8.223,
+        -29.457
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 636
+    },
+    "SM_Bld_LobbyHall_Flowers": {
+      "group": "LobbyHall",
+      "size": [
+        64.9,
+        1.97,
+        1.402
+      ],
+      "center": [
+        0.0,
+        2.835,
+        -29.144
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 1440
+    },
+    "SM_Bld_LobbyHall_Sign": {
+      "group": "LobbyHall",
+      "size": [
+        13.9,
+        4.517,
+        1.13
+      ],
+      "center": [
+        0.0,
+        12.859,
+        -29.515
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 1684
+    },
+    "SM_Bld_LobbyHall_Glass": {
+      "group": "LobbyHall",
+      "size": [
+        64.0,
+        4.4,
+        0.12
+      ],
+      "center": [
+        0.0,
+        5.4,
+        -28.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": true,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 88
+    },
+    "SM_Bld_LobbyHall_Glow": {
+      "group": "LobbyHall",
+      "size": [
+        68.526,
+        8.445,
+        59.093
+      ],
+      "center": [
+        -0.0,
+        10.977,
+        -0.544
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 3780
+    },
+    "SM_Bld_LobbyHall_Interior": {
+      "group": "LobbyHall",
+      "size": [
+        81.0,
+        16.0,
+        55.96
+      ],
+      "center": [
+        0.0,
+        8.0,
+        -0.48
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 6248
+    },
+    "SM_Bld_LobbyTitle_Sign": {
+      "group": "LobbyTitle",
+      "size": [
+        26.9,
+        5.26,
+        1.13
+      ],
+      "center": [
+        0.0,
+        13.13,
+        26.485
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 1834
+    },
+    "SM_Bld_LobbyTitle_Glow": {
+      "group": "LobbyTitle",
+      "size": [
+        26.71,
+        5.3,
+        0.353
+      ],
+      "center": [
+        0.0,
+        13.14,
+        26.086
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 2568
+    },
+    "SM_Bld_LobbyDoor_Leaf": {
+      "group": "LobbyDoor",
+      "size": [
+        6.3,
+        8.6,
+        0.47
+      ],
+      "center": [
+        0.0,
+        4.3,
+        -0.36
+      ],
+      "tint": true,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 976
+    },
+    "SM_Bld_LobbyDoor_Hardware": {
+      "group": "LobbyDoor",
+      "size": [
+        6.0,
+        4.6,
+        0.08
+      ],
+      "center": [
+        -0.0,
+        2.4,
+        -0.535
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 176
+    },
+    "SM_Bld_LobbyDoor_Frame": {
+      "group": "LobbyDoor",
+      "size": [
+        8.4,
+        10.425,
+        1.055
+      ],
+      "center": [
+        0.0,
+        5.213,
+        -0.373
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 952
+    },
+    "SM_Bld_LobbyDoor_Glow": {
+      "group": "LobbyDoor",
+      "size": [
+        6.4,
+        3.375,
+        0.485
+      ],
+      "center": [
+        0.0,
+        8.138,
+        -0.383
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 372
+    },
+    "SM_Prop_LobbyPad_Base": {
+      "group": "LobbyPad",
+      "size": [
+        10.8,
+        0.33,
+        10.8
+      ],
+      "center": [
+        0.0,
+        0.165,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 1428
+    },
+    "SM_Prop_LobbyPad_Glow": {
+      "group": "LobbyPad",
+      "size": [
+        10.58,
+        0.4,
+        10.58
+      ],
+      "center": [
+        0.0,
+        0.36,
+        -0.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 768
+    },
+    "SM_Prop_LobbyBoardL_Frame": {
+      "group": "LobbyBoardL",
+      "size": [
+        26.1,
+        16.951,
+        1.73
+      ],
+      "center": [
+        0.0,
+        0.426,
+        -0.69
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 2104
+    },
+    "SM_Prop_LobbyBoardL_Glow": {
+      "group": "LobbyBoardL",
+      "size": [
+        13.828,
+        0.408,
+        0.408
+      ],
+      "center": [
+        0.0,
+        7.82,
+        -1.15
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 200
+    },
+    "SM_Prop_LobbyBoardM_Frame": {
+      "group": "LobbyBoardM",
+      "size": [
+        17.1,
+        13.951,
+        1.73
+      ],
+      "center": [
+        0.0,
+        0.426,
+        -0.69
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 2104
+    },
+    "SM_Prop_LobbyBoardM_Glow": {
+      "group": "LobbyBoardM",
+      "size": [
+        8.788,
+        0.408,
+        0.408
+      ],
+      "center": [
+        0.0,
+        6.32,
+        -1.15
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 200
+    },
+    "SM_Prop_LobbyBoardW_Frame": {
+      "group": "LobbyBoardW",
+      "size": [
+        24.1,
+        15.951,
+        1.73
+      ],
+      "center": [
+        0.0,
+        0.426,
+        -0.69
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 2104
+    },
+    "SM_Prop_LobbyBoardW_Glow": {
+      "group": "LobbyBoardW",
+      "size": [
+        12.708,
+        0.408,
+        0.408
+      ],
+      "center": [
+        0.0,
+        7.32,
+        -1.15
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "hinge": null,
+      "swing": null,
+      "tris": 200
+    }
+  },
+  "validation": {
+    "SM_Bld_LobbyHall_Walls": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 14,
+      "scale_applied": true
+    },
+    "SM_Bld_LobbyHall_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_LobbyHall_Roof": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_LobbyHall_Awning": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 56,
+      "scale_applied": true
+    },
+    "SM_Bld_LobbyHall_Flowers": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_LobbyHall_Sign": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 60,
+      "scale_applied": true
+    },
+    "SM_Bld_LobbyHall_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_LobbyHall_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 20,
+      "scale_applied": true
+    },
+    "SM_Bld_LobbyHall_Interior": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_LobbyHall": {
+      "tris": 24276,
+      "budget": 60000,
+      "status": "OK"
+    },
+    "SM_Bld_LobbyTitle_Sign": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 106,
+      "scale_applied": true
+    },
+    "SM_Bld_LobbyTitle_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 20,
+      "scale_applied": true
+    },
+    "_group_LobbyTitle": {
+      "tris": 4402,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Bld_LobbyDoor_Leaf": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_LobbyDoor_Hardware": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_LobbyDoor_Frame": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_LobbyDoor_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_LobbyDoor": {
+      "tris": 2476,
+      "budget": 2500,
+      "status": "OK"
+    },
+    "SM_Prop_LobbyPad_Base": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Prop_LobbyPad_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_LobbyPad": {
+      "tris": 2196,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_LobbyBoardL_Frame": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 4,
+      "scale_applied": true
+    },
+    "SM_Prop_LobbyBoardL_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_LobbyBoardL": {
+      "tris": 2304,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_LobbyBoardM_Frame": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 4,
+      "scale_applied": true
+    },
+    "SM_Prop_LobbyBoardM_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_LobbyBoardM": {
+      "tris": 2304,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Prop_LobbyBoardW_Frame": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 4,
+      "scale_applied": true
+    },
+    "SM_Prop_LobbyBoardW_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_LobbyBoardW": {
+      "tris": 2304,
+      "budget": 3000,
+      "status": "OK"
+    }
+  }
+}

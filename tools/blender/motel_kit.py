@@ -2613,6 +2613,217 @@ def _kitchen_v3():
 
 
 # ======================================================================
+# Batch "lobby": the lobby hall (LobbyBuilder) restyled to match office v3
+# (cartoon-style). Footprint 82 x 56, walls 16, wide front opening 34 x 10
+# (Roblox -Z = Blender +Y), four room doors on the back wall inside, boards
+# on the side walls. The game keeps its primitive parts as invisible
+# colliders and SurfaceGui hosts; these meshes are the visuals.
+#   LobbyHall     shell, siding, clay-tile roof, front windows, pillars,
+#                 lanterns, WELCOME arch sign, wainscot + plank floor,
+#                 ceiling beams
+#   LobbyTitle    "RUN A MOTEL" arch sign with marquee bulbs (back wall)
+#   LobbyDoor     double door (tinted per room), teal frame, glowing transom
+#   LobbyPad      wooden pad base with a brass ring and rim bulbs
+#   LobbyBoardL/M/W  wooden board frames with gold bead and gooseneck lamps
+# ======================================================================
+FLOOR_A = srgb(206, 160, 108)
+FLOOR_B = srgb(188, 140, 94)
+WAINSCOT = srgb(150, 92, 54)
+
+
+def turn_parts(parts, angle, offset):
+    """Rotate parts about Z through the origin, then move them (baked)."""
+    m = Matrix.Translation(Vector(offset)) @ Matrix.Rotation(angle, 4, "Z")
+    for o in parts:
+        o.matrix_world = m @ o.matrix_world
+    bpy.context.view_layer.update()
+    for o in parts:
+        _activate(o)
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+
+def arch_sign_y(facing, yw, xc, z0, iw, ih, word, size, S, L, crest=1.0):
+    """arch_sign on a wall at y = yw facing +-Y, centred on x = xc."""
+    s_, l_, t_ = [], [], []
+    arch_sign("+x", 0.0, z0, iw, ih, word, size, s_, l_, t_, crest=crest)
+    turn_parts(s_ + l_ + t_, math.pi / 2 if facing == "+y" else -math.pi / 2, (xc, yw, 0))
+    S += s_ + t_
+    L += l_
+
+
+def lobby_hall():
+    return with_palette(V3_PALETTE, _lobby_hall)
+
+
+def _lobby_hall():
+    H = 16
+    X1, X2, Y1, Y2 = -41.0, 41.0, -28.0, 28.0
+    RISE, D = 9.0, 29.8
+    W, T, R, A, F, S, WIN, L, P = [], [], [], [], [], [], [], [], []
+    front = [(-17.0, 17.0, 0, 10.0), (-32.0, -26.0, 3.2, 7.6), (26.0, 32.0, 3.2, 7.6)]
+    v3_shell(X1, X2, Y1, Y2, H, {"+y": front}, W, T)
+    v3_door("x", -17.0, 17.0, Y2, 10.0, T)
+    for cx, seed in ((-29.0, 41), (29.0, 42)):
+        v3_window("x", cx, Y2, 1, 6.0, 4.4, 5.4, seed, T, WIN, F, A)
+    # Pillars flanking the opening.
+    for x in (-16.2, 16.2):
+        T.append(cyl(0.75, 9.0, (x, Y2 + 1.0, 5.0), CREAM, verts=16))
+        T.append(box((2.0, 2.0, 1.2), (x, Y2 + 1.0, 0.6), TEAL_DARK, bevel=0.16, segments=2))
+        T.append(box((1.9, 1.9, 0.7), (x, Y2 + 1.0, 9.75), TEAL, bevel=0.12, segments=2))
+    for x in (-19.6, 19.6):
+        lantern((x, Y2 + 0.5, 7.2), L, T, facing=(0, 1))
+    for x in (-34.0, -22.0, 22.0, 34.0):
+        L.append(cyl(0.27, 0.12, (x, Y2 + 0.74, H - 0.86), GLOW, verts=8))
+    for x in (-30.0, -10.0, 10.0, 30.0):
+        L.append(cyl(0.27, 0.12, (x, Y1 - 0.74, H - 0.86), GLOW, verts=8))
+    arch_sign_y("+y", Y2 + 0.5, 0.0, 10.6, 13.0, 2.4, "WELCOME", 1.7, S, L, crest=0.8)
+    v3_roof(X1, X2, Y1, Y2, H, RISE, D, 1.8, W, T, R)
+    cz = roof_deck(H, RISE, D, -14.0 + 1.3)
+    R += chimney(28.0, -14.0, cz, H + RISE + 1.6 - cz, colour=BRICK_LIGHT)
+    mortar_lines(28.0, -14.0, cz, H + RISE + 1.6 - cz, 2.6, R)
+    # Interior: wainscot (teal base, wood panels with battens, cream rail).
+    # Side runs stop short of the front / back runs (no overlapping corners).
+    runs = [
+        ("x", X1 + 0.5, X2 - 0.5, Y1 + 0.5, 1),
+        ("x", X1 + 0.5, -17.8, Y2 - 0.5, -1),
+        ("x", 17.8, X2 - 0.5, Y2 - 0.5, -1),
+        ("y", Y1 + 0.95, Y2 - 0.95, X1 + 0.5, 1),
+        ("y", Y1 + 0.95, Y2 - 0.95, X2 - 0.5, -1),
+    ]
+    for axis, a, b, c, o in runs:
+        mid, length = (a + b) / 2, b - a
+        P.append(box(_size(axis, length, 0.22, 3.0), _along(axis, mid, c, o, v=0.11, z=1.9), WAINSCOT, bevel=0.04, segments=1))
+        P.append(box(_size(axis, length, 0.3, 0.55), _along(axis, mid, c, o, v=0.18, z=0.68), TEAL, bevel=0.06, segments=1))
+        P.append(box(_size(axis, length, 0.36, 0.3), _along(axis, mid, c, o, v=0.2, z=3.5), CREAM, bevel=0.08, segments=1))
+        n = max(1, int(length / 3.2))
+        for k in range(1, n):
+            u = a + length * k / n
+            P.append(box(_size(axis, 0.22, 0.3, 2.3), _along(axis, u, c, o, v=0.2, z=2.1), WOOD_DARK, bevel=0.03, segments=1))
+    # Plank floor (top at 0.4), staggered joints.
+    rows = 28
+    fy1, fy2, fx1, fx2 = Y1 + 0.5, Y2 + 0.5, X1 + 0.5, X2 - 0.5  # front row runs out of the opening
+    for r in range(rows):
+        y = fy1 + (r + 0.5) * (fy2 - fy1) / rows
+        cut = X1 + 18.0 + (r % 3) * 16.0
+        for xa, xb, k in ((fx1, cut, 0), (cut, fx2, 1)):
+            colour = FLOOR_A if (r + k) % 2 == 0 else FLOOR_B
+            P.append(box((xb - xa - 0.06, (fy2 - fy1) / rows - 0.08, 0.4), ((xa + xb) / 2, y, 0.2), colour, bevel=0.05, segments=1))
+    # Ceiling beams (the lamps hang under them).
+    for x in (-30.0, -15.0, 0.0, 15.0, 30.0):
+        P.append(box((1.1, Y2 - Y1 - 1.0, 0.9), (x, 0.0, H - 0.45), WOOD_DARK, bevel=0.1, segments=1))
+    return out(
+        {"Walls": W, "Trim": T, "Roof": R, "Awning": A, "Flowers": F, "Sign": S, "Glass": WIN, "Glow": L, "Interior": P},
+        "LobbyHall",
+        None,
+        dict(place=[[0, 0, 0]]),
+    )
+
+
+def lobby_title():
+    return with_palette(V3_PALETTE, _lobby_title)
+
+
+def _lobby_title():
+    S, L = [], []
+    arch_sign_y("+y", -27.5, 0.0, 10.5, 26.0, 3.4, "RUN A MOTEL", 2.5, S, L, crest=0.45)
+    return out({"Sign": S, "Glow": L}, "LobbyTitle", None, dict(place=[[0, 0, 0]]))
+
+
+def lobby_door():
+    return with_palette(V3_PALETTE, _lobby_door)
+
+
+def _lobby_door():
+    """Double door on the wall plane y = 0 facing +Y, floor at z = 0.
+    Opening 6.4 x 8.8; the leaves are tinted per room."""
+    w, h, t = 3.1, 8.6, 0.35
+    leaf, hw, frame, glow = [], [], [], []
+    for side in (-1, 1):
+        cx = side * (w / 2 + 0.05)
+        leaf.append(box((w, t, h), (cx, 0.3, h / 2), NEUTRAL, bevel=0.08))
+        for z, hh in ((1.6, 2.4), (4.6, 2.4)):
+            leaf.append(box((w - 1.0, 0.12, hh), (cx, 0.3 + t / 2 + 0.04, z), mul(NEUTRAL, 0.92), bevel=0.07))
+        # Round porthole window.
+        leaf.append(cyl(0.72, 0.14, (cx, 0.3 + t / 2 + 0.05, 7.0), mul(NEUTRAL, 0.88), verts=14, rot=(math.pi / 2, 0, 0)))
+        glow.append(cyl(0.55, 0.16, (cx, 0.3 + t / 2 + 0.07, 7.0), GLOW, verts=14, rot=(math.pi / 2, 0, 0)))
+        hw.append(box((0.32, 0.08, 1.4), (side * 0.45, 0.3 + t / 2 + 0.06, 4.0), BRASS, bevel=0.04, segments=1))
+        hw.append(box((w - 0.3, 0.06, 0.6), (cx, 0.3 + t / 2 + 0.05, 0.4), BRASS, bevel=0.03, segments=1))
+    # Teal frame, cream keystone header, glowing transom with mullions.
+    for x in (-3.55, 3.55):
+        frame.append(box((0.75, 0.8, 9.4), (x, 0.3, 4.7), TEAL, bevel=0.1))
+        frame.append(box((1.0, 0.95, 0.8), (x, 0.32, 0.4), TEAL_DARK, bevel=0.08))
+    frame.append(box((7.9, 0.85, 0.7), (0.0, 0.32, 9.0), TEAL, bevel=0.1))
+    frame.append(box((7.9, 0.85, 0.5), (0.0, 0.32, 10.0), TEAL_DARK, bevel=0.1))
+    frame.append(box((8.4, 1.0, 0.25), (0.0, 0.36, 10.3), TEAL, bevel=0.06))
+    frame.append(box((1.0, 1.0, 1.1), (0.0, 0.4, 9.75), CREAM, bevel=0.12, segments=2))
+    glow.append(box((6.4, 0.12, 0.55), (0.0, 0.2, 9.55), GLOW, bevel=0.03, segments=1))
+    for x in (-2.0, 2.0):
+        frame.append(box((0.16, 0.3, 0.6), (x, 0.32, 9.55), TEAL_DARK, bevel=0.02, segments=1))
+    return {
+        "SM_Bld_LobbyDoor_Leaf": (build_mesh("SM_Bld_LobbyDoor_Leaf", leaf, "tint"), dict(tint=True, collision="None", place=[[0, 0, 0]])),
+        "SM_Bld_LobbyDoor_Hardware": (build_mesh("SM_Bld_LobbyDoor_Hardware", hw), dict(collision="None", place=[[0, 0, 0]])),
+        "SM_Bld_LobbyDoor_Frame": (build_mesh("SM_Bld_LobbyDoor_Frame", frame), dict(collision="None", place=[[0, 0, 0]])),
+        "SM_Bld_LobbyDoor_Glow": (build_mesh("SM_Bld_LobbyDoor_Glow", glow, "glow"), dict(glow=True, collision="None", place=[[0, 0, 0]])),
+    }
+
+
+def lobby_pad():
+    """Pad base: wooden disc (r 5.4) with a brass ring and rim bulbs; the
+    game's tinted neon pad (r 4.5) sits on top. Floor at z = 0."""
+    base, glow = [], []
+    base.append(cyl(5.4, 0.22, (0, 0, 0.11), WOOD_DARK, verts=40, bevel=0.06))
+    base.append(cyl(5.05, 0.1, (0, 0, 0.25), BRASS, verts=40, bevel=0.03))
+    base.append(cyl(4.7, 0.1, (0, 0, 0.28), WOOD, verts=40, bevel=0.03))
+    for k in range(12):
+        a = k * math.pi * 2 / 12
+        glow.append(blob(0.2, (math.cos(a) * 5.1, math.sin(a) * 5.1, 0.36), GLOW, lump=0, segs=8, rings=5))
+    return {
+        "SM_Prop_LobbyPad_Base": (build_mesh("SM_Prop_LobbyPad_Base", base), dict(collision="None", place=[[0, 0, 0]])),
+        "SM_Prop_LobbyPad_Glow": (build_mesh("SM_Prop_LobbyPad_Glow", glow, "glow"), dict(glow=True, collision="None", place=[[0, 0, 0]])),
+    }
+
+
+def board_frame(prefix, bw, bh):
+    """Wooden frame around a bw x bh board (board plane y = 0, facing +Y,
+    origin at the board centre): chunky wood bars, gold bead, brass corner
+    caps, header crest and two gooseneck lamps over the top."""
+    T, L = [], []
+    fw = 0.9
+    for z in (bh / 2 + fw / 2, -(bh / 2 + fw / 2)):
+        T.append(box((bw + fw * 2, 0.7, fw), (0, 0.2, z), WOOD_DARK, bevel=0.14, segments=2))
+    for x in (bw / 2 + fw / 2, -(bw / 2 + fw / 2)):
+        T.append(box((fw, 0.7, bh), (x, 0.2, 0), WOOD_DARK, bevel=0.14, segments=2))
+    for z in (bh / 2 + 0.06, -(bh / 2 + 0.06)):
+        T.append(box((bw + 0.2, 0.3, 0.16), (0, 0.42, z), SIGN_GOLD, bevel=0.05, segments=1))
+    for x in (bw / 2 + 0.06, -(bw / 2 + 0.06)):
+        T.append(box((0.16, 0.3, bh + 0.2), (x, 0.42, 0), SIGN_GOLD, bevel=0.05, segments=1))
+    for x in (bw / 2 + fw / 2, -(bw / 2 + fw / 2)):
+        for z in (bh / 2 + fw / 2, -(bh / 2 + fw / 2)):
+            T.append(box((1.2, 0.85, 1.2), (x, 0.25, z), SIGN_GOLD, bevel=0.2, segments=2))
+    crest_w = min(bw * 0.4, 7.0)
+    T.append(box((crest_w, 0.6, 0.9), (0, 0.15, bh / 2 + fw + 0.4), WOOD, bevel=0.2, segments=2))
+    T.append(cyl(0.55, 0.3, (0, 0.5, bh / 2 + fw + 0.45), SIGN_GOLD, verts=16, rot=(math.pi / 2, 0, 0)))
+    for x in (-bw * 0.28, bw * 0.28):
+        gooseneck((x, 0.05, bh / 2 + fw), 0.6, 1.1, (0, 1), L, T, size=0.85)
+    return {
+        f"SM_Prop_{prefix}_Frame": (build_mesh(f"SM_Prop_{prefix}_Frame", T), dict(collision="None", place=[[0, 0, 0]])),
+        f"SM_Prop_{prefix}_Glow": (build_mesh(f"SM_Prop_{prefix}_Glow", L, "glow"), dict(glow=True, collision="None", place=[[0, 0, 0]])),
+    }
+
+
+def lobby_board_l():
+    return board_frame("LobbyBoardL", 24.0, 14.0)
+
+
+def lobby_board_m():
+    return board_frame("LobbyBoardM", 15.0, 11.0)
+
+
+def lobby_board_w():
+    return board_frame("LobbyBoardW", 22.0, 13.0)
+
+
+# ======================================================================
 # Batch 4: interior furniture, lamps, pool / yard / road props
 # (prop-artist + cartoon-style). Sizes follow the part-built decor they
 # replace (MapDecor / MapBuilder); front = +Y (Roblox -Z), origin noted
@@ -3354,6 +3565,15 @@ BATCHES = {
         ("ShopV2", shop_v2, "hero_building"),
         ("KitchenV2", kitchen_v2, "hero_building"),
     ],
+    "lobby": [
+        ("LobbyHall", lobby_hall, "lobby_hall"),
+        ("LobbyTitle", lobby_title, "sign"),
+        ("LobbyDoor", lobby_door, "door"),
+        ("LobbyPad", lobby_pad, "standard"),
+        ("LobbyBoardL", lobby_board_l, "standard"),
+        ("LobbyBoardM", lobby_board_m, "standard"),
+        ("LobbyBoardW", lobby_board_w, "standard"),
+    ],
     "batch4": [
         ("Couch", couch, "hero"),  # main lobby furniture, seen up close
         ("CoffeeTable", coffee_table, "standard"),
@@ -3397,7 +3617,7 @@ BATCHES = {
     ],
 }
 # Triangle budget per object group (prop-artist tiers, mobile-adjusted).
-BUDGET = {"hero": 8000, "standard": 3000, "tree": 4000, "vehicle": 8000, "building": 12000, "sign": 8000, "hero_building": 28000, "door": 2500, "background": 1000}
+BUDGET = {"hero": 8000, "standard": 3000, "tree": 4000, "vehicle": 8000, "building": 12000, "sign": 8000, "hero_building": 28000, "lobby_hall": 60000, "door": 2500, "background": 1000}
 
 
 # ======================================================================
@@ -3767,7 +3987,7 @@ if BATCH == "rooms":
         bpy.ops.render.render(write_still=True)
 # Annex: each building on its own, door side 3/4 and back 3/4 (the sheet
 # above already turned the doors toward +Y).
-if BATCH == "annex":
+if BATCH in ("annex", "lobby"):
     scene.view_settings.view_transform = "Standard"
     scene.view_settings.look = "None"
     bg.inputs["Color"].default_value = (0.32, 0.46, 0.72, 1)
@@ -3791,6 +4011,6 @@ if BATCH == "annex":
             cam.location = look + Vector((d.x * math.cos(e), d.y * math.cos(e), math.sin(e))) * dist
             cam.rotation_euler = (look - cam.location).to_track_quat("-Z", "Y").to_euler()
             sun.rotation_euler = (math.radians(-50), 0, math.atan2(-d.x, d.y) + math.radians(-28))
-            scene.render.filepath = os.path.join(OUT, "previews", f"motel_kit_annex_{g}_{name}.png")
+            scene.render.filepath = os.path.join(OUT, "previews", f"motel_kit_{BATCH}_{g}_{name}.png")
             bpy.ops.render.render(write_still=True)
 print("[kit] previews done")

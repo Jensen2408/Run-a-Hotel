@@ -11,6 +11,12 @@
 	                   HOW TO PLAY board
 	  front (-Z)       wide opening to the forest, spawn inside
 
+	With the Blender kit (batch "lobby": LobbyHall, LobbyTitle, LobbyDoor,
+	LobbyPad, LobbyBoardL/M/W + batch 4 furniture) the hall is drawn by the
+	meshes: walls / floor / lintel stay as invisible colliders, the boards and
+	plaques stay as SurfaceGui hosts, the neon pads stay for the room colour.
+	Without the kit the old part-built hall is used.
+
 	Server-built boards only use icon sheets 1 and 2 (the server cannot show
 	the client-side emoji fallback for a sheet that is not uploaded yet).
 ]]
@@ -164,93 +170,170 @@ function LobbyBuilder.build(scale: number)
 	pads.Name = "Pads"
 	pads.Parent = root
 
+	Kit.load()
+	local kit = Kit.has("LobbyHall")
+	-- Kit hall: the shell parts only collide (the meshes draw the hall).
+	local hidden = if kit then { Transparency = 1, CastShadow = false } else nil
+
 	-- Ground and hall shell ---------------------------------------------------
 	block(map, "Grass", Vector3.new(500, 1, 500), Vector3.new(0, -0.38, 0), Color3.fromRGB(112, 156, 80))
-	block(map, "Floor", Vector3.new(82, 0.4, 56), Vector3.new(0, 0.2, 0), Color3.fromRGB(196, 170, 130), {
-		Material = Enum.Material.WoodPlanks,
-	})
-	block(map, "Rug", Vector3.new(18, 0.05, 26), Vector3.new(0, 0.43, -6), Color3.fromRGB(170, 54, 60))
-	block(map, "RugBorder", Vector3.new(19.4, 0.04, 27.4), Vector3.new(0, 0.42, -6), Color3.fromRGB(230, 190, 90))
+	local floorProps = { Material = Enum.Material.WoodPlanks }
+	if kit then
+		floorProps = hidden
+	end
+	block(map, "Floor", Vector3.new(82, 0.4, 56), Vector3.new(0, 0.2, 0), Color3.fromRGB(196, 170, 130), floorProps)
 	local H = 16
-	wall(map, "BackWall", Vector3.new(82, H, 1), Vector3.new(0, H / 2, 28))
-	wall(map, "LeftWall", Vector3.new(1, H, 56), Vector3.new(-41, H / 2, 0))
-	wall(map, "RightWall", Vector3.new(1, H, 56), Vector3.new(41, H / 2, 0))
-	wall(map, "FrontWallL", Vector3.new(24, H, 1), Vector3.new(-29, H / 2, -28))
-	wall(map, "FrontWallR", Vector3.new(24, H, 1), Vector3.new(29, H / 2, -28))
-	wall(map, "FrontLintel", Vector3.new(34, H - 10, 1), Vector3.new(0, 10 + (H - 10) / 2, -28))
-	block(map, "Ceiling", Vector3.new(82, 0.4, 56), Vector3.new(0, H + 0.2, 0), Color3.fromRGB(246, 240, 226))
-	block(map, "Roof", Vector3.new(86, 1.2, 60), Vector3.new(0, H + 1, 0), Color3.fromRGB(176, 66, 54))
-	for _, x in ipairs({ -41, 41 }) do
-		block(map, "BaseTrim", Vector3.new(1.2, 1, 56), Vector3.new(x, 0.9, 0), TRIM)
-	end
-	block(map, "BaseTrimBack", Vector3.new(82, 1, 1.2), Vector3.new(0, 0.9, 27.5), TRIM)
-	for _, x in ipairs({ -30, -15, 0, 15, 30 }) do
-		for _, z in ipairs({ -12, 8 }) do
-			lamp(map, Vector3.new(x, H - 0.4, z), 24)
+	local function shell(name, size, pos)
+		local w = wall(map, name, size, pos)
+		if kit then
+			w.Transparency = 1
+			w.CastShadow = false
 		end
+		return w
 	end
+	shell("BackWall", Vector3.new(82, H, 1), Vector3.new(0, H / 2, 28))
+	shell("LeftWall", Vector3.new(1, H, 56), Vector3.new(-41, H / 2, 0))
+	shell("RightWall", Vector3.new(1, H, 56), Vector3.new(41, H / 2, 0))
+	shell("FrontWallL", Vector3.new(24, H, 1), Vector3.new(-29, H / 2, -28))
+	shell("FrontWallR", Vector3.new(24, H, 1), Vector3.new(29, H / 2, -28))
+	shell("FrontLintel", Vector3.new(34, H - 10, 1), Vector3.new(0, 10 + (H - 10) / 2, -28))
 
-	-- Neon title sign on the back wall.
-	local title = block(map, "TitleSign", Vector3.new(36, 5, 0.6), Vector3.new(0, 13, 27.3), Color3.fromRGB(46, 58, 70))
-	local tg = surface(title, Enum.NormalId.Front, 30)
-	text(
-		tg,
-		{ Size = UDim2.fromScale(1, 1), Text = "RUN A MOTEL", TextColor3 = Color3.fromRGB(255, 120, 190), Stroke = 6 }
-	)
-	for k = 0, 17 do
-		local b = block(map, "Bulb", Vector3.new(0.6, 0.6, 0.6), Vector3.new(-17 + k * 2, 15.8, 26.8), LAMP, {
-			Shape = Enum.PartType.Ball,
-			Material = Enum.Material.Neon,
-			CanCollide = false,
+	if kit then
+		-- Hall, title sign, rug, ceiling lamps under the beams.
+		Kit.place("LobbyHall", map, CFrame.new())
+		Kit.place("LobbyTitle", map, CFrame.new())
+		Kit.place("LobbyRug", map, CFrame.new(0, 0.4, -6), { scale = 1.95 })
+		for _, x in ipairs({ -30, -15, 0, 15, 30 }) do
+			for _, z in ipairs({ -12, 8 }) do
+				Kit.place("CeilingLamp", map, CFrame.new(x, H - 0.9, z), { scale = 1.3 })
+				local anchor = block(map, "LampLight", Vector3.new(0.4, 0.4, 0.4), Vector3.new(x, H - 2.2, z), LAMP, {
+					Transparency = 1,
+					CanCollide = false,
+					CanQuery = false,
+				})
+				local l = Instance.new("PointLight")
+				l.Range = 24
+				l.Brightness = 0.6
+				l.Color = LAMP
+				l.Parent = anchor
+			end
+		end
+		-- Wall sconces between the room doors.
+		for _, x in ipairs({ -32, -16, 0, 16, 32 }) do
+			if x ~= 0 then
+				Kit.place("WallSconce", map, CFrame.new(x, 6.4, 27.5), { scale = 1.3 })
+			end
+		end
+	else
+		block(map, "Rug", Vector3.new(18, 0.05, 26), Vector3.new(0, 0.43, -6), Color3.fromRGB(170, 54, 60))
+		block(map, "RugBorder", Vector3.new(19.4, 0.04, 27.4), Vector3.new(0, 0.42, -6), Color3.fromRGB(230, 190, 90))
+		block(map, "Ceiling", Vector3.new(82, 0.4, 56), Vector3.new(0, H + 0.2, 0), Color3.fromRGB(246, 240, 226))
+		block(map, "Roof", Vector3.new(86, 1.2, 60), Vector3.new(0, H + 1, 0), Color3.fromRGB(176, 66, 54))
+		for _, x in ipairs({ -41, 41 }) do
+			block(map, "BaseTrim", Vector3.new(1.2, 1, 56), Vector3.new(x, 0.9, 0), TRIM)
+		end
+		block(map, "BaseTrimBack", Vector3.new(82, 1, 1.2), Vector3.new(0, 0.9, 27.5), TRIM)
+		for _, x in ipairs({ -30, -15, 0, 15, 30 }) do
+			for _, z in ipairs({ -12, 8 }) do
+				lamp(map, Vector3.new(x, H - 0.4, z), 24)
+			end
+		end
+
+		-- Neon title sign on the back wall.
+		local title =
+			block(map, "TitleSign", Vector3.new(36, 5, 0.6), Vector3.new(0, 13, 27.3), Color3.fromRGB(46, 58, 70))
+		local tg = surface(title, Enum.NormalId.Front, 30)
+		text(tg, {
+			Size = UDim2.fromScale(1, 1),
+			Text = "RUN A MOTEL",
+			TextColor3 = Color3.fromRGB(255, 120, 190),
+			Stroke = 6,
 		})
-		b:SetAttribute("Chase", k + 1)
+		for k = 0, 17 do
+			local b = block(map, "Bulb", Vector3.new(0.6, 0.6, 0.6), Vector3.new(-17 + k * 2, 15.8, 26.8), LAMP, {
+				Shape = Enum.PartType.Ball,
+				Material = Enum.Material.Neon,
+				CanCollide = false,
+			})
+			b:SetAttribute("Chase", k + 1)
+		end
 	end
 
 	-- Room doors + pads ------------------------------------------------------------
 	for i, x in ipairs(LobbyBuilder.ROOM_X) do
 		local color = LobbyBuilder.ROOM_COLORS[i]
-		-- Door in the back wall.
-		block(
-			map,
-			"Door" .. i,
-			Vector3.new(7, 11, 0.4),
-			Vector3.new(x, 5.9, 27.3),
-			color:Lerp(Color3.new(0, 0, 0), 0.25)
-		)
-		for _, dx in ipairs({ -4, 4 }) do
-			block(map, "DoorFrame", Vector3.new(1, 12, 0.8), Vector3.new(x + dx, 6.2, 27.2), TRIM)
+		local plaque
+		if kit then
+			-- Kit double door (leaves in the room colour), brass number plate
+			-- on the seam between the portholes.
+			local door = Kit.place("LobbyDoor", map, CFrame.new(x, 0.4, 27.5))
+			if door and door.SM_Bld_LobbyDoor_Leaf then
+				door.SM_Bld_LobbyDoor_Leaf.Color = color:Lerp(Color3.new(1, 1, 1), 0.15)
+			end
+			plaque = block(
+				map,
+				"Plaque" .. i,
+				Vector3.new(1.7, 1.7, 0.2),
+				Vector3.new(x, 6.1, 26.92),
+				Color3.fromRGB(240, 200, 80),
+				{ Material = Enum.Material.Metal }
+			)
+		else
+			-- Door in the back wall.
+			block(
+				map,
+				"Door" .. i,
+				Vector3.new(7, 11, 0.4),
+				Vector3.new(x, 5.9, 27.3),
+				color:Lerp(Color3.new(0, 0, 0), 0.25)
+			)
+			for _, dx in ipairs({ -4, 4 }) do
+				block(map, "DoorFrame", Vector3.new(1, 12, 0.8), Vector3.new(x + dx, 6.2, 27.2), TRIM)
+			end
+			block(map, "DoorTop", Vector3.new(9, 1, 0.8), Vector3.new(x, 12.4, 27.2), TRIM)
+			block(
+				map,
+				"DoorKnob",
+				Vector3.new(0.5, 0.5, 0.4),
+				Vector3.new(x + 2.3, 5.6, 27),
+				Color3.fromRGB(240, 200, 80)
+			)
+			plaque =
+				block(map, "Plaque" .. i, Vector3.new(3, 3, 0.3), Vector3.new(x, 9, 27), Color3.fromRGB(240, 200, 80), {
+					Material = Enum.Material.Metal,
+				})
 		end
-		block(map, "DoorTop", Vector3.new(9, 1, 0.8), Vector3.new(x, 12.4, 27.2), TRIM)
-		block(map, "DoorKnob", Vector3.new(0.5, 0.5, 0.4), Vector3.new(x + 2.3, 5.6, 27), Color3.fromRGB(240, 200, 80))
-		local plaque =
-			block(map, "Plaque" .. i, Vector3.new(3, 3, 0.3), Vector3.new(x, 9, 27), Color3.fromRGB(240, 200, 80), {
-				Material = Enum.Material.Metal,
-			})
 		local pg = surface(plaque, Enum.NormalId.Front, 60)
 		text(
 			pg,
 			{ Size = UDim2.fromScale(1, 1), Text = tostring(i), TextColor3 = Color3.fromRGB(70, 40, 20), Stroke = 0 }
 		)
 
-		-- Pad on the floor in front of the door.
+		-- Pad on the floor in front of the door (on the kit pad base: wooden
+		-- disc with a brass ring and rim bulbs).
+		local padY = if kit and Kit.has("LobbyPad") then 0.82 else 0.55
 		local pad =
-			cylY(pads, "Pad" .. i, 0.3, LobbyBuilder.PAD_RADIUS * 2, Vector3.new(x, 0.55, LobbyBuilder.PAD_Z), color, {
+			cylY(pads, "Pad" .. i, 0.24, LobbyBuilder.PAD_RADIUS * 2, Vector3.new(x, padY, LobbyBuilder.PAD_Z), color, {
 				Material = Enum.Material.Neon,
 				Transparency = 0.25,
 				CanCollide = false,
 			})
 		pad:SetAttribute("Room", i)
-		cylY(
-			pads,
-			"PadRim",
-			0.25,
-			LobbyBuilder.PAD_RADIUS * 2 + 1,
-			Vector3.new(x, 0.5, LobbyBuilder.PAD_Z),
-			Color3.fromRGB(60, 50, 44),
-			{
-				CanCollide = false,
-			}
-		)
+		if padY > 0.55 then
+			Kit.place("LobbyPad", pads, CFrame.new(x, 0.4, LobbyBuilder.PAD_Z))
+		else
+			cylY(
+				pads,
+				"PadRim",
+				0.25,
+				LobbyBuilder.PAD_RADIUS * 2 + 1,
+				Vector3.new(x, 0.5, LobbyBuilder.PAD_Z),
+				Color3.fromRGB(60, 50, 44),
+				{
+					CanCollide = false,
+				}
+			)
+		end
 		local light = Instance.new("PointLight")
 		light.Color = color
 		light.Range = 14
@@ -293,32 +376,72 @@ function LobbyBuilder.build(scale: number)
 	end
 
 	-- Boards ---------------------------------------------------------------------------
+	-- Kit frames face into the hall: front (-Z) turned to +X / -X.
+	local function frame(group, partName, size, pos, facing: number)
+		if kit and Kit.has(group) then
+			Kit.place(
+				group,
+				boards,
+				CFrame.new(pos.X + facing * 0.3, pos.Y, pos.Z) * CFrame.Angles(0, -facing * math.pi / 2, 0)
+			)
+		else
+			block(boards, partName, size, Vector3.new(pos.X - facing * 0.2, pos.Y, pos.Z), WOOD_DARK)
+		end
+	end
 	local leaderboard =
 		block(boards, "Leaderboard", Vector3.new(0.6, 14, 24), Vector3.new(-40.3, 8, 0), Color3.fromRGB(46, 58, 70))
-	block(boards, "LeaderboardFrame", Vector3.new(0.5, 15, 25), Vector3.new(-40.5, 8, 0), WOOD_DARK)
+	frame("LobbyBoardL", "LeaderboardFrame", Vector3.new(0.5, 15, 25), Vector3.new(-40.3, 8, 0), 1)
 	LobbyBuilder.buildLeaderboardGui(leaderboard)
 
 	local profile =
 		block(boards, "ProfileBoard", Vector3.new(0.6, 11, 15), Vector3.new(40.3, 8, 15), Color3.fromRGB(46, 70, 66))
-	block(boards, "ProfileFrame", Vector3.new(0.5, 12, 16), Vector3.new(40.5, 8, 15), WOOD_DARK)
+	frame("LobbyBoardM", "ProfileFrame", Vector3.new(0.5, 12, 16), Vector3.new(40.3, 8, 15), -1)
 	profile:SetAttribute("ProfileBoard", true)
 
 	local howto =
 		block(boards, "HowToPlay", Vector3.new(0.6, 13, 22), Vector3.new(40.3, 8, -10), Color3.fromRGB(70, 56, 46))
-	block(boards, "HowToFrame", Vector3.new(0.5, 14, 23), Vector3.new(40.5, 8, -10), WOOD_DARK)
+	frame("LobbyBoardW", "HowToFrame", Vector3.new(0.5, 14, 23), Vector3.new(40.3, 8, -10), -1)
 	LobbyBuilder.buildHowToGui(howto)
 
 	-- Decor: couches, plants, pillars ----------------------------------------------------
-	for _, z in ipairs({ -18, 4 }) do
+	if kit then
+		-- Kit furniture (batch 4): couches facing the room doors with coffee
+		-- tables, potted plants in the corners, coffee bar by the entrance,
+		-- flower beds and bushes along the front.
+		for _, z in ipairs({ -18, 4 }) do
+			Kit.place("Couch", map, CFrame.new(-28, 0.4, z) * CFrame.Angles(0, math.pi, 0))
+			Kit.place("CoffeeTable", map, CFrame.new(-28, 0.4, z + 4))
+		end
+		for _, p in ipairs({
+			Vector3.new(-38, 0.4, -25),
+			Vector3.new(38, 0.4, -25),
+			Vector3.new(-38, 0.4, 25),
+			Vector3.new(38, 0.4, 25),
+		}) do
+			Kit.place("PottedPlant", map, CFrame.new(p), { scale = 1.4 })
+		end
+		Kit.place("CoffeeBar", map, CFrame.new(-37.6, 0.4, -18) * CFrame.Angles(0, -math.pi / 2, 0), { scale = 1.2 })
+		for _, x in ipairs({ -29, 29 }) do
+			Kit.place("FlowerBed", map, CFrame.new(x, 0, -31.2))
+		end
+		for _, x in ipairs({ -21.5, 21.5, -38, 38 }) do
+			Kit.place("FlowerBush", map, CFrame.new(x, 0, -30.5))
+		end
+	end
+	for _, z in ipairs(if kit then {} else { -18, 4 }) do
 		block(map, "CouchSeat", Vector3.new(7, 1.4, 2.8), Vector3.new(-28, 1.1, z), Color3.fromRGB(70, 120, 150))
 		block(map, "CouchBack", Vector3.new(7, 2.6, 0.8), Vector3.new(-28, 1.7, z - 1.4), Color3.fromRGB(60, 104, 132))
 	end
-	for _, p in ipairs({
-		Vector3.new(-38, 0, -25),
-		Vector3.new(38, 0, -25),
-		Vector3.new(-38, 0, 25),
-		Vector3.new(38, 0, 25),
-	}) do
+	for _, p in
+		ipairs(if kit
+			then {}
+			else {
+				Vector3.new(-38, 0, -25),
+				Vector3.new(38, 0, -25),
+				Vector3.new(-38, 0, 25),
+				Vector3.new(38, 0, 25),
+			})
+	do
 		cylY(map, "Pot", 2, 2.4, p + Vector3.new(0, 1.2, 0), Color3.fromRGB(196, 110, 70))
 		for k = 0, 2 do
 			block(
@@ -334,17 +457,18 @@ function LobbyBuilder.build(scale: number)
 			)
 		end
 	end
-	for _, x in ipairs({ -17, 17 }) do
-		cylY(map, "Pillar", H, 1.6, Vector3.new(x, H / 2, -27), WALL)
+	if not kit then
+		for _, x in ipairs({ -17, 17 }) do
+			cylY(map, "Pillar", H, 1.6, Vector3.new(x, H / 2, -27), WALL)
+		end
+		block(map, "Welcome", Vector3.new(14, 2, 0.5), Vector3.new(0, 11.5, -27.4), Color3.fromRGB(120, 40, 40))
+		local wg = surface(map:FindFirstChild("Welcome"), Enum.NormalId.Back, 40)
+		text(wg, { Size = UDim2.fromScale(1, 1), Text = "WELCOME", TextColor3 = Color3.fromRGB(255, 232, 140) })
 	end
-	block(map, "Welcome", Vector3.new(14, 2, 0.5), Vector3.new(0, 11.5, -27.4), Color3.fromRGB(120, 40, 40))
-	local wg = surface(map:FindFirstChild("Welcome"), Enum.NormalId.Back, 40)
-	text(wg, { Size = UDim2.fromScale(1, 1), Text = "WELCOME", TextColor3 = Color3.fromRGB(255, 232, 140) })
 
 	-- Outside: a ring of pines through the front opening (the Blender pine
 	-- when the kit is available, else a trunk + wedge).
 	local rng = Random.new(77)
-	Kit.load()
 	local kitPines = Kit.has("PineTree")
 	for k = 1, 40 do
 		local a = rng:NextNumber(0, math.pi * 2)
