@@ -1,0 +1,1364 @@
+{
+  "batch": "batch3",
+  "units": "studs",
+  "axes": "roblox",
+  "meshes": {
+    "SM_Bld_Office_Walls": {
+      "group": "Office",
+      "size": [
+        37.26,
+        20.95,
+        27.26
+      ],
+      "center": [
+        -0.0,
+        10.475,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Precise",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "tris": 1384
+    },
+    "SM_Bld_Office_Trim": {
+      "group": "Office",
+      "size": [
+        39.56,
+        21.771,
+        34.401
+      ],
+      "center": [
+        -0.0,
+        10.886,
+        -2.139
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "tris": 4600
+    },
+    "SM_Bld_Office_Roof": {
+      "group": "Office",
+      "size": [
+        39.6,
+        10.535,
+        29.986
+      ],
+      "center": [
+        0.0,
+        18.983,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "tris": 816
+    },
+    "SM_Bld_Office_Glass": {
+      "group": "Office",
+      "size": [
+        35.06,
+        4.6,
+        11.56
+      ],
+      "center": [
+        -0.53,
+        5.1,
+        -7.28
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": true,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "tris": 132
+    },
+    "SM_Bld_Office_Awning": {
+      "group": "Office",
+      "size": [
+        38.865,
+        3.295,
+        18.63
+      ],
+      "center": [
+        -1.583,
+        8.652,
+        -9.965
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "tris": 2968
+    },
+    "SM_Bld_Office_Sign": {
+      "group": "Office",
+      "size": [
+        14.0,
+        4.3,
+        1.09
+      ],
+      "center": [
+        4.0,
+        16.15,
+        -12.895
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "tris": 292
+    },
+    "SM_Bld_Office_Glow": {
+      "group": "Office",
+      "size": [
+        17.961,
+        12.22,
+        6.31
+      ],
+      "center": [
+        4.0,
+        12.11,
+        -16.385
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          22,
+          0,
+          -19
+        ]
+      ],
+      "tris": 1748
+    },
+    "SM_Bld_Room_Walls": {
+      "group": "RoomUnit",
+      "size": [
+        15.26,
+        12.2,
+        17.26
+      ],
+      "center": [
+        -0.0,
+        6.1,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Precise",
+      "glass": false,
+      "place": [
+        [
+          2,
+          0,
+          30
+        ],
+        [
+          20,
+          0,
+          30
+        ],
+        [
+          38,
+          0,
+          30
+        ]
+      ],
+      "tris": 864
+    },
+    "SM_Bld_Room_Trim": {
+      "group": "RoomUnit",
+      "size": [
+        15.59,
+        12.0,
+        18.6
+      ],
+      "center": [
+        0.0,
+        6.0,
+        -0.2
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          2,
+          0,
+          30
+        ],
+        [
+          20,
+          0,
+          30
+        ],
+        [
+          38,
+          0,
+          30
+        ]
+      ],
+      "tris": 1200
+    },
+    "SM_Bld_Room_Glass": {
+      "group": "RoomUnit",
+      "size": [
+        11.0,
+        4.7,
+        16.12
+      ],
+      "center": [
+        -0.5,
+        5.65,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": true,
+      "place": [
+        [
+          2,
+          0,
+          30
+        ],
+        [
+          20,
+          0,
+          30
+        ],
+        [
+          38,
+          0,
+          30
+        ]
+      ],
+      "tris": 88
+    },
+    "SM_Bld_Room_Glow": {
+      "group": "RoomUnit",
+      "size": [
+        0.685,
+        0.9,
+        0.72
+      ],
+      "center": [
+        -2.95,
+        6.15,
+        -9.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          2,
+          0,
+          30
+        ],
+        [
+          20,
+          0,
+          30
+        ],
+        [
+          38,
+          0,
+          30
+        ]
+      ],
+      "tris": 100
+    },
+    "SM_Bld_RoomRoof_Walls": {
+      "group": "RoomRoof",
+      "size": [
+        51.0,
+        7.75,
+        17.0
+      ],
+      "center": [
+        0.5,
+        14.075,
+        2.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          19.5,
+          0,
+          28
+        ]
+      ],
+      "tris": 208
+    },
+    "SM_Bld_RoomRoof_Trim": {
+      "group": "RoomRoof",
+      "size": [
+        53.56,
+        18.764,
+        23.168
+      ],
+      "center": [
+        -0.0,
+        9.382,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          19.5,
+          0,
+          28
+        ]
+      ],
+      "tris": 2496
+    },
+    "SM_Bld_RoomRoof_Roof": {
+      "group": "RoomRoof",
+      "size": [
+        53.6,
+        8.243,
+        23.036
+      ],
+      "center": [
+        0.0,
+        15.829,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": [
+        [
+          19.5,
+          0,
+          28
+        ]
+      ],
+      "tris": 876
+    },
+    "SM_Bld_RoomRoof_Glow": {
+      "group": "RoomRoof",
+      "size": [
+        50.006,
+        0.898,
+        0.44
+      ],
+      "center": [
+        0.021,
+        10.735,
+        -10.95
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          19.5,
+          0,
+          28
+        ]
+      ],
+      "tris": 1296
+    },
+    "SM_Bld_LinenShed_Walls": {
+      "group": "LinenShed",
+      "size": [
+        15.26,
+        16.45,
+        16.26
+      ],
+      "center": [
+        -0.0,
+        8.225,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Precise",
+      "glass": false,
+      "place": [
+        [
+          60,
+          0,
+          -16
+        ]
+      ],
+      "tris": 908
+    },
+    "SM_Bld_LinenShed_Trim": {
+      "group": "LinenShed",
+      "size": [
+        16.93,
+        17.266,
+        18.157
+      ],
+      "center": [
+        0.185,
+        8.633,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          60,
+          0,
+          -16
+        ]
+      ],
+      "tris": 2064
+    },
+    "SM_Bld_LinenShed_Roof": {
+      "group": "LinenShed",
+      "size": [
+        16.6,
+        5.916,
+        18.024
+      ],
+      "center": [
+        0.0,
+        14.667,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": [
+        [
+          60,
+          0,
+          -16
+        ]
+      ],
+      "tris": 564
+    },
+    "SM_Bld_LinenShed_Glass": {
+      "group": "LinenShed",
+      "size": [
+        10.0,
+        3.0,
+        0.12
+      ],
+      "center": [
+        0.0,
+        5.5,
+        -7.5
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": true,
+      "place": [
+        [
+          60,
+          0,
+          -16
+        ]
+      ],
+      "tris": 88
+    },
+    "SM_Bld_LinenShed_Awning": {
+      "group": "LinenShed",
+      "size": [
+        2.578,
+        1.838,
+        9.9
+      ],
+      "center": [
+        -8.739,
+        9.106,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          60,
+          0,
+          -16
+        ]
+      ],
+      "tris": 1056
+    },
+    "SM_Bld_LinenShed_Sign": {
+      "group": "LinenShed",
+      "size": [
+        0.74,
+        2.0,
+        7.4
+      ],
+      "center": [
+        -7.97,
+        11.0,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          60,
+          0,
+          -16
+        ]
+      ],
+      "tris": 204
+    },
+    "SM_Bld_LinenShed_Glow": {
+      "group": "LinenShed",
+      "size": [
+        0.312,
+        1.76,
+        7.76
+      ],
+      "center": [
+        -8.32,
+        11.0,
+        -0.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          60,
+          0,
+          -16
+        ]
+      ],
+      "tris": 996
+    },
+    "SM_Bld_Shop_Walls": {
+      "group": "Shop",
+      "size": [
+        21.26,
+        16.95,
+        17.26
+      ],
+      "center": [
+        0.0,
+        8.475,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Precise",
+      "glass": false,
+      "place": [
+        [
+          100,
+          0,
+          -36
+        ]
+      ],
+      "tris": 1220
+    },
+    "SM_Bld_Shop_Trim": {
+      "group": "Shop",
+      "size": [
+        23.56,
+        17.766,
+        20.155
+      ],
+      "center": [
+        0.0,
+        8.883,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          100,
+          0,
+          -36
+        ]
+      ],
+      "tris": 2064
+    },
+    "SM_Bld_Shop_Roof": {
+      "group": "Shop",
+      "size": [
+        23.6,
+        6.415,
+        20.021
+      ],
+      "center": [
+        0.0,
+        14.917,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": [
+        [
+          100,
+          0,
+          -36
+        ]
+      ],
+      "tris": 588
+    },
+    "SM_Bld_Shop_Glass": {
+      "group": "Shop",
+      "size": [
+        14.06,
+        7.0,
+        16.12
+      ],
+      "center": [
+        -3.03,
+        5.9,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": true,
+      "place": [
+        [
+          100,
+          0,
+          -36
+        ]
+      ],
+      "tris": 176
+    },
+    "SM_Bld_Shop_Awning": {
+      "group": "Shop",
+      "size": [
+        2.936,
+        1.987,
+        10.3
+      ],
+      "center": [
+        -11.918,
+        8.932,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          100,
+          0,
+          -36
+        ]
+      ],
+      "tris": 1148
+    },
+    "SM_Bld_Shop_Sign": {
+      "group": "Shop",
+      "size": [
+        0.74,
+        2.6,
+        12.4
+      ],
+      "center": [
+        -11.02,
+        11.6,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          100,
+          0,
+          -36
+        ]
+      ],
+      "tris": 204
+    },
+    "SM_Bld_Shop_Glow": {
+      "group": "Shop",
+      "size": [
+        0.346,
+        2.4,
+        12.8
+      ],
+      "center": [
+        -11.4,
+        11.6,
+        -0.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          100,
+          0,
+          -36
+        ]
+      ],
+      "tris": 1708
+    },
+    "SM_Bld_Shop_OpenSign": {
+      "group": "Shop",
+      "size": [
+        0.27,
+        1.2,
+        2.4
+      ],
+      "center": [
+        -10.885,
+        5.3,
+        6.1
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          100,
+          0,
+          -36
+        ]
+      ],
+      "tris": 300
+    },
+    "SM_Bld_Kitchen_Walls": {
+      "group": "Kitchen",
+      "size": [
+        15.26,
+        13.95,
+        15.26
+      ],
+      "center": [
+        -0.0,
+        6.975,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Precise",
+      "glass": false,
+      "place": [
+        [
+          -1,
+          0,
+          3
+        ]
+      ],
+      "tris": 860
+    },
+    "SM_Bld_Kitchen_Trim": {
+      "group": "Kitchen",
+      "size": [
+        16.96,
+        14.771,
+        17.527
+      ],
+      "center": [
+        0.0,
+        7.385,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          -1,
+          0,
+          3
+        ]
+      ],
+      "tris": 1904
+    },
+    "SM_Bld_Kitchen_Roof": {
+      "group": "Kitchen",
+      "size": [
+        17.0,
+        7.735,
+        17.391
+      ],
+      "center": [
+        0.0,
+        13.582,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": [
+        [
+          -1,
+          0,
+          3
+        ]
+      ],
+      "tris": 1056
+    },
+    "SM_Bld_Kitchen_Glass": {
+      "group": "Kitchen",
+      "size": [
+        9.0,
+        3.4,
+        0.12
+      ],
+      "center": [
+        0.0,
+        5.0,
+        -7.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": true,
+      "place": [
+        [
+          -1,
+          0,
+          3
+        ]
+      ],
+      "tris": 88
+    },
+    "SM_Bld_Kitchen_Awning": {
+      "group": "Kitchen",
+      "size": [
+        2.565,
+        1.813,
+        5.9
+      ],
+      "center": [
+        8.733,
+        8.919,
+        0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          -1,
+          0,
+          3
+        ]
+      ],
+      "tris": 688
+    },
+    "SM_Bld_Kitchen_Sign": {
+      "group": "Kitchen",
+      "size": [
+        0.74,
+        2.2,
+        8.6
+      ],
+      "center": [
+        8.02,
+        11.3,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          -1,
+          0,
+          3
+        ]
+      ],
+      "tris": 204
+    },
+    "SM_Bld_Kitchen_Glow": {
+      "group": "Kitchen",
+      "size": [
+        0.312,
+        1.96,
+        8.96
+      ],
+      "center": [
+        8.4,
+        11.3,
+        -0.0
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          -1,
+          0,
+          3
+        ]
+      ],
+      "tris": 1024
+    },
+    "SM_Bld_MotelSign_Sign": {
+      "group": "MotelSign",
+      "size": [
+        20.781,
+        14.6,
+        1.14
+      ],
+      "center": [
+        2.391,
+        21.2,
+        -1.07
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          -46,
+          0,
+          -50
+        ]
+      ],
+      "tris": 596
+    },
+    "SM_Bld_MotelSign_Trim": {
+      "group": "MotelSign",
+      "size": [
+        5.2,
+        30.0,
+        4.0
+      ],
+      "center": [
+        0.6,
+        15.0,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "glass": false,
+      "place": [
+        [
+          -46,
+          0,
+          -50
+        ]
+      ],
+      "tris": 572
+    },
+    "SM_Bld_MotelSign_Glow": {
+      "group": "MotelSign",
+      "size": [
+        20.085,
+        10.26,
+        0.66
+      ],
+      "center": [
+        1.817,
+        23.33,
+        -1.58
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "glass": false,
+      "place": [
+        [
+          -46,
+          0,
+          -50
+        ]
+      ],
+      "tris": 2604
+    }
+  },
+  "validation": {
+    "SM_Bld_Office_Walls": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 22,
+      "scale_applied": true
+    },
+    "SM_Bld_Office_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 72,
+      "scale_applied": true
+    },
+    "SM_Bld_Office_Roof": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_Office_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_Office_Awning": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_Office_Sign": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 24,
+      "scale_applied": true
+    },
+    "SM_Bld_Office_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Office": {
+      "tris": 11940,
+      "budget": 12000,
+      "status": "OK"
+    },
+    "SM_Bld_Room_Walls": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 14,
+      "scale_applied": true
+    },
+    "SM_Bld_Room_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 48,
+      "scale_applied": true
+    },
+    "SM_Bld_Room_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_Room_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_RoomUnit": {
+      "tris": 2252,
+      "budget": 12000,
+      "status": "OK"
+    },
+    "SM_Bld_RoomRoof_Walls": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_RoomRoof_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_RoomRoof_Roof": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_RoomRoof_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_RoomRoof": {
+      "tris": 4876,
+      "budget": 12000,
+      "status": "OK"
+    },
+    "SM_Bld_LinenShed_Walls": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 14,
+      "scale_applied": true
+    },
+    "SM_Bld_LinenShed_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 48,
+      "scale_applied": true
+    },
+    "SM_Bld_LinenShed_Roof": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_LinenShed_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_LinenShed_Awning": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_LinenShed_Sign": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 24,
+      "scale_applied": true
+    },
+    "SM_Bld_LinenShed_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_LinenShed": {
+      "tris": 5880,
+      "budget": 12000,
+      "status": "OK"
+    },
+    "SM_Bld_Shop_Walls": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 22,
+      "scale_applied": true
+    },
+    "SM_Bld_Shop_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 96,
+      "scale_applied": true
+    },
+    "SM_Bld_Shop_Roof": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_Shop_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_Shop_Awning": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_Shop_Sign": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 24,
+      "scale_applied": true
+    },
+    "SM_Bld_Shop_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_Shop_OpenSign": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Shop": {
+      "tris": 7408,
+      "budget": 12000,
+      "status": "OK"
+    },
+    "SM_Bld_Kitchen_Walls": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 14,
+      "scale_applied": true
+    },
+    "SM_Bld_Kitchen_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 48,
+      "scale_applied": true
+    },
+    "SM_Bld_Kitchen_Roof": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_Kitchen_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_Kitchen_Awning": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_Kitchen_Sign": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 24,
+      "scale_applied": true
+    },
+    "SM_Bld_Kitchen_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Kitchen": {
+      "tris": 5824,
+      "budget": 12000,
+      "status": "OK"
+    },
+    "SM_Bld_MotelSign_Sign": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 48,
+      "scale_applied": true
+    },
+    "SM_Bld_MotelSign_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Bld_MotelSign_Glow": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 20,
+      "scale_applied": true
+    },
+    "_group_MotelSign": {
+      "tris": 3772,
+      "budget": 8000,
+      "status": "OK"
+    }
+  }
+}

@@ -36,7 +36,7 @@ import sys
 
 import bmesh
 import bpy
-from mathutils import Vector, noise
+from mathutils import Matrix, Vector, noise
 
 ARGS = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 ROOT = ARGS[0] if ARGS else os.getcwd()
@@ -304,6 +304,7 @@ def join(name, parts):
     if len(parts) > 1:
         bpy.ops.object.join()
     o = bpy.context.active_object
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     o.name = name
     o.data.name = name
     return o
@@ -1095,6 +1096,676 @@ def fountain():
     }
 
 
+# ======================================================================
+# Batch 3: buildings (environment-artist + stylized/cartoon style)
+#   * Shells on the exact gameplay footprints of MapDecor/MapBuilder
+#     (walls 1 stud thick centred on the same lines, same door gaps and
+#     heights), so the gameplay hitboxes, prompts and waypoints stay valid.
+#   * Each building is built in its world orientation with the local origin
+#     at the footprint centre on the floor; info["place"] lists the scale-1
+#     Roblox world positions of that origin (several for instanced rooms).
+#   * One mesh per role: Walls (cream shell, gables, ceiling), Trim (teal
+#     frames, base, shutters, posts), Roof, Glass (transparent in game),
+#     Awning (stripes), Sign (board) and Glow (3D letters, bulbs, lamps).
+# ======================================================================
+WALL_CREAM = srgb(246, 230, 200)
+WALL_LINE = srgb(220, 198, 162)
+MINT_LINE = srgb(118, 186, 168)
+BUTTER_LINE = srgb(232, 200, 116)
+ROOF_RED = srgb(212, 74, 58)
+ROOF_LINE = srgb(178, 56, 46)
+ROOF_DARK = srgb(126, 44, 40)
+BRICK = srgb(180, 96, 72)
+GLASS_BLUE = srgb(164, 216, 242)
+CEILING = srgb(248, 242, 228)
+SIGN_RED = srgb(156, 44, 44)
+SIGN_TEAL = srgb(40, 96, 90)
+SIGN_NAVY = srgb(34, 60, 76)
+CONCRETE = srgb(190, 184, 172)
+LETTER = srgb(255, 230, 130)
+LETTER_PINK = srgb(255, 120, 196)
+LETTER_WHITE = srgb(255, 252, 244)
+BULB = srgb(255, 238, 170)
+DOOR_TOP = 9.0
+ROOM_SHIFT = 18  # MapDecor.ROOM_SHIFT: rooms are moved north (+Z) by this
+
+
+def _along(axis, p, c, out, u=0.0, v=0.0, z=0.0):
+    """Point on a wall: axis "x" = wall along X at y=c, "y" = along Y at x=c.
+    u runs along the wall, v outward (out = +1/-1)."""
+    if axis == "x":
+        return (p + u, c + out * v, z)
+    return (c + out * v, p + u, z)
+
+
+def _size(axis, su, sv, sz):
+    return (su, sv, sz) if axis == "x" else (sv, su, sz)
+
+
+def wall(axis, a, b, c, height, colour, openings=(), t=1.0):
+    """Wall run a..b with rectangular openings (o1, o2, bottom, top)."""
+    parts = []
+
+    def piece(p1, p2, z1, z2):
+        if p2 - p1 < 0.05 or z2 - z1 < 0.05:
+            return
+        parts.append(
+            box(_size(axis, p2 - p1, t, z2 - z1), _along(axis, (p1 + p2) / 2, c, 1, z=(z1 + z2) / 2), colour, bevel=0.05, segments=1)
+        )
+
+    cursor = a
+    for o1, o2, zb, zt in sorted(openings):
+        piece(cursor, o1, 0, height)
+        piece(o1, o2, 0, zb)
+        piece(o1, o2, zt, height)
+        cursor = o2
+    piece(cursor, b, 0, height)
+    return parts
+
+
+def _free_spans(a, b, openings, z):
+    spans, cursor = [], a
+    for o1, o2, zb, zt in sorted(openings):
+        if zb - 0.2 <= z <= zt + 0.2:
+            spans.append((cursor, o1 - 0.15))
+            cursor = o2 + 0.15
+    spans.append((cursor, b))
+    return [(s1, s2) for s1, s2 in spans if s2 - s1 > 0.4]
+
+
+def siding(axis, a, b, c, out, height, colour, openings=(), step=2.0):
+    """Clapboard lines on the outside face (cartoon horizontal siding)."""
+    parts, z = [], 2.2
+    while z < height - 0.8:
+        for s1, s2 in _free_spans(a, b, openings, z):
+            parts.append(box(_size(axis, s2 - s1, 0.14, 0.16), _along(axis, (s1 + s2) / 2, c, out, v=0.56, z=z), colour, bevel=0.0))
+        z += step
+    return parts
+
+
+def base_trim(axis, a, b, c, out, colour, openings=(), h=0.9):
+    return [
+        box(_size(axis, s2 - s1, 0.32, h), _along(axis, (s1 + s2) / 2, c, out, v=0.6, z=h / 2), colour, bevel=0.08, segments=1)
+        for s1, s2 in _free_spans(a, b, openings, 0.3)
+    ]
+
+
+def corner_boards(x1, x2, y1, y2, height, colour):
+    return [
+        box((0.75, 0.75, height), (x, y, height / 2), colour, bevel=0.1, segments=1)
+        for x in (x1 - 0.42, x2 + 0.42)
+        for y in (y1 - 0.42, y2 + 0.42)
+    ]
+
+
+def window(axis, p, c, out, w, h, zc, shutters=True, flowers=False, seed=0):
+    """Framed window through a wall: glass pane (own mesh), frame, cross
+    mullion, sill, shutters and an optional flower box."""
+    trim, glass = [], []
+    glass.append(box(_size(axis, w, 0.12, h), _along(axis, p, c, out, z=zc), GLASS_BLUE, bevel=0.02, segments=1))
+    for s in (-1, 1):
+        trim.append(box(_size(axis, 0.4, 1.3, h + 0.8), _along(axis, p, c, out, u=s * (w / 2 + 0.2), z=zc), TEAL, bevel=0.1, segments=1))
+        trim.append(box(_size(axis, w + 0.8, 1.3, 0.4), _along(axis, p, c, out, z=zc + s * (h / 2 + 0.2)), TEAL, bevel=0.1, segments=1))
+    trim.append(box(_size(axis, 0.16, 0.24, h), _along(axis, p, c, out, z=zc), CREAM, bevel=0.0))
+    trim.append(box(_size(axis, w, 0.24, 0.16), _along(axis, p, c, out, z=zc), CREAM, bevel=0.0))
+    trim.append(box(_size(axis, w + 1.3, 0.7, 0.28), _along(axis, p, c, out, v=0.75, z=zc - h / 2 - 0.42), CREAM, bevel=0.08, segments=1))
+    if shutters:
+        sw = max(0.9, w * 0.42)
+        for s in (-1, 1):
+            u = s * (w / 2 + 0.45 + sw / 2)
+            trim.append(box(_size(axis, sw, 0.18, h + 0.4), _along(axis, p, c, out, u=u, v=0.62, z=zc), TEAL_DARK, bevel=0.06, segments=1))
+            for k in (-1, 1):
+                trim.append(box(_size(axis, sw - 0.3, 0.08, 0.14), _along(axis, p, c, out, u=u, v=0.74, z=zc + k * h * 0.28), TEAL, bevel=0.0))
+    if flowers:
+        zb = zc - h / 2 - 1.0
+        trim.append(box(_size(axis, w + 0.6, 0.9, 0.75), _along(axis, p, c, out, v=1.05, z=zb), WOOD, bevel=0.12, segments=1))
+        n = max(3, int(w / 1.0))
+        for i in range(n):
+            u = -w / 2 + (i + 0.5) * w / n
+            trim.append(blob(0.34, _along(axis, p, c, out, u=u, v=1.05, z=zb + 0.45), LEAF, lump=0.2, seed=seed + i, segs=6, rings=4))
+            trim.append(blob(0.2, _along(axis, p, c, out, u=u + 0.1, v=1.3, z=zb + 0.75), PETALS[(i + seed) % len(PETALS)], lump=0, segs=6, rings=4))
+    return trim, glass
+
+
+def awning(axis, p, c, out, w, ztop, depth=2.6, angle=24.0, scallops=True):
+    """Striped awning sloping out and down from a wall, scalloped valance."""
+    parts = []
+    a = math.radians(angle)
+    n = max(3, int(round(w / 0.85)))
+    sw = w / n
+    rot = (-a * out, 0, 0) if axis == "x" else (0, a * out, 0)
+    for i in range(n):
+        u = -w / 2 + (i + 0.5) * sw
+        col = RED if i % 2 == 0 else CREAM
+        centre = _along(axis, p, c, out, u=u, v=0.5 + depth * math.cos(a) / 2, z=ztop - depth * math.sin(a) / 2)
+        parts.append(box(_size(axis, sw + 0.01, depth, 0.18), centre, col, bevel=0.05, segments=1, rot=rot))
+        if scallops:
+            edge = _along(axis, p, c, out, u=u, v=0.5 + depth * math.cos(a), z=ztop - depth * math.sin(a) - 0.25)
+            parts.append(blob(sw * 0.5, edge, col, squash=(1, 0.35, 0.7) if axis == "x" else (0.35, 1, 0.7), lump=0, segs=8, rings=4))
+    # Side cheeks and a wall batten.
+    parts.append(box(_size(axis, w + 0.3, 0.3, 0.35), _along(axis, p, c, out, v=0.6, z=ztop + 0.05), RED, bevel=0.08, segments=1))
+    return parts
+
+
+def door_frame(axis, p1, p2, c, top, colour=TEAL):
+    return [
+        box(_size(axis, 0.7, 1.4, top), _along(axis, p1 - 0.35, c, 1, z=top / 2), colour, bevel=0.1, segments=1),
+        box(_size(axis, 0.7, 1.4, top), _along(axis, p2 + 0.35, c, 1, z=top / 2), colour, bevel=0.1, segments=1),
+        box(_size(axis, p2 - p1 + 1.6, 1.5, 0.6), _along(axis, (p1 + p2) / 2, c, 1, z=top + 0.3), colour, bevel=0.1, segments=1),
+    ]
+
+
+def gable_roof(x1, x2, y1, y2, base, rise, th=0.7, colour=ROOF_RED, line=ROOF_LINE):
+    """Gable roof, ridge along X, covering x1..x2 / y1..y2 (overhang
+    included), eaves at `base`. Shingle lips, ridge roll, fascia and
+    cream barge boards."""
+    roof, trim = [], []
+    yc, d = (y1 + y2) / 2, (y2 - y1) / 2
+    a = math.atan2(rise, d)
+    L = math.hypot(d, rise)
+    xc, length = (x1 + x2) / 2, x2 - x1
+    for side in (1, -1):
+        rot = (-a * side, 0, 0)
+        n = Vector((0, side * math.sin(a), math.cos(a)))
+        mid = Vector((xc, yc + side * d / 2, base + rise / 2)) + n * (th / 2)
+        roof.append(box((length, L + 0.5, th), mid, colour, bevel=0.14, rot=rot))
+        k = max(3, int(L / 1.45))
+        for i in range(1, k):
+            t = i / k
+            p = Vector((xc, yc + side * d * t, base + rise * (1 - t))) + n * (th + 0.05)
+            roof.append(box((length + 0.05, 0.55, 0.18), p, line, bevel=0.0, rot=rot))
+        eave = Vector((xc, y1 if side < 0 else y2, base)) + n * (th / 2) - Vector((0, 0, 0.25))
+        roof.append(box((length + 0.5, 0.55, 0.7), eave, ROOF_DARK, bevel=0.12, segments=1))
+        for x in (x1 - 0.12, x2 + 0.12):
+            trim.append(box((0.32, L + 0.6, 1.0), mid + Vector((x - xc, 0, 0)) - n * 0.1, CREAM, bevel=0.08, segments=1, rot=rot))
+    roof.append(cyl(0.6, length + 0.6, (xc, yc, base + rise + th * 0.75), ROOF_DARK, verts=12, rot=(0, math.pi / 2, 0)))
+    return roof, trim
+
+
+def gable_infill(x, ya, yb, yc, d, base, rise, colour, vent=True):
+    """Wall triangle under the roof at a gable end (follows the slab underside)."""
+    def under(y):
+        return base + rise * (1 - abs(y - yc) / d) - 0.05
+
+    pts = [(ya, base), (yb, base), (yb, under(yb))]
+    if ya < yc < yb:
+        pts.append((yc, under(yc)))
+    pts.append((ya, under(ya)))
+    parts = [extrude_profile(pts, x, 1.0, colour, bevel=0.0)]
+    trim = []
+    if vent and ya < yc < yb:
+        zc = base + (under(yc) - base) * 0.42
+        for s in (-1, 1):
+            trim.append(cyl(0.85, 0.3, (x + s * 0.55, yc, zc), TEAL, verts=16, rot=(0, math.pi / 2, 0)))
+            for k in (-1, 0, 1):
+                trim.append(box((0.12, 1.2, 0.12), (x + s * 0.72, yc, zc + k * 0.35), TEAL_DARK, bevel=0.0))
+    return parts, trim
+
+
+def chimney(x, y, z0, h, colour=BRICK):
+    return [
+        box((2.6, 2.6, h), (x, y, z0 + h / 2), colour, bevel=0.12, segments=1),
+        box((3.2, 3.2, 0.5), (x, y, z0 + h + 0.25), mul(colour, 0.7), bevel=0.12, segments=1),
+        box((2.0, 2.0, 0.3), (x, y, z0 + h + 0.6), IRON, bevel=0.06, segments=1),
+    ]
+
+
+def ceiling(x1, x2, y1, y2, h):
+    return [box((x2 - x1, y2 - y1, 0.3), ((x1 + x2) / 2, (y1 + y2) / 2, h + 0.05), CEILING, bevel=0.0)]
+
+
+TEXT_ROT = {"+y": (math.pi / 2, 0, math.pi), "-x": (math.pi / 2, 0, -math.pi / 2), "+x": (math.pi / 2, 0, math.pi / 2)}
+
+
+def text3d(body, size, loc, facing, colour, depth=0.14):
+    """Chunky 3D letters (built-in font), standing up and facing `facing`."""
+    cu = bpy.data.curves.new("txt", "FONT")
+    cu.body = body
+    cu.size = size
+    cu.extrude = depth / 2
+    cu.offset = size * 0.035  # bolder strokes
+    cu.resolution_u = 3
+    cu.align_x = "CENTER"
+    cu.align_y = "CENTER"
+    o = bpy.data.objects.new("txt", cu)
+    scene.collection.objects.link(o)
+    o.location = loc
+    o.rotation_euler = TEXT_ROT[facing]
+    _activate(o)
+    bpy.ops.object.convert(target="MESH")
+    o = bpy.context.active_object
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    return finish(o, colour, smooth_angle=30)
+
+
+def bulb(loc, r=0.26, colour=BULB):
+    return blob(r, loc, colour, lump=0, segs=6, rings=4)
+
+
+def bulb_line(a, b, n, sag=0.0, r=0.24):
+    """Bulbs from a to b (sagging string lights when sag > 0) + their wire."""
+    a, b = Vector(a), Vector(b)
+    glow, wire, pts = [], [], []
+    for i in range(n):
+        t = (i + 0.5) / n
+        p = a.lerp(b, t) - Vector((0, 0, sag * 4 * t * (1 - t)))
+        pts.append(p)
+        glow.append(bulb(p - Vector((0, 0, r * 0.9)), r))
+    chain = [a] + pts + [b]
+    for p, q in zip(chain, chain[1:]):
+        seg = q - p
+        if seg.length < 1e-3:
+            continue
+        o = cyl(0.04, seg.length, (p + q) / 2, IRON, verts=4, bevel=0.0)
+        o.rotation_euler = seg.to_track_quat("Z", "Y").to_euler()
+        wire.append(o)
+    return glow, wire
+
+
+def marquee(board_centre, w, h, front, facing, step=1.0, r=0.22):
+    """Bulbs around the edge of a sign board (front = offset to the face)."""
+    cx, cy, cz = board_centre
+    glow = []
+    nx = max(2, int(w / step))
+    nz = max(1, int(h / step))
+    for i in range(nx + 1):
+        u = -w / 2 + i * w / nx
+        for z in (cz + h / 2 - 0.3, cz - h / 2 + 0.3):
+            glow.append(bulb(_sign_point(facing, cx, cy, u, front, z), r))
+    for k in range(1, nz):
+        z = cz - h / 2 + 0.3 + k * (h - 0.6) / nz
+        for u in (-w / 2, w / 2):
+            glow.append(bulb(_sign_point(facing, cx, cy, u, front, z), r))
+    return glow
+
+
+def _sign_point(facing, cx, cy, u, front, z):
+    if facing == "+y":
+        return (cx + u, cy + front, z)
+    if facing == "-x":
+        return (cx - front, cy + u, z)
+    return (cx + front, cy + u, z)
+
+
+def sign_board(facing, cx, cy, cz, w, h, colour, border=CREAM, t=0.6):
+    """Board + raised border, w along the face."""
+    parts = []
+    s = (lambda a, b, c: (a, b, c)) if facing == "+y" else (lambda a, b, c: (b, a, c))
+    parts.append(box(s(w, t, h), (cx, cy, cz), colour, bevel=0.12, segments=1))
+    off = t / 2 + 0.06
+    p = (lambda u, z: _sign_point(facing, cx, cy, u, off, z))
+    for zz in (cz + h / 2 - 0.15, cz - h / 2 + 0.15):
+        parts.append(box(s(w, 0.16, 0.3), p(0, zz), border, bevel=0.05, segments=1))
+    for u in (-w / 2 + 0.15, w / 2 - 0.15):
+        parts.append(box(s(0.3, 0.16, h), p(u, cz), border, bevel=0.05, segments=1))
+    return parts
+
+
+def out(parts_by_role, prefix, collisions=None, extra=None):
+    """Build the role meshes of one building."""
+    collisions = collisions or {}
+    res = {}
+    for role, parts in parts_by_role.items():
+        if not parts:
+            continue
+        name = f"SM_Bld_{prefix}_{role}"
+        info = dict(collision=collisions.get(role, "None"))
+        if role == "Glow":
+            info["glow"] = True
+            res[name] = (build_mesh(name, parts, "glow"), info)
+            continue
+        if role == "Glass":
+            info["glass"] = True
+        info.update(extra or {})
+        res[name] = (build_mesh(name, parts), info)
+    for name in res:
+        res[name][1].update(extra or {})
+    return res
+
+
+# ---------------------------------------------------------------- office
+def office():
+    """Office/lobby: world x 4..40, z -32..-6 (centre 22, -19), walls 14.
+    Front (+Y here) = Roblox -Z, the parking side. Gaps: front door 14 wide,
+    hall door north, side door east (same as MapDecor.buildLobby)."""
+    H = 14
+    X1, X2, Y1, Y2 = -18.0, 18.0, -13.0, 13.0
+    W, T, G, R, A, S, L = [], [], [], [], [], [], []
+    front_open = [(-3.0, 11.0, 0, DOOR_TOP), (-15.0, -9.0, 2.8, 6.8), (12.0, 17.0, 2.8, 6.8)]
+    back_open = [(-12.0, 0.0, 0, DOOR_TOP)]
+    east_open = [(-5.0, 5.0, 0, DOOR_TOP)]
+    west_open = [(1.5, 6.5, 3.4, 7.4)]
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y2, H, WALL_CREAM, front_open)
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y1, H, WALL_CREAM, back_open)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X1, H, WALL_CREAM, west_open)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X2, H, WALL_CREAM, east_open)
+    W += siding("x", X1, X2, Y2, 1, H, WALL_LINE, front_open)
+    W += siding("x", X1, X2, Y1, -1, H, WALL_LINE, back_open)
+    W += siding("y", Y1, Y2, X1, -1, H, WALL_LINE, west_open)
+    W += siding("y", Y1, Y2, X2, 1, H, WALL_LINE, east_open)
+    W += ceiling(X1 + 0.5, X2 - 0.5, Y1 + 0.5, Y2 - 0.5, H)
+    T += base_trim("x", X1, X2, Y2, 1, TEAL, front_open)
+    T += base_trim("x", X1, X2, Y1, -1, TEAL, back_open)
+    T += base_trim("y", Y1, Y2, X1, -1, TEAL, west_open)
+    T += base_trim("y", Y1, Y2, X2, 1, TEAL, east_open)
+    T += corner_boards(X1, X2, Y1, Y2, H, CREAM)
+    T += door_frame("x", -3.0, 11.0, Y2, DOOR_TOP)
+    T += door_frame("x", -12.0, 0.0, Y1, DOOR_TOP)
+    T += door_frame("y", -5.0, 5.0, X2, DOOR_TOP)
+    for cx, w, seed in ((-12.0, 6.0, 1), (14.5, 5.0, 4)):
+        t, g = window("x", cx, Y2, 1, w, 4.0, 4.8, flowers=True, seed=seed)
+        T += t
+        G += g
+        A += awning("x", cx, Y2, 1, w + 1.4, 8.6)
+    t, g = window("y", 4.0, X1, -1, 5.0, 4.0, 5.4)
+    T += t
+    G += g
+    A += awning("y", 4.0, X1, -1, 6.4, 9.2)
+    # Roof, gables, chimney.
+    r, t = gable_roof(-19.5, 19.5, -14.5, 14.5, H, 7.0)
+    R += r
+    T += t
+    for x in (X1, X2):
+        w_, t_ = gable_infill(x, Y1 - 0.5, Y2 + 0.5, 0.0, 14.5, H, 7.0, WALL_CREAM)
+        W += w_
+        T += t_
+    R += chimney(12.0, -7.0, 16.0, 7.5)
+    # Entrance canopy with posts and string lights (Roblox: 16 x 6 at y 10).
+    A.append(box((16.0, 6.0, 0.6), (4.0, 16.0, 10.0), RED, bevel=0.15))
+    A.append(box((16.4, 0.4, 0.5), (4.0, 19.05, 9.75), CREAM, bevel=0.1, segments=1))
+    for i in range(8):
+        A.append(blob(1.0, (-3.0 + i * 2, 19.1, 9.25), RED if i % 2 == 0 else CREAM, squash=(1, 0.18, 0.45), lump=0, segs=8, rings=4))
+    for x in (-3.2, 11.2):
+        T.append(cyl(0.38, 9.7, (x, 18.5, 4.85), CREAM, verts=12))
+        T.append(box((1.0, 1.0, 0.6), (x, 18.5, 0.3), TEAL, bevel=0.12, segments=1))
+        T.append(box((0.9, 0.9, 0.4), (x, 18.5, 9.5), TEAL, bevel=0.1, segments=1))
+    g, wire = bulb_line((-3.2, 19.3, 9.3), (11.2, 19.3, 9.3), 10, sag=0.5)
+    L += g
+    T += wire
+    # OFFICE sign standing on the front slope (Roblox: 14 x 3.4 at y 16.4).
+    S += sign_board("+y", 4.0, 13.0, 16.6, 14.0, 3.4, SIGN_RED)
+    for x in (-1.5, 9.5):
+        S.append(box((0.5, 0.5, 2.4), (x, 12.6, 15.2), IRON, bevel=0.06, segments=1))
+    L.append(text3d("OFFICE", 2.7, (4.0, 13.42, 16.5), "+y", LETTER))
+    L += marquee((4.0, 13.0, 16.6), 14.0, 3.4, 0.45, "+y", step=1.4)
+    # Porch lamps either side of the door.
+    for x in (-4.6, 12.6):
+        T.append(box((0.5, 0.4, 0.8), (x, Y2 + 0.7, 7.0), IRON, bevel=0.06, segments=1))
+        L.append(blob(0.4, (x, Y2 + 1.0, 6.5), GLOW, squash=(1, 1, 1.25), lump=0, segs=10, rings=6))
+    return out(
+        {"Walls": W, "Trim": T, "Roof": R, "Glass": G, "Awning": A, "Sign": S, "Glow": L},
+        "Office",
+        {"Walls": "Precise", "Roof": "Hull"},
+        dict(place=[[22, 0, -19]]),
+    )
+
+
+# ---------------------------------------------------------------- rooms
+def room_unit():
+    """One guest room shell, 14 x 16, walls 12 (MapBuilder Room walls).
+    Front (+Y) = Roblox -Z walkway side; door gap 4 x 7.6 in the middle.
+    Placed three times (rooms 1-3)."""
+    H = 12
+    X1, X2, Y1, Y2 = -7.0, 7.0, -8.0, 8.0
+    W, T, G, L = [], [], [], []
+    front_open = [(-6.0, -3.0, 3.3, 6.3), (-2.0, 2.0, 0, 7.6)]
+    back_open = [(1.0, 5.0, 5.2, 8.0)]
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y2, H, WALL_CREAM, front_open)
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y1, H, WALL_CREAM, back_open)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X1, H, WALL_CREAM)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X2, H, WALL_CREAM)
+    W += siding("x", X1, X2, Y2, 1, H, WALL_LINE, front_open)
+    W += siding("x", X1, X2, Y1, -1, H, WALL_LINE, back_open)
+    W += siding("y", Y1, Y2, X1, -1, H, WALL_LINE)
+    W += siding("y", Y1, Y2, X2, 1, H, WALL_LINE)
+    W += ceiling(X1 + 0.5, X2 - 0.5, Y1 + 0.5, Y2 - 0.5, H)
+    T += base_trim("x", X1, X2, Y2, 1, TEAL, front_open)
+    T += base_trim("x", X1, X2, Y1, -1, TEAL, back_open)
+    T += base_trim("y", Y1, Y2, X1, -1, TEAL)
+    T += base_trim("y", Y1, Y2, X2, 1, TEAL)
+    T += corner_boards(X1, X2, Y1, Y2, H, CREAM)
+    t, g = window("x", -4.5, Y2, 1, 3.0, 3.0, 4.8, shutters=False, flowers=True, seed=2)
+    T += t
+    G += g
+    t, g = window("x", 3.0, Y1, -1, 4.0, 2.8, 6.6, shutters=False)
+    T += t
+    G += g
+    # Brass number plaque (the game writes the number) and a porch lamp.
+    T.append(box((1.5, 0.25, 1.5), (3.4, Y2 + 0.62, 6.0), BRASS, bevel=0.1, segments=1))
+    T.append(box((0.45, 0.4, 0.75), (-2.95, Y2 + 0.7, 6.6), IRON, bevel=0.06, segments=1))
+    L.append(blob(0.36, (-2.95, Y2 + 1.0, 6.15), GLOW, squash=(1, 1, 1.25), lump=0, segs=10, rings=6))
+    places = [[cx, 0, 12 + ROOM_SHIFT] for cx in (2, 20, 38)]
+    return out({"Walls": W, "Trim": T, "Glass": G, "Glow": L}, "Room", {"Walls": "Precise"}, dict(place=places))
+
+
+def room_roof():
+    """Long roof over the three rooms + walkway (world x -7..46, z -1..21
+    before ROOM_SHIFT), walkway posts, beam, string lights, chimneys."""
+    W, T, R, L = [], [], [], []
+    r, t = gable_roof(-26.5, 26.5, -11.0, 11.0, 12.0, 6.0)
+    R += r
+    T += t
+    # Gable ends on the outer room walls (room 1 west wall, room 3 east wall).
+    for x in (-24.5, 25.5):
+        w_, t_ = gable_infill(x, -10.5, 6.5, 0.0, 11.0, 12.0, 6.0, WALL_CREAM)
+        W += w_
+        T += t_
+    # Fill the roof space between the rooms so the eave reads as one block.
+    # Lintels across the gaps between rooms (front and back) under the eave.
+    for x1, x2 in ((-10.5, -6.5), (7.5, 11.5)):
+        for y in (6.0, -10.0):
+            W.append(box((x2 - x1 + 1.0, 1.0, 1.8), ((x1 + x2) / 2, y, 11.1), WALL_CREAM, bevel=0.05, segments=1))
+    posts = (-25.5, -8.5, 9.5, 25.5)
+    for x in posts:
+        T.append(cyl(0.42, 11.4, (x, 10.6, 5.7), CREAM, verts=12))
+        T.append(box((1.0, 1.0, 0.6), (x, 10.6, 0.3), TEAL, bevel=0.12, segments=1))
+        T.append(box((1.1, 1.1, 0.4), (x, 10.6, 11.2), TEAL, bevel=0.1, segments=1))
+    T.append(box((52.4, 0.6, 0.6), (0.0, 10.6, 11.7), TEAL, bevel=0.12, segments=1))
+    for a, b in zip(posts, posts[1:]):
+        g, wire = bulb_line((a, 10.95, 11.25), (b, 10.95, 11.25), 12, sag=0.55, r=0.22)
+        L += g
+        T += wire
+    R += chimney(-15.5, -5.0, 14.6, 4.6)
+    R += chimney(16.5, -5.0, 14.6, 4.6)
+    return out({"Walls": W, "Trim": T, "Roof": R, "Glow": L}, "RoomRoof", {"Roof": "Hull"}, dict(place=[[19.5, 0, 10 + ROOM_SHIFT]]))
+
+
+# ---------------------------------------------------------------- linen shed
+def linen_shed():
+    """Laundry / linen shed: world x 53..67, z -23.5..-8.5 (centre 60, -16),
+    walls 12, door in the west wall (-X here), LAUNDRY sign over it."""
+    H = 12
+    X1, X2, Y1, Y2 = -7.0, 7.0, -7.5, 7.5
+    W, T, G, R, A, S, L = [], [], [], [], [], [], []
+    west_open = [(-4.0, 4.0, 0, DOOR_TOP)]
+    south_open = [(-5.0, -2.0, 4.0, 7.0), (2.0, 5.0, 4.0, 7.0)]
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y2, H, WALL_CREAM, south_open)
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y1, H, WALL_CREAM)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X1, H, WALL_CREAM, west_open)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X2, H, WALL_CREAM)
+    W += siding("x", X1, X2, Y2, 1, H, WALL_LINE, south_open)
+    W += siding("x", X1, X2, Y1, -1, H, WALL_LINE)
+    W += siding("y", Y1, Y2, X1, -1, H, WALL_LINE, west_open)
+    W += siding("y", Y1, Y2, X2, 1, H, WALL_LINE)
+    W += ceiling(X1 + 0.5, X2 - 0.5, Y1 + 0.5, Y2 - 0.5, H)
+    T += base_trim("x", X1, X2, Y2, 1, TEAL, south_open)
+    T += base_trim("x", X1, X2, Y1, -1, TEAL)
+    T += base_trim("y", Y1, Y2, X1, -1, TEAL, west_open)
+    T += base_trim("y", Y1, Y2, X2, 1, TEAL)
+    T += corner_boards(X1, X2, Y1, Y2, H, CREAM)
+    T += door_frame("y", -4.0, 4.0, X1, DOOR_TOP)
+    for cx in (-3.5, 3.5):
+        t, g = window("x", cx, Y2, 1, 3.0, 3.0, 5.5, seed=int(cx))
+        T += t
+        G += g
+    A += awning("y", 0.0, X1, -1, 9.6, 9.8)
+    # Dryer vent on the east wall.
+    T.append(cyl(0.55, 1.2, (X2 + 0.9, 3.0, 8.0), STEEL, verts=12, rot=(0, math.pi / 2, 0)))
+    T.append(box((0.3, 1.6, 1.6), (X2 + 1.5, 3.0, 8.0), STEEL_DARK, bevel=0.08, segments=1))
+    r, t = gable_roof(-8.0, 8.0, -8.5, 8.5, H, 4.5)
+    R += r
+    T += t
+    for x in (X1, X2):
+        w_, t_ = gable_infill(x, Y1 - 0.5, Y2 + 0.5, 0.0, 8.5, H, 4.5, WALL_CREAM, vent=x > 0)
+        W += w_
+        T += t_
+    S += sign_board("-x", X1 - 0.9, 0.0, 11.0, 7.4, 2.0, SIGN_TEAL)
+    L.append(text3d("LAUNDRY", 1.3, (X1 - 1.32, 0.0, 10.95), "-x", LETTER_WHITE))
+    L += marquee((X1 - 0.9, 0.0, 11.0), 7.4, 2.0, 0.42, "-x", step=1.05, r=0.18)
+    return out(
+        {"Walls": W, "Trim": T, "Roof": R, "Glass": G, "Awning": A, "Sign": S, "Glow": L},
+        "LinenShed",
+        {"Walls": "Precise", "Roof": "Hull"},
+        dict(place=[[60, 0, -16]]),
+    )
+
+
+# ---------------------------------------------------------------- shop
+def shop():
+    """Supply shop: 20 x 16 centred at world (100, -36), walls 12, mint.
+    Door + windows in the west wall (-X here) facing the motel."""
+    H = 12
+    X1, X2, Y1, Y2 = -10.0, 10.0, -8.0, 8.0
+    W, T, G, R, A, S, L = [], [], [], [], [], [], []
+    west_open = [(-7.3, -4.9, 2.4, 6.8), (-4.0, 4.0, 0, DOOR_TOP), (4.9, 7.3, 2.4, 6.8)]
+    side_open = [(-4.0, 4.0, 6.6, 9.4)]
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y2, H, MINT, side_open)
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y1, H, MINT, side_open)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X1, H, MINT, west_open)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X2, H, MINT)
+    W += siding("x", X1, X2, Y2, 1, H, MINT_LINE, side_open)
+    W += siding("x", X1, X2, Y1, -1, H, MINT_LINE, side_open)
+    W += siding("y", Y1, Y2, X1, -1, H, MINT_LINE, west_open)
+    W += siding("y", Y1, Y2, X2, 1, H, MINT_LINE)
+    W += ceiling(X1 + 0.5, X2 - 0.5, Y1 + 0.5, Y2 - 0.5, H)
+    T += base_trim("x", X1, X2, Y2, 1, CREAM)
+    T += base_trim("x", X1, X2, Y1, -1, CREAM)
+    T += base_trim("y", Y1, Y2, X1, -1, CREAM, west_open)
+    T += base_trim("y", Y1, Y2, X2, 1, CREAM)
+    T += corner_boards(X1, X2, Y1, Y2, H, CREAM)
+    T += door_frame("y", -4.0, 4.0, X1, DOOR_TOP, colour=TEAL_DARK)
+    for cy in (-6.1, 6.1):
+        t, g = window("y", cy, X1, -1, 2.4, 4.4, 4.6, shutters=False)
+        T += t
+        G += g
+    for y in (Y1, Y2):
+        t, g = window("x", 0.0, y, 1 if y > 0 else -1, 8.0, 2.8, 8.0, shutters=False)
+        T += t
+        G += g
+    A += awning("y", 0.0, X1, -1, 10.0, 9.7, depth=3.0)
+    r, t = gable_roof(-11.5, 11.5, -9.5, 9.5, H, 5.0)
+    R += r
+    T += t
+    for x in (X1, X2):
+        w_, t_ = gable_infill(x, Y1 - 0.5, Y2 + 0.5, 0.0, 9.5, H, 5.0, MINT, vent=x > 0)
+        W += w_
+        T += t_
+    S += sign_board("-x", X1 - 0.95, 0.0, 11.6, 12.4, 2.6, SIGN_TEAL)
+    L.append(text3d("SUPPLY SHOP", 1.55, (X1 - 1.38, 0.0, 11.55), "-x", LETTER))
+    L += marquee((X1 - 0.95, 0.0, 11.6), 12.4, 2.6, 0.45, "-x", step=1.05, r=0.2)
+    # OPEN sign hanging in the north window (Roblox z -29.8): own glow mesh
+    # so the game can blink it.
+    open_parts = [box((0.2, 2.4, 1.2), (X1 - 0.85, -6.1, 5.3), srgb(255, 72, 96), bevel=0.08, segments=1)]
+    open_parts.append(text3d("OPEN", 0.75, (X1 - 0.98, -6.1, 5.25), "-x", LETTER_WHITE, depth=0.08))
+    res = out(
+        {"Walls": W, "Trim": T, "Roof": R, "Glass": G, "Awning": A, "Sign": S, "Glow": L},
+        "Shop",
+        {"Walls": "Precise", "Roof": "Hull"},
+        dict(place=[[100, 0, -36]]),
+    )
+    res["SM_Bld_Shop_OpenSign"] = (build_mesh("SM_Bld_Shop_OpenSign", open_parts, "glow"), dict(glow=True, collision="None", place=[[100, 0, -36]]))
+    return res
+
+
+# ---------------------------------------------------------------- kitchen
+def kitchen():
+    """Diner-style kitchen: world x -8..6, z -4..10 (centre -1, 3), walls 10,
+    butter yellow with a red diner stripe; door east (+X), windows south."""
+    H = 10
+    X1, X2, Y1, Y2 = -7.0, 7.0, -7.0, 7.0
+    W, T, G, R, A, S, L = [], [], [], [], [], [], []
+    east_open = [(-2.0, 2.0, 0, DOOR_TOP)]
+    south_open = [(-4.5, -1.5, 3.3, 6.7), (1.5, 4.5, 3.3, 6.7)]
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y2, H, BUTTER, south_open)
+    W += wall("x", X1 - 0.5, X2 + 0.5, Y1, H, BUTTER)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X1, H, BUTTER)
+    W += wall("y", Y1 + 0.5, Y2 - 0.5, X2, H, BUTTER, east_open)
+    W += siding("x", X1, X2, Y2, 1, H, BUTTER_LINE, south_open)
+    W += siding("x", X1, X2, Y1, -1, H, BUTTER_LINE)
+    W += siding("y", Y1, Y2, X1, -1, H, BUTTER_LINE)
+    W += siding("y", Y1, Y2, X2, 1, H, BUTTER_LINE, east_open)
+    W += ceiling(X1 + 0.5, X2 - 0.5, Y1 + 0.5, Y2 - 0.5, H)
+    T += base_trim("x", X1, X2, Y2, 1, RED, south_open)
+    T += base_trim("x", X1, X2, Y1, -1, RED)
+    T += base_trim("y", Y1, Y2, X1, -1, RED)
+    T += base_trim("y", Y1, Y2, X2, 1, RED, east_open)
+    # Diner stripe band just under the eaves.
+    for axis, a, b, c, o, op in (
+        ("x", X1, X2, Y2, 1, ()),
+        ("x", X1, X2, Y1, -1, ()),
+        ("y", Y1, Y2, X1, -1, ()),
+        ("y", Y1, Y2, X2, 1, ()),
+    ):
+        T.append(box(_size(axis, b - a + 1.0, 0.3, 0.7), _along(axis, (a + b) / 2, c, o, v=0.6, z=H - 0.7), RED, bevel=0.08, segments=1))
+        T.append(box(_size(axis, b - a + 1.0, 0.32, 0.22), _along(axis, (a + b) / 2, c, o, v=0.62, z=H - 1.25), CREAM, bevel=0.0))
+    T += corner_boards(X1, X2, Y1, Y2, H, CREAM)
+    T += door_frame("y", -2.0, 2.0, X2, DOOR_TOP, colour=RED)
+    for cx in (-3.0, 3.0):
+        t, g = window("x", cx, Y2, 1, 3.0, 3.4, 5.0, shutters=False, flowers=True, seed=int(cx) + 5)
+        T += t
+        G += g
+    A += awning("y", 0.0, X2, 1, 5.6, 9.6)
+    r, t = gable_roof(-8.2, 8.2, -8.2, 8.2, H, 4.0)
+    R += r
+    T += t
+    for x in (X1, X2):
+        w_, t_ = gable_infill(x, Y1 - 0.5, Y2 + 0.5, 0.0, 8.2, H, 4.0, BUTTER, vent=False)
+        W += w_
+        T += t_
+    # Stainless kitchen exhaust instead of a brick chimney.
+    R.append(cyl(0.75, 6.0, (-5.0, -4.0, 14.0), STEEL, verts=14))
+    R.append(cyl(1.2, 0.5, (-5.0, -4.0, 17.2), STEEL_DARK, verts=14, radius2=0.5))
+    R.append(cyl(1.05, 0.4, (-5.0, -4.0, 11.6), STEEL_DARK, verts=14))
+    S += sign_board("+x", X2 + 0.95, 0.0, 11.3, 8.6, 2.2, SIGN_RED)
+    L.append(text3d("KITCHEN", 1.5, (X2 + 1.38, 0.0, 11.25), "+x", LETTER))
+    L += marquee((X2 + 0.95, 0.0, 11.3), 8.6, 2.2, 0.45, "+x", step=1.05, r=0.18)
+    return out(
+        {"Walls": W, "Trim": T, "Roof": R, "Glass": G, "Awning": A, "Sign": S, "Glow": L},
+        "Kitchen",
+        {"Walls": "Precise", "Roof": "Hull"},
+        dict(place=[[-1, 0, 3]]),
+    )
+
+
+# ---------------------------------------------------------------- pylon sign
+def motel_sign():
+    """Roadside "RUN A MOTEL" pylon at world (-46, -50): pole 30, board 16 x 7,
+    arrow and a blank VACANCY board (the game keeps its text label)."""
+    S, T, L = [], [], []
+    T.append(cyl(0.8, 30.0, (0, 0, 15.0), srgb(70, 76, 88), verts=16))
+    T.append(box((4.0, 4.0, 1.0), (0, 0, 0.5), CONCRETE, bevel=0.15))
+    T.append(cyl(1.1, 0.8, (0, 0, 1.4), srgb(70, 76, 88), verts=16))
+    S += sign_board("+y", 0, 1.0, 25.0, 16.0, 7.0, SIGN_NAVY, border=TEAL, t=1.0)
+    L.append(text3d("RUN A", 1.6, (0, 1.6, 27.0), "+y", LETTER))
+    L.append(text3d("MOTEL", 3.9, (0, 1.6, 24.0), "+y", LETTER_PINK, depth=0.2))
+    L += marquee((0, 1.0, 25.0), 16.0, 7.0, 0.65, "+y", step=1.0, r=0.26)
+    # Arrow pointing at the lot.
+    S.append(box((12.0, 0.8, 1.6), (4.0, 1.0, 18.5), SIGN_NAVY, bevel=0.15))
+    head = extrude_profile([(-1.6, -1.6), (1.6, -1.6), (0.0, 1.8)], 0, 0.8, SIGN_NAVY, bevel=0.1)
+    # profile (y across, z tip) -> board plane: tip along +X, across along Z.
+    head.matrix_world = Matrix(((0, 0, 1, 11.0), (1, 0, 0, 1.0), (0, 1, 0, 18.5), (0, 0, 0, 1)))
+    _activate(head)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    S.append(head)
+    for k in range(10):
+        L.append(bulb((-1.0 + k * 1.1, 1.55, 18.5), 0.24, srgb(255, 200, 70)))
+    L.append(bulb((11.6, 1.55, 18.5), 0.3, srgb(255, 200, 70)))
+    S += sign_board("+y", 0, 1.0, 15.2, 11.0, 2.6, srgb(28, 28, 34), border=TEAL, t=0.8)
+    T.append(box((0.4, 0.4, 3.0), (-1.0, 1.0, 17.0), IRON, bevel=0.05, segments=1))
+    T.append(box((0.4, 0.4, 3.0), (3.0, 1.0, 17.0), IRON, bevel=0.05, segments=1))
+    return out({"Sign": S, "Trim": T, "Glow": L}, "MotelSign", {"Trim": "Hull"}, dict(place=[[-46, 0, -50]]))
+
+
 BATCHES = {
     "batch1": [
         ("Bed", bed, "hero"),
@@ -1130,9 +1801,18 @@ BATCHES = {
         ("Campfire", campfire, "standard"),
         ("Fountain", fountain, "standard"),
     ],
+    "batch3": [
+        ("Office", office, "building"),
+        ("RoomUnit", room_unit, "building"),
+        ("RoomRoof", room_roof, "building"),
+        ("LinenShed", linen_shed, "building"),
+        ("Shop", shop, "building"),
+        ("Kitchen", kitchen, "building"),
+        ("MotelSign", motel_sign, "sign"),
+    ],
 }
 # Triangle budget per object group (prop-artist tiers, mobile-adjusted).
-BUDGET = {"hero": 8000, "standard": 3000, "tree": 4000, "vehicle": 8000}
+BUDGET = {"hero": 8000, "standard": 3000, "tree": 4000, "vehicle": 8000, "building": 12000, "sign": 8000}
 
 
 # ======================================================================
@@ -1169,6 +1849,7 @@ col_geo = bpy.data.collections.new("COL_Geo_Kit_" + BATCH)
 scene.collection.children.link(col_geo)
 
 manifest, report = {}, {}
+orig_matrix = {}
 cursor_x = 0.0
 built = []
 for group, builder, tier in BATCHES[BATCH]:
@@ -1199,6 +1880,8 @@ for group, builder, tier in BATCHES[BATCH]:
             "tint": bool(info.get("tint")),
             "glow": bool(info.get("glow")),
             "collision": info.get("collision", "Box"),
+            "glass": bool(info.get("glass")),
+            "place": info.get("place"),
             "tris": tris,
         }
         report[name] = validate(obj)
@@ -1206,6 +1889,7 @@ for group, builder, tier in BATCHES[BATCH]:
             c.objects.unlink(obj)
         col_geo.objects.link(obj)
         built.append(obj)
+        orig_matrix[name] = obj.matrix_world.copy()
     budget = BUDGET[tier]
     status = "OK" if group_tris <= budget else "OVER"
     print(f"[kit] {group:12s} {group_tris:6d} tris (budget {budget}) {status}")
@@ -1344,6 +2028,9 @@ PREVIEW_YAW = {
     "Fridge": math.pi / 2,
     "Breaker": math.pi / 2,
     "ShopCounter": -math.pi / 2,
+    "LinenShed": -math.pi / 2,
+    "Shop": -math.pi / 2,
+    "Kitchen": math.pi / 2,
 }
 from mathutils import Matrix
 
@@ -1392,5 +2079,33 @@ for k, sheet in enumerate(sheets):
     cam.location = look + Vector((0, math.cos(elev), math.sin(elev))) * dist
     cam.rotation_euler = (look - cam.location).to_track_quat("-Z", "Y").to_euler()
     scene.render.filepath = os.path.join(OUT, "previews", f"motel_kit_{BATCH}_{k + 1}.png")
+    bpy.ops.render.render(write_still=True)
+# Batch 3: assembly view, every building at its scale-1 world place
+# (Roblox (x, y, z) -> Blender (x, -z, y)); rooms instanced three times.
+if BATCH == "batch3":
+    shown = []
+    for o in built:
+        places = manifest[o.name]["place"] or [[0, 0, 0]]
+        for i, (px, py, pz) in enumerate(places):
+            inst = o if i == 0 else o.copy()
+            if i > 0:
+                col_geo.objects.link(inst)
+            inst.matrix_world = Matrix.Translation((px, -pz, py)) @ orig_matrix[o.name]
+            inst.hide_render = False
+            shown.append(inst)
+    bpy.context.view_layer.update()
+    lo, hi = group_box(shown)
+    centre = (lo + hi) / 2
+    ground.location = (centre.x, centre.y, 0)
+    ground.scale = (400, 400, 1)
+    fov = 2 * math.atan(cam_data.sensor_width / (2 * cam_data.lens))
+    elev = math.radians(38)
+    dist = ((hi.x - lo.x) * 0.62) / math.tan(fov / 2)
+    look = Vector((centre.x, centre.y, 4.0))
+    yaw = math.radians(-18)
+    cam.location = look + Vector((math.sin(yaw) * math.cos(elev), math.cos(yaw) * math.cos(elev), math.sin(elev))) * dist
+    cam.rotation_euler = (look - cam.location).to_track_quat("-Z", "Y").to_euler()
+    sun.rotation_euler = (math.radians(48), 0, math.radians(-30))
+    scene.render.filepath = os.path.join(OUT, "previews", f"motel_kit_{BATCH}_layout.png")
     bpy.ops.render.render(write_still=True)
 print("[kit] previews done")
