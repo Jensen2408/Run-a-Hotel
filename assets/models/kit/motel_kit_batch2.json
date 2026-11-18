@@ -1,0 +1,896 @@
+{
+  "batch": "batch2",
+  "units": "studs",
+  "axes": "roblox",
+  "meshes": {
+    "SM_Kitchen_Stove": {
+      "group": "Stove",
+      "size": [
+        2.786,
+        4.4,
+        9.2
+      ],
+      "center": [
+        0.093,
+        2.2,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 4716
+    },
+    "SM_Kitchen_Fridge": {
+      "group": "Fridge",
+      "size": [
+        2.645,
+        7.0,
+        2.65
+      ],
+      "center": [
+        0.098,
+        3.5,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 920
+    },
+    "SM_Kitchen_Sink": {
+      "group": "Sink",
+      "size": [
+        4.2,
+        4.178,
+        2.28
+      ],
+      "center": [
+        0.0,
+        2.089,
+        -0.04
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 1900
+    },
+    "SM_Kitchen_Pantry": {
+      "group": "Pantry",
+      "size": [
+        5.3,
+        6.41,
+        1.655
+      ],
+      "center": [
+        0.0,
+        3.205,
+        -0.002
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 2928
+    },
+    "SM_Station_LinenShelf": {
+      "group": "LinenShelf",
+      "size": [
+        8.5,
+        6.225,
+        2.2
+      ],
+      "center": [
+        0.0,
+        3.113,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 7104
+    },
+    "SM_Station_Dumpster": {
+      "group": "Dumpster",
+      "size": [
+        6.4,
+        4.31,
+        4.541
+      ],
+      "center": [
+        0.0,
+        2.155,
+        0.02
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 1856
+    },
+    "SM_Station_Breaker": {
+      "group": "Breaker",
+      "size": [
+        1.6,
+        6.45,
+        3.0
+      ],
+      "center": [
+        0.35,
+        1.225,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 964
+    },
+    "SM_Shop_Counter": {
+      "group": "ShopCounter",
+      "size": [
+        3.3,
+        4.2,
+        9.3
+      ],
+      "center": [
+        0.0,
+        2.1,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 1296
+    },
+    "SM_Shop_RegisterScreen": {
+      "group": "ShopCounter",
+      "size": [
+        0.08,
+        0.36,
+        0.8
+      ],
+      "center": [
+        0.48,
+        4.0,
+        2.8
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "tris": 108
+    },
+    "SM_Shop_Shelf": {
+      "group": "ShopShelf",
+      "size": [
+        10.8,
+        6.41,
+        1.885
+      ],
+      "center": [
+        -0.0,
+        3.205,
+        -0.018
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 3736
+    },
+    "SM_Vehicle_Sedan_Body": {
+      "group": "CarSedan",
+      "size": [
+        4.7,
+        2.73,
+        8.896
+      ],
+      "center": [
+        0.0,
+        1.91,
+        -0.0
+      ],
+      "tint": true,
+      "glow": false,
+      "collision": "Box",
+      "tris": 924
+    },
+    "SM_Vehicle_Sedan_Glass": {
+      "group": "CarSedan",
+      "size": [
+        4.118,
+        4.105,
+        4.491
+      ],
+      "center": [
+        0.0,
+        2.81,
+        0.922
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "tris": 648
+    },
+    "SM_Vehicle_Sedan_Wheels": {
+      "group": "CarSedan",
+      "size": [
+        5.26,
+        1.871,
+        7.4
+      ],
+      "center": [
+        -0.0,
+        0.95,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "tris": 1504
+    },
+    "SM_Vehicle_Sedan_Trim": {
+      "group": "CarSedan",
+      "size": [
+        4.8,
+        2.79,
+        9.52
+      ],
+      "center": [
+        0.0,
+        1.955,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "tris": 864
+    },
+    "SM_Vehicle_Sedan_Lights": {
+      "group": "CarSedan",
+      "size": [
+        3.95,
+        0.612,
+        9.16
+      ],
+      "center": [
+        0.0,
+        1.3,
+        -0.04
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "tris": 552
+    },
+    "SM_Vehicle_Wagon_Body": {
+      "group": "CarWagon",
+      "size": [
+        4.7,
+        2.73,
+        8.896
+      ],
+      "center": [
+        0.0,
+        1.91,
+        -0.0
+      ],
+      "tint": true,
+      "glow": false,
+      "collision": "Box",
+      "tris": 924
+    },
+    "SM_Vehicle_Wagon_Glass": {
+      "group": "CarWagon",
+      "size": [
+        4.118,
+        5.486,
+        5.714
+      ],
+      "center": [
+        0.0,
+        2.87,
+        1.489
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "tris": 864
+    },
+    "SM_Vehicle_Wagon_Wheels": {
+      "group": "CarWagon",
+      "size": [
+        5.26,
+        1.871,
+        7.4
+      ],
+      "center": [
+        -0.0,
+        0.95,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "tris": 1504
+    },
+    "SM_Vehicle_Wagon_Trim": {
+      "group": "CarWagon",
+      "size": [
+        4.8,
+        2.79,
+        9.52
+      ],
+      "center": [
+        0.0,
+        1.955,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "tris": 864
+    },
+    "SM_Vehicle_Wagon_Lights": {
+      "group": "CarWagon",
+      "size": [
+        3.95,
+        0.612,
+        9.16
+      ],
+      "center": [
+        0.0,
+        1.3,
+        -0.04
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "tris": 552
+    },
+    "SM_Yard_PicnicTable": {
+      "group": "PicnicTable",
+      "size": [
+        7.0,
+        2.844,
+        5.45
+      ],
+      "center": [
+        0.0,
+        1.388,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 1512
+    },
+    "SM_Yard_Parasol": {
+      "group": "Parasol",
+      "size": [
+        7.2,
+        6.805,
+        7.2
+      ],
+      "center": [
+        0.0,
+        3.397,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "tris": 1128
+    },
+    "SM_Yard_FenceSection": {
+      "group": "Fence",
+      "size": [
+        6.525,
+        4.7,
+        1.05
+      ],
+      "center": [
+        2.737,
+        2.35,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 552
+    },
+    "SM_Yard_FencePost": {
+      "group": "Fence",
+      "size": [
+        1.05,
+        4.7,
+        1.05
+      ],
+      "center": [
+        0.0,
+        2.35,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 336
+    },
+    "SM_Yard_Mailbox": {
+      "group": "Mailbox",
+      "size": [
+        1.34,
+        4.6,
+        2.0
+      ],
+      "center": [
+        0.07,
+        2.3,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 616
+    },
+    "SM_Yard_Vending": {
+      "group": "Vending",
+      "size": [
+        3.1,
+        6.0,
+        2.6
+      ],
+      "center": [
+        0.0,
+        3.0,
+        -0.05
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 1076
+    },
+    "SM_Yard_Vending_Window": {
+      "group": "Vending",
+      "size": [
+        1.9,
+        3.3,
+        0.08
+      ],
+      "center": [
+        -0.35,
+        3.25,
+        -1.2
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "tris": 108
+    },
+    "SM_Yard_IceMachine": {
+      "group": "IceMachine",
+      "size": [
+        3.1,
+        5.0,
+        2.66
+      ],
+      "center": [
+        0.0,
+        2.5,
+        -0.08
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 864
+    },
+    "SM_Yard_Campfire": {
+      "group": "Campfire",
+      "size": [
+        6.323,
+        2.173,
+        6.22
+      ],
+      "center": [
+        0.06,
+        0.935,
+        -0.027
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "tris": 2056
+    },
+    "SM_Yard_Campfire_Flames": {
+      "group": "Campfire",
+      "size": [
+        1.77,
+        2.984,
+        1.854
+      ],
+      "center": [
+        -0.008,
+        1.908,
+        0.033
+      ],
+      "tint": false,
+      "glow": true,
+      "collision": "None",
+      "tris": 400
+    },
+    "SM_Yard_LogSeat": {
+      "group": "Campfire",
+      "size": [
+        5.05,
+        1.365,
+        1.4
+      ],
+      "center": [
+        0.0,
+        0.7,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Box",
+      "tris": 492
+    },
+    "SM_Yard_Fountain": {
+      "group": "Fountain",
+      "size": [
+        10.72,
+        4.7,
+        10.72
+      ],
+      "center": [
+        0.0,
+        2.35,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "Hull",
+      "tris": 1724
+    },
+    "SM_Yard_Fountain_Water": {
+      "group": "Fountain",
+      "size": [
+        9.1,
+        4.575,
+        9.1
+      ],
+      "center": [
+        0.0,
+        3.213,
+        -0.0
+      ],
+      "tint": false,
+      "glow": false,
+      "collision": "None",
+      "tris": 820
+    }
+  },
+  "validation": {
+    "SM_Kitchen_Stove": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Stove": {
+      "tris": 4716,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Kitchen_Fridge": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Fridge": {
+      "tris": 920,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Kitchen_Sink": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Sink": {
+      "tris": 1900,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Kitchen_Pantry": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Pantry": {
+      "tris": 2928,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Station_LinenShelf": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_LinenShelf": {
+      "tris": 7104,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Station_Dumpster": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Dumpster": {
+      "tris": 1856,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Station_Breaker": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Breaker": {
+      "tris": 964,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Shop_Counter": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Shop_RegisterScreen": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_ShopCounter": {
+      "tris": 1404,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Shop_Shelf": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_ShopShelf": {
+      "tris": 3736,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Vehicle_Sedan_Body": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Vehicle_Sedan_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Vehicle_Sedan_Wheels": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Vehicle_Sedan_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Vehicle_Sedan_Lights": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_CarSedan": {
+      "tris": 4492,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Vehicle_Wagon_Body": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Vehicle_Wagon_Glass": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Vehicle_Wagon_Wheels": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Vehicle_Wagon_Trim": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Vehicle_Wagon_Lights": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_CarWagon": {
+      "tris": 4708,
+      "budget": 8000,
+      "status": "OK"
+    },
+    "SM_Yard_PicnicTable": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_PicnicTable": {
+      "tris": 1512,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Yard_Parasol": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 8,
+      "scale_applied": true
+    },
+    "_group_Parasol": {
+      "tris": 1128,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Yard_FenceSection": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Yard_FencePost": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Fence": {
+      "tris": 888,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Yard_Mailbox": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Mailbox": {
+      "tris": 616,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Yard_Vending": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Yard_Vending_Window": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Vending": {
+      "tris": 1184,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Yard_IceMachine": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_IceMachine": {
+      "tris": 864,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Yard_Campfire": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Yard_Campfire_Flames": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Yard_LogSeat": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Campfire": {
+      "tris": 2948,
+      "budget": 3000,
+      "status": "OK"
+    },
+    "SM_Yard_Fountain": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "SM_Yard_Fountain_Water": {
+      "loose_verts": 0,
+      "loose_edges": 0,
+      "zero_area_faces": 0,
+      "non_manifold_edges": 0,
+      "scale_applied": true
+    },
+    "_group_Fountain": {
+      "tris": 2544,
+      "budget": 3000,
+      "status": "OK"
+    }
+  }
+}

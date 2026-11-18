@@ -156,12 +156,32 @@ def finish(obj, colour, bevel=0.0, segments=3, profile=0.65, smooth_angle=42.0, 
     return obj
 
 
-def box(size, loc, colour, bevel=0.1, rot=(0, 0, 0), segments=3, tag=None):
+BEVEL_SEGMENTS = 3  # lowered for dense batches (asset-optimization)
+
+
+def box(size, loc, colour, bevel=0.1, rot=(0, 0, 0), segments=None, tag=None):
+    if segments is None:
+        segments = BEVEL_SEGMENTS
     bpy.ops.mesh.primitive_cube_add(size=1, location=loc, rotation=rot)
     o = bpy.context.active_object
     o.scale = size
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     return finish(o, colour, bevel=min(bevel, min(size) * 0.45), segments=segments, tag=tag)
+
+
+def taper_box(size, loc, colour, top=(0.8, 0.8), bevel=0.1, segments=None, tag=None):
+    """Box whose top face is scaled by top=(sx, sy): cabins, roofs, plinths."""
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, 0))
+    o = bpy.context.active_object
+    for v in o.data.vertices:
+        if v.co.z > 0:
+            v.co.x *= top[0]
+            v.co.y *= top[1]
+    o.scale = size
+    o.location = loc
+    bpy.ops.object.transform_apply(location=True, rotation=False, scale=True)
+    segs = BEVEL_SEGMENTS if segments is None else segments
+    return finish(o, colour, bevel=min(bevel, min(size) * 0.45), segments=segs, tag=tag)
 
 
 def cyl(radius, depth, loc, colour, verts=20, bevel=0.06, rot=(0, 0, 0), radius2=None, tag=None):
@@ -616,6 +636,465 @@ def round_tree():
     }
 
 
+# ======================================================================
+# Batch 2 objects (kitchen, stations, shop, vehicles, yard)
+# ======================================================================
+STEEL = srgb(196, 202, 210)
+STEEL_DARK = srgb(120, 126, 136)
+MINT = srgb(150, 214, 196)
+BUTTER = srgb(252, 228, 150)
+GREEN_BIN = srgb(60, 140, 80)
+GREEN_BIN_DARK = srgb(40, 104, 60)
+ROCK = srgb(150, 150, 158)
+GLASS_DARK = srgb(60, 80, 100)
+FLAME_OUT = srgb(255, 140, 40)
+FLAME_IN = srgb(255, 226, 110)
+WATER = srgb(90, 196, 240)
+SNOW = srgb(240, 250, 255)
+GOODS = [srgb(250, 250, 250), srgb(110, 210, 200), srgb(240, 200, 80), srgb(230, 96, 90), srgb(150, 120, 220)]
+
+
+def goods_row(x1, x2, y, z, depth, seed, front=1):
+    """Small stacked goods along a shelf board (boxes, folded linen, jars)."""
+    out = []
+    x = x1 + 0.45
+    k = 0
+    while x < x2 - 0.45:
+        kind = (k + seed) % 4
+        c = GOODS[(k * 3 + seed) % len(GOODS)]
+        if kind == 0:  # folded stack
+            for s in range(3):
+                out.append(box((0.9, depth * 0.7, 0.22), (x + 0.45, y, z + 0.13 + s * 0.24), c, bevel=0.08, segments=1))
+            w = 0.9
+        elif kind == 1:  # box
+            out.append(box((0.8, depth * 0.65, 0.8), (x + 0.4, y, z + 0.42), c, bevel=0.06, segments=1))
+            w = 0.8
+        elif kind == 2:  # jar
+            out.append(lathe([(0.0, 0), (0.26, 0), (0.3, 0.1), (0.3, 0.55), (0.2, 0.62), (0.2, 0.7), (0.0, 0.7)], (x + 0.3, y, z), c, verts=8))
+            out.append(cyl(0.22, 0.08, (x + 0.3, y, z + 0.74), WOOD_DARK, verts=8, bevel=0))
+            w = 0.6
+        else:  # bottle
+            out.append(lathe([(0.0, 0), (0.18, 0), (0.2, 0.5), (0.08, 0.72), (0.08, 0.86), (0.0, 0.86)], (x + 0.22, y, z), c, verts=6))
+            w = 0.44
+        x += w + 0.2
+        k += 1
+    return out
+
+
+def stove():
+    """Kitchen stove counter: 2.4 deep (X) x 9 long (Blender Y) x 3 tall, front +X.
+    Burners sit at Blender y +2.5 and 0 (Roblox z -2.5, 0), prep board at y -2.5."""
+    parts = [
+        box((2.4, 9.0, 2.75), (0, 0, 1.38), CREAM, bevel=0.12),
+        box((2.6, 9.2, 0.26), (0, 0, 2.88), STEEL, bevel=0.08),  # steel top
+        box((2.5, 9.1, 0.3), (0.04, 0, 0.15), TEAL, bevel=0.08),  # kick plinth
+        box((0.3, 9.2, 1.4), (-1.15, 0, 3.7), BUTTER, bevel=0.1),  # backsplash
+    ]
+    for y in (2.5, 0.0):  # oven fronts under the burners
+        parts.append(box((0.1, 2.2, 1.6), (1.22, y, 1.35), STEEL_DARK, bevel=0.06))
+        parts.append(box((0.1, 1.5, 0.8), (1.27, y, 1.35), GLASS_DARK, bevel=0.05))
+        parts.append(cyl(0.07, 1.6, (1.42, y, 2.1), STEEL, verts=8, rot=(math.pi / 2, 0, 0)))
+        for dy in (-0.6, -0.2, 0.2, 0.6):
+            parts.append(cyl(0.13, 0.14, (1.27, y + dy, 2.55), IRON, verts=10, rot=(0, math.pi / 2, 0)))
+        # Iron grate ring around the burner (the game's glowing burner sits inside).
+        parts.append(lathe([(1.0, 0.0), (1.12, 0.0), (1.12, 0.1), (1.0, 0.1)], (0, y, 3.01), IRON, verts=12))
+        for a in range(4):
+            ang = a * math.pi / 2 + math.pi / 4
+            parts.append(box((0.12, 0.5, 0.1), (math.cos(ang) * 1.1, y + math.sin(ang) * 1.1, 3.06), IRON, bevel=0.03, rot=(0, 0, ang + math.pi / 2)))
+    parts.append(box((0.1, 2.4, 1.9), (1.22, -2.5, 1.35), CREAM, bevel=0.06))  # drawer bank
+    for z in (0.85, 1.85):
+        parts.append(box((0.1, 2.0, 0.7), (1.26, -2.5, z), BUTTER, bevel=0.05))
+        parts.append(box((0.12, 0.7, 0.1), (1.33, -2.5, z), STEEL, bevel=0.03))
+    return {"SM_Kitchen_Stove": (build_mesh("SM_Kitchen_Stove", parts), dict(collision="Box"))}
+
+
+def fridge():
+    """Retro fridge 2.6 x 7 x 2.4 (X depth, Y width), front +X."""
+    parts = [
+        box((2.4, 2.6, 6.9), (0, 0, 3.55), MINT, bevel=0.45, segments=4),
+        box((0.08, 2.4, 0.08), (1.22, 0, 4.9), mul(MINT, 0.8), bevel=0.02),  # door split
+        box((2.45, 2.65, 0.2), (0, 0, 0.1), STEEL_DARK, bevel=0.06),
+    ]
+    for z, hh in ((5.9, 1.2), (2.9, 2.2)):
+        parts.append(box((0.2, 0.22, hh), (1.32, -0.95, z), STEEL, bevel=0.08))
+    parts.append(cyl(0.32, 0.1, (1.24, 0.3, 6.3), RED, verts=16, rot=(0, math.pi / 2, 0)))  # badge
+    return {"SM_Kitchen_Fridge": (build_mesh("SM_Kitchen_Fridge", parts), dict(collision="Box"))}
+
+
+def sink_counter():
+    """Sink counter 4 x 3 x 2, front +Y."""
+    parts = [
+        box((4.0, 2.0, 2.75), (0, 0, 1.38), CREAM, bevel=0.12),
+        box((4.2, 2.2, 0.26), (0, 0, 2.88), STEEL, bevel=0.08),
+        box((4.1, 2.1, 0.3), (0, 0.04, 0.15), TEAL, bevel=0.08),
+    ]
+    for x in (-1.0, 1.0):
+        parts.append(box((1.8, 0.1, 2.0), (x, 1.02, 1.35), BUTTER, bevel=0.06))
+        parts.append(box((0.12, 0.12, 0.6), (x + (0.6 if x < 0 else -0.6), 1.12, 1.6), STEEL, bevel=0.03))
+    parts.append(box((2.2, 1.3, 0.12), (0, 0.05, 3.02), STEEL_DARK, bevel=0.05))  # basin rim
+    parts.append(box((1.9, 1.0, 0.1), (0, 0.05, 2.98), srgb(110, 170, 210), bevel=0.04))  # water/basin
+    neck = [(0.0, 0.0), (0.16, 0.0), (0.16, 0.12), (0.08, 0.2), (0.08, 1.1), (0.0, 1.12)]
+    parts.append(lathe(neck, (0, -0.65, 3.01), STEEL, verts=10))
+    parts.append(cyl(0.08, 0.7, (0, -0.35, 4.1), STEEL, verts=8, rot=(math.pi / 2, 0, 0)))
+    parts.append(cyl(0.1, 0.25, (0, 0.0, 4.0), STEEL, verts=8))
+    for x in (-0.45, 0.45):
+        parts.append(cyl(0.12, 0.14, (x, -0.65, 3.12), RED if x < 0 else BIN, verts=10))
+    return {"SM_Kitchen_Sink": (build_mesh("SM_Kitchen_Sink", parts), dict(collision="Box"))}
+
+
+def pantry_shelf():
+    """Open pantry shelf 5 wide x 6.4 tall x 1.6 deep, front +Y, with food goods."""
+    parts = []
+    for x in (-2.5, 2.5):
+        parts.append(box((0.3, 1.6, 6.4), (x, 0, 3.2), WOOD_DARK, bevel=0.08))
+    parts.append(box((5.3, 0.15, 6.2), (0, -0.75, 3.15), WOOD_PANEL, bevel=0.04))
+    for z in (0.3, 2.4, 4.5, 6.3):
+        parts.append(box((5.0, 1.6, 0.22), (0, 0, z), WOOD, bevel=0.06))
+    # Level 1: veggie crate + flour sack; level 2: egg cartons + bun basket; level 3: jars.
+    parts.append(box((1.8, 1.2, 0.9), (-1.2, 0.05, 0.86), WOOD_LIGHT, bevel=0.06))
+    for i in range(5):
+        parts.append(blob(0.3, (-1.9 + i * 0.35, 0.05, 1.42), LEAF_LIGHT if i % 2 else LEAF, lump=0.25, seed=60 + i, segs=8, rings=6))
+    parts.append(blob(0.75, (1.2, 0.05, 1.18), srgb(226, 206, 160), squash=(0.85, 0.7, 1.15), lump=0.1, seed=66))
+    parts.append(cyl(0.25, 0.25, (1.2, 0.05, 2.05), srgb(200, 170, 120), verts=10, radius2=0.12))
+    for i in range(2):
+        parts.append(box((1.3, 0.9, 0.35), (-1.6 + i * 1.4, 0.05, 2.7 + i * 0.36), srgb(232, 220, 196), bevel=0.06))
+    parts.append(lathe([(0.0, 0), (0.6, 0), (0.8, 0.55), (0.0, 0.55)], (1.4, 0.05, 2.53), WOOD_LIGHT, verts=14))
+    for i in range(3):
+        parts.append(blob(0.32, (1.2 + i * 0.25, 0.05, 3.15), srgb(226, 160, 80), squash=(1, 1, 0.65), lump=0.06, seed=70 + i, segs=10, rings=7))
+    parts += goods_row(-2.3, 2.3, 0.05, 4.62, 1.2, 3)
+    return {"SM_Kitchen_Pantry": (build_mesh("SM_Kitchen_Pantry", parts), dict(collision="Box"))}
+
+
+def linen_shelf():
+    """Linen closet shelf 8 wide x 6 tall x 2 deep, front -Y (Roblox +Z)."""
+    parts = []
+    for x in (-4.0, 0.0, 4.0):
+        parts.append(box((0.3, 2.0, 6.0), (x, 0, 3.0), WOOD_DARK, bevel=0.08))
+    parts.append(box((8.3, 0.15, 5.8), (0, 0.95, 2.95), WOOD_PANEL, bevel=0.04))
+    parts.append(box((8.5, 2.2, 0.3), (0, 0, 6.05), WOOD_DARK, bevel=0.1))
+    for z in (0.25, 2.1, 4.0):
+        parts.append(box((8.0, 2.0, 0.2), (0, 0, z), WOOD, bevel=0.06))
+    # Folded sheet stacks (left bay) and rolled towels (right bay).
+    for z in (0.35, 2.2, 4.1):
+        for x in (-3.0, -1.0):
+            for s in range(4):
+                parts.append(box((1.6, 1.4, 0.3), (x, -0.1, z + 0.17 + s * 0.32), LINEN if s % 2 == 0 else mul(LINEN, 0.95), bevel=0.12, segments=1))
+        for x in (1.0, 2.2, 3.4):
+            for r in range(2):
+                parts.append(cyl(0.45, 1.5, (x, -0.1, z + 0.48 + r * 0.82), TEAL if (r + int(x)) % 2 else srgb(120, 210, 200), verts=10, rot=(math.pi / 2, 0, 0)))
+    for x in (-2.0, 2.2):
+        parts.append(box((1.2, 0.08, 0.35), (x, -1.05, 6.05), BRASS, bevel=0.03))
+    return {"SM_Station_LinenShelf": (build_mesh("SM_Station_LinenShelf", parts), dict(collision="Box"))}
+
+
+def dumpster():
+    """Dumpster 6 x 4 x 4 (X long), lids on top, wheels."""
+    parts = [
+        box((6.0, 4.0, 3.4), (0, 0, 2.0), GREEN_BIN, bevel=0.2),
+        box((6.3, 4.3, 0.3), (0, 0, 3.6), GREEN_BIN_DARK, bevel=0.1),  # top rim
+        box((6.1, 0.3, 0.5), (0, 2.1, 2.4), GREEN_BIN_DARK, bevel=0.1),  # front rib
+        box((6.1, 0.3, 0.5), (0, 2.1, 1.1), GREEN_BIN_DARK, bevel=0.1),
+    ]
+    for x in (-1.5, 1.5):
+        parts.append(box((2.9, 4.1, 0.25), (x, -0.25, 3.95), srgb(30, 70, 46), bevel=0.08, rot=(0.12, 0, 0)))
+        parts.append(box((0.8, 0.2, 0.2), (x, 1.85, 4.05), STEEL_DARK, bevel=0.06))
+    for x in (-3.05, 3.05):
+        parts.append(box((0.3, 1.6, 0.4), (x, 0, 3.0), STEEL_DARK, bevel=0.08))  # lift pockets
+    for x in (-2.4, 2.4):
+        for y in (-1.5, 1.5):
+            parts.append(cyl(0.35, 0.3, (x, y, 0.35), IRON, verts=12, rot=(0, math.pi / 2, 0)))
+    parts.append(box((1.2, 0.08, 1.2), (0, 2.03, 1.75), srgb(240, 240, 240), bevel=0.04))
+    parts.append(box((0.7, 0.1, 0.7), (0, 2.08, 1.75), GREEN_BIN, bevel=0.04, rot=(0, math.pi / 4, 0)))
+    return {"SM_Station_Dumpster": (build_mesh("SM_Station_Dumpster", parts), dict(collision="Box"))}
+
+
+def breaker_panel():
+    """Breaker panel 1 deep (X) x 3 wide (Y) x 4 tall, front +X, origin at its centre."""
+    parts = [
+        box((0.9, 3.0, 4.0), (0, 0, 0), srgb(150, 156, 166), bevel=0.15),
+        box((0.12, 2.6, 3.6), (0.5, 0, 0), srgb(176, 182, 192), bevel=0.06),
+        box((0.12, 0.3, 0.6), (0.6, 1.0, 0), STEEL_DARK, bevel=0.05),  # latch
+        box((0.3, 0.4, 0.9), (0.7, -0.6, 0.6), RED, bevel=0.08),  # big lever
+        box((0.5, 0.25, 0.25), (0.9, -0.6, 1.0), IRON, bevel=0.06),
+        cyl(0.18, 2.5, (-0.1, 0.9, 3.2), STEEL_DARK, verts=10),  # conduit up
+    ]
+    tri = [(-0.55, -0.45), (0.55, -0.45), (0.0, 0.5)]
+    sign = extrude_profile([(y, z) for y, z in tri], 0, 0.06, srgb(255, 210, 50), bevel=0.02)
+    sign.location = (0.6, 0.2, 0.7)
+    sign.rotation_euler = (0, 0, 0)
+    parts.append(sign)
+    parts.append(box((0.08, 0.12, 0.45), (0.64, 0.22, 0.75), IRON, bevel=0.02, rot=(0.4, 0, 0)))
+    return {"SM_Station_Breaker": (build_mesh("SM_Station_Breaker", parts), dict(collision="Box"))}
+
+
+def shop_counter():
+    """Shop counter 3 deep (X) x 9 long (Y) x 3 tall, front -X (facing the door)."""
+    parts = [
+        box((3.0, 9.0, 2.75), (0, 0, 1.38), MINT, bevel=0.12),
+        box((3.3, 9.3, 0.25), (0, 0, 2.88), WOOD, bevel=0.08),
+        box((3.1, 9.1, 0.3), (0, 0, 0.15), TEAL_DARK, bevel=0.08),
+    ]
+    for y in (-3.0, 0.0, 3.0):
+        parts.append(box((0.1, 2.6, 1.8), (-1.52, y, 1.45), CREAM, bevel=0.06))
+        parts.append(box((0.12, 2.2, 1.4), (-1.56, y, 1.45), mul(MINT, 0.85), bevel=0.06))
+    register = [
+        box((1.2, 1.4, 0.7), (0.3, -2.8, 3.35), srgb(70, 74, 86), bevel=0.1),
+        box((0.9, 1.1, 0.2), (-0.2, -2.8, 3.62), srgb(110, 116, 130), bevel=0.05, rot=(0, 0.35, 0)),
+        box((0.3, 1.0, 0.5), (0.65, -2.8, 3.95), srgb(70, 74, 86), bevel=0.06),
+    ]
+    screen = [box((0.08, 0.8, 0.36), (0.48, -2.8, 4.0), srgb(110, 255, 150), bevel=0.02)]
+    return {
+        "SM_Shop_Counter": (build_mesh("SM_Shop_Counter", parts + register), dict(collision="Box")),
+        "SM_Shop_RegisterScreen": (build_mesh("SM_Shop_RegisterScreen", screen, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+def shop_shelf():
+    """Shop shelf unit 10.5 long (X) x 6.4 tall x 1.8 deep, front +Y, stocked."""
+    parts = []
+    for x in (-5.25, 5.25):
+        parts.append(box((0.3, 1.8, 6.4), (x, 0, 3.2), WOOD_DARK, bevel=0.08))
+    parts.append(box((10.8, 0.15, 6.2), (0, -0.85, 3.15), WOOD_PANEL, bevel=0.04))
+    for i, z in enumerate((0.3, 2.3, 4.3, 6.3)):
+        parts.append(box((10.5, 1.8, 0.22), (0, 0, z), WOOD, bevel=0.06))
+        if z < 6:
+            parts.append(box((10.5, 0.08, 0.3), (0, 0.92, z + 0.05), MINT, bevel=0.03))  # price strip
+            parts += goods_row(-5.0, 5.0, 0.05, z + 0.11, 1.3, i)
+    return {"SM_Shop_Shelf": (build_mesh("SM_Shop_Shelf", parts), dict(collision="Box"))}
+
+
+def car(prefix, wagon):
+    """Guest car, origin on the ground at its centre; front = Roblox -Z (Blender +Y).
+    Body 4.6 wide x 9 long; old pivot height (body centre) was 1.2."""
+    L, W = 9.0, 4.6
+    cabin_len = 6.0 if wagon else 4.8
+    cabin_y = -1.4 if wagon else -0.8  # Blender y (Roblox z +1.4 / +0.8)
+    body = [
+        taper_box((W, L, 1.35), (0, 0, 1.22), NEUTRAL, top=(0.94, 0.96), bevel=0.55, segments=4),
+        taper_box((W - 0.35, cabin_len, 1.45), (0, cabin_y, 2.55), NEUTRAL, top=(0.8, 0.66), bevel=0.45, segments=4),
+        box((W + 0.08, L - 1.2, 0.3), (0, 0, 0.85), mul(NEUTRAL, 0.85), bevel=0.12),  # lower side swell
+    ]
+    for y in (L / 2 - 1.75, -(L / 2 - 1.75)):  # wheel arches
+        body.append(box((W + 0.1, 2.5, 0.5), (0, y, 1.55), mul(NEUTRAL, 0.92), bevel=0.22))
+    # Slanted windshield / rear glass follow the tapered cabin.
+    slope = math.atan2(cabin_len * 0.17, 1.45)
+    glass = [
+        box((W - 1.0, 0.14, 1.15), (0, cabin_y + cabin_len * 0.5 - 0.62, 2.6), GLASS_DARK, bevel=0.08, rot=(-slope, 0, 0)),
+        box((W - 1.0, 0.14, 1.1), (0, cabin_y - cabin_len * 0.5 + 0.62, 2.6), GLASS_DARK, bevel=0.08, rot=(slope, 0, 0)),
+    ]
+    side_slope = math.atan2((W - 0.35) * 0.1, 1.45)
+    for side, x in ((-1, -(W / 2 - 0.42)), (1, W / 2 - 0.42)):
+        n = 3 if wagon else 2
+        span = cabin_len * 0.66
+        seg = span / n
+        for k in range(n):
+            glass.append(
+                box((0.12, seg - 0.22, 0.95), (x, cabin_y - span / 2 + seg * (k + 0.5), 2.6), GLASS_DARK, bevel=0.05, rot=(0, -side * side_slope, 0))
+            )
+    wheels = []
+    for x in (-(W / 2 - 0.1), W / 2 - 0.1):
+        for y in (L / 2 - 1.75, -(L / 2 - 1.75)):
+            wheels.append(cyl(0.95, 0.8, (x, y, 0.95), srgb(30, 30, 34), verts=18, rot=(0, math.pi / 2, 0), bevel=0.15))
+            wheels.append(cyl(0.48, 0.86, (x, y, 0.95), srgb(206, 208, 214), verts=14, rot=(0, math.pi / 2, 0), bevel=0.08))
+    trim = [
+        box((W + 0.2, 0.42, 0.38), (0, L / 2 + 0.05, 0.75), STEEL, bevel=0.15),
+        box((W + 0.2, 0.42, 0.38), (0, -(L / 2 + 0.05), 0.75), STEEL, bevel=0.15),
+        box((1.9, 0.14, 0.45), (0, L / 2 + 0.02, 1.25), srgb(60, 60, 66), bevel=0.06),  # grille
+        box((W * 0.6, cabin_len * 0.55, 0.1), (0, cabin_y, 3.3), STEEL_DARK, bevel=0.04),  # roof rack
+    ]
+    for x in (-(W / 2 + 0.06), W / 2 + 0.06):
+        trim.append(box((0.08, L - 1.6, 0.2), (x, 0, 1.4), STEEL, bevel=0.04))
+        trim.append(box((0.08, 0.3, 0.12), (x, cabin_y + 0.6, 1.85), STEEL, bevel=0.03))  # door handle
+    lights = []
+    for x in (-1.5, 1.5):
+        lights.append(blob(0.34, (x, L / 2 - 0.05, 1.3), srgb(255, 246, 200), squash=(1.2, 0.5, 0.9), lump=0, segs=12, rings=8))
+        lights.append(box((0.8, 0.12, 0.38), (x * 1.05, -(L / 2 - 0.02), 1.35), srgb(255, 70, 60), bevel=0.06))
+    return {
+        prefix + "_Body": (build_mesh(prefix + "_Body", body, "tint"), dict(tint=True, collision="Box")),
+        prefix + "_Glass": (build_mesh(prefix + "_Glass", glass), dict(collision="None")),
+        prefix + "_Wheels": (build_mesh(prefix + "_Wheels", wheels), dict(collision="None")),
+        prefix + "_Trim": (build_mesh(prefix + "_Trim", trim), dict(collision="None")),
+        prefix + "_Lights": (build_mesh(prefix + "_Lights", lights, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+def car_sedan():
+    return car("SM_Vehicle_Sedan", False)
+
+
+def car_wagon():
+    return car("SM_Vehicle_Wagon", True)
+
+
+def picnic_table():
+    """Picnic table: top 7 x 3 at 2.6, benches each side, A-frame legs."""
+    parts = []
+    for i in range(4):
+        parts.append(box((7.0, 0.7, 0.22), (0, -1.1 + i * 0.73, 2.7), WOOD, bevel=0.08))
+    for side in (-1, 1):
+        for i in range(2):
+            parts.append(box((7.0, 0.45, 0.2), (0, side * (2.0 + i * 0.5), 1.45), WOOD, bevel=0.07))
+    for x in (-2.6, 2.6):
+        for side in (-1, 1):
+            parts.append(box((0.3, 0.3, 3.2), (x, side * 1.05, 1.35), WOOD_DARK, bevel=0.08, rot=(side * 0.6, 0, 0)))
+        parts.append(box((0.3, 5.0, 0.25), (x, 0, 1.25), WOOD_DARK, bevel=0.08))
+    return {"SM_Yard_PicnicTable": (build_mesh("SM_Yard_PicnicTable", parts), dict(collision="Box"))}
+
+
+def parasol():
+    """Striped patio umbrella, 7 wide, ~6.5 tall."""
+    parts = [
+        cyl(0.14, 6.2, (0, 0, 3.1), CREAM, verts=10),
+        cyl(0.6, 0.25, (0, 0, 0.12), STEEL_DARK, verts=14),
+        blob(0.2, (0, 0, 6.6), RED, lump=0, segs=10, rings=7),
+    ]
+    n = 8
+    for i in range(n):
+        a0 = i * 2 * math.pi / n
+        a1 = (i + 1) * 2 * math.pi / n
+        r, top, rim = 3.6, 6.5, 5.3
+        pts = [(0, 0, top), (math.cos(a0) * r, math.sin(a0) * r, rim), (math.cos(a1) * r, math.sin(a1) * r, rim)]
+        bm = bmesh.new()
+        vs = [bm.verts.new(p) for p in pts]
+        mid = bm.verts.new(((pts[1][0] + pts[2][0]) * 0.5 * 0.95, (pts[1][1] + pts[2][1]) * 0.5 * 0.95, rim + 0.1))
+        bm.faces.new((vs[0], vs[1], mid))
+        bm.faces.new((vs[0], mid, vs[2]))
+        mesh = bpy.data.meshes.new("panel")
+        bm.to_mesh(mesh)
+        bm.free()
+        o = bpy.data.objects.new("panel", mesh)
+        scene.collection.objects.link(o)
+        solid = o.modifiers.new("Solidify", "SOLIDIFY")  # thin sheet: visible from below too
+        solid.thickness = 0.08
+        _apply_modifiers(o)
+        parts.append(finish(o, RED if i % 2 == 0 else CREAM, smooth_angle=30))
+    for i in range(n):
+        a = (i + 0.5) * 2 * math.pi / n
+        parts.append(blob(0.18, (math.cos(a) * 3.45, math.sin(a) * 3.45, 5.25), RED if i % 2 else CREAM, squash=(1, 1, 0.6), lump=0, segs=8, rings=5))
+    return {"SM_Yard_Parasol": (build_mesh("SM_Yard_Parasol", parts), dict(collision="None"))}
+
+
+def fence():
+    """Fence section 6 long (X from 0 to 6): post at x=0, two rails; plus a lone end post."""
+    section = [
+        box((0.8, 0.8, 4.0), (0, 0, 2.0), WOOD_DARK, bevel=0.12),
+        box((1.05, 1.05, 0.32), (0, 0, 4.12), WOOD, bevel=0.1),
+        blob(0.28, (0, 0, 4.42), WOOD, lump=0, segs=10, rings=7),
+    ]
+    for z in (1.5, 3.1):
+        section.append(box((6.0, 0.35, 0.5), (3.0, 0, z), WOOD, bevel=0.1))
+    post = [
+        box((0.8, 0.8, 4.0), (0, 0, 2.0), WOOD_DARK, bevel=0.12),
+        box((1.05, 1.05, 0.32), (0, 0, 4.12), WOOD, bevel=0.1),
+        blob(0.28, (0, 0, 4.42), WOOD, lump=0, segs=10, rings=7),
+    ]
+    return {
+        "SM_Yard_FenceSection": (build_mesh("SM_Yard_FenceSection", section), dict(collision="Box")),
+        "SM_Yard_FencePost": (build_mesh("SM_Yard_FencePost", post), dict(collision="Box")),
+    }
+
+
+def mailbox():
+    parts = [
+        box((0.4, 0.4, 3.5), (0, 0, 1.75), WOOD_DARK, bevel=0.08),
+        box((1.0, 1.4, 0.18), (0, 0, 3.35), WOOD, bevel=0.06),
+    ]
+    pts = [(0.6, 0.0)] + [(0.6 * math.cos(math.pi * t / 10), 0.55 + 0.6 * math.sin(math.pi * t / 10)) for t in range(11)] + [(-0.6, 0.0)]
+    body = extrude_profile([(y, z) for y, z in pts], 0, 2.0, srgb(70, 110, 190), bevel=0.08)
+    body.rotation_euler = (0, 0, math.pi / 2)
+    body.location = (0, 0, 3.45)
+    parts.append(body)
+    parts.append(box((0.1, 0.1, 0.9), (0.68, -0.4, 4.1), IRON, bevel=0.03))
+    parts.append(box((0.08, 0.5, 0.35), (0.7, -0.2, 4.4), RED, bevel=0.04))
+    return {"SM_Yard_Mailbox": (build_mesh("SM_Yard_Mailbox", parts), dict(collision="Box"))}
+
+
+def vending_machine():
+    """Vending machine 3 x 6 x 2.4, front +Y; lit window is a glow mesh."""
+    parts = [
+        box((3.0, 2.4, 6.0), (0, 0, 3.0), srgb(210, 56, 56), bevel=0.2),
+        box((3.1, 2.5, 0.35), (0, 0, 0.18), srgb(60, 30, 30), bevel=0.08),
+        box((2.7, 0.12, 0.7), (0, 1.22, 5.4), CREAM, bevel=0.06),  # logo band
+        box((0.7, 0.14, 3.0), (0.95, 1.22, 2.9), srgb(170, 40, 40), bevel=0.06),  # control column
+        box((0.3, 0.1, 0.4), (0.95, 1.3, 3.6), IRON, bevel=0.03),
+        box((0.5, 0.1, 0.3), (0.95, 1.3, 2.6), IRON, bevel=0.03),
+        box((1.7, 0.16, 0.6), (-0.35, 1.22, 0.85), IRON, bevel=0.06),  # pickup slot
+    ]
+    for r in range(4):
+        for c in range(4):
+            parts.append(cyl(0.16, 0.55, (-1.05 + c * 0.42, 0.95, 1.85 + r * 0.82), GOODS[(r + c) % len(GOODS)], verts=6, bevel=0))
+    window = [box((1.9, 0.08, 3.3), (-0.35, 1.2, 3.25), srgb(220, 240, 255), bevel=0.06)]
+    return {
+        "SM_Yard_Vending": (build_mesh("SM_Yard_Vending", parts), dict(collision="Box")),
+        "SM_Yard_Vending_Window": (build_mesh("SM_Yard_Vending_Window", window, "glow"), dict(glow=True, collision="None")),
+    }
+
+
+def ice_machine():
+    """Ice machine 3 x 5 x 2.4, front +Y, snowflake emblem."""
+    parts = [
+        box((3.0, 2.4, 5.0), (0, 0, 2.5), srgb(70, 130, 210), bevel=0.2),
+        box((3.1, 2.5, 0.3), (0, 0, 0.15), srgb(40, 70, 120), bevel=0.08),
+        box((2.5, 0.12, 2.6), (0, 1.22, 1.9), SNOW, bevel=0.1),  # bin door
+        box((1.2, 0.18, 0.2), (0, 1.32, 3.0), STEEL, bevel=0.05),
+        box((2.6, 0.12, 1.1), (0, 1.22, 4.2), srgb(220, 236, 255), bevel=0.08),
+    ]
+    for a in range(3):
+        parts.append(box((0.14, 0.1, 0.85), (0, 1.3, 4.2), srgb(70, 130, 210), bevel=0.02, rot=(0, a * math.pi / 3, 0)))
+    return {"SM_Yard_IceMachine": (build_mesh("SM_Yard_IceMachine", parts), dict(collision="Box"))}
+
+
+def campfire():
+    """Campfire: stone ring, crossed logs, glowing embers and flames (glow)."""
+    parts = [cyl(2.4, 0.3, (0, 0, 0.15), srgb(70, 60, 56), verts=20)]
+    for k in range(9):
+        a = k / 9 * math.pi * 2
+        parts.append(blob(0.6, (math.cos(a) * 2.5, math.sin(a) * 2.5, 0.4), ROCK, squash=(1.2, 1.0, 0.75), lump=0.3, seed=80 + k, segs=8, rings=6))
+    for k in range(5):
+        a = k / 5 * math.pi * 2
+        # Leaning inward like a teepee: tilt around the tangent axis.
+        log = cyl(0.24, 2.4, (math.cos(a) * 0.55, math.sin(a) * 0.55, 1.0), WOOD_DARK, verts=8)
+        log.rotation_euler = (0, 0.75, a + math.pi)
+        parts.append(log)
+    fire = [blob(0.75, (0, 0, 0.75), srgb(255, 110, 40), squash=(1.2, 1.2, 0.45), lump=0.2, seed=90, segs=10, rings=7)]
+    for k, (x, y, h, r) in enumerate([(0, 0, 2.6, 0.55), (0.45, 0.2, 1.8, 0.4), (-0.4, 0.3, 1.9, 0.4), (0.1, -0.45, 1.7, 0.38)]):
+        fire.append(lathe([(0.0, 0), (r, 0.15), (r * 0.9, h * 0.35), (r * 0.45, h * 0.7), (0.0, h)], (x, y, 0.8), FLAME_OUT if k % 2 == 0 else FLAME_IN, verts=10))
+    fire.append(lathe([(0.0, 0), (0.3, 0.1), (0.24, 0.7), (0.0, 1.4)], (0, 0, 0.85), FLAME_IN, verts=10))
+    seat = [cyl(0.7, 5.0, (0, 0, 0.7), WOOD, verts=14, rot=(0, math.pi / 2, 0), bevel=0.12)]
+    for x in (-2.5, 2.5):
+        seat.append(cyl(0.55, 0.05, (x, 0, 0.7), WOOD_LIGHT, verts=14, rot=(0, math.pi / 2, 0)))
+    return {
+        "SM_Yard_Campfire": (build_mesh("SM_Yard_Campfire", parts), dict(collision="Hull")),
+        "SM_Yard_Campfire_Flames": (build_mesh("SM_Yard_Campfire_Flames", fire, "glow"), dict(glow=True, collision="None")),
+        "SM_Yard_LogSeat": (build_mesh("SM_Yard_LogSeat", seat), dict(collision="Box")),
+    }
+
+
+def fountain():
+    """Fountain: basin 10 wide, column, top bowl; water surfaces as a separate mesh."""
+    stone = srgb(222, 214, 200)
+    parts = [
+        lathe([(0.0, 0.0), (5.0, 0.0), (5.05, 0.9), (5.3, 1.05), (5.3, 1.3), (4.6, 1.3), (4.5, 0.4), (0.0, 0.4)], (0, 0, 0), stone, verts=28),
+        lathe([(0.0, 0.4), (0.75, 0.4), (0.6, 1.2), (0.65, 2.6), (0.5, 3.4), (0.0, 3.4)], (0, 0, 0), stone, verts=16),
+        lathe([(0.0, 3.4), (0.4, 3.4), (1.6, 3.85), (1.7, 4.15), (1.45, 4.2), (0.3, 3.9), (0.0, 3.9)], (0, 0, 0), stone, verts=20),
+        lathe([(0.0, 4.0), (0.22, 4.0), (0.18, 4.6), (0.0, 4.7)], (0, 0, 0), stone, verts=10),
+    ]
+    parts.append(lathe([(5.32, 1.0), (5.36, 1.0), (5.36, 1.18), (5.32, 1.18)], (0, 0, 0), srgb(70, 160, 190), verts=28))  # tile band
+    for k in range(8):
+        a = k / 8 * math.pi * 2
+        parts.append(blob(0.35, (math.cos(a) * 5.0, math.sin(a) * 5.0, 1.42), stone, squash=(1, 1, 0.5), lump=0, segs=10, rings=6))
+    water = [
+        cyl(4.55, 0.15, (0, 0, 1.0), WATER, verts=28),
+        cyl(1.4, 0.1, (0, 0, 4.05), WATER, verts=18),
+        lathe([(0.0, 4.6), (0.16, 4.62), (0.1, 5.4), (0.0, 5.5)], (0, 0, 0), srgb(170, 225, 250), verts=10),  # spout jet
+        lathe([(1.5, 1.05), (1.62, 1.05), (1.72, 2.5), (1.6, 4.1), (1.48, 4.1), (1.58, 2.5)], (0, 0, 0), srgb(150, 215, 245), verts=20),  # falling sheet
+    ]
+    return {
+        "SM_Yard_Fountain": (build_mesh("SM_Yard_Fountain", parts), dict(collision="Hull")),
+        "SM_Yard_Fountain_Water": (build_mesh("SM_Yard_Fountain_Water", water), dict(collision="None")),
+    }
+
+
 BATCHES = {
     "batch1": [
         ("Bed", bed, "hero"),
@@ -630,9 +1109,30 @@ BATCHES = {
         ("FlowerBush", flower_bush, "standard"),
         ("RoundTree", round_tree, "tree"),
     ],
+    "batch2": [
+        ("Stove", stove, "hero"),
+        ("Fridge", fridge, "standard"),
+        ("Sink", sink_counter, "standard"),
+        ("Pantry", pantry_shelf, "standard"),
+        ("LinenShelf", linen_shelf, "hero"),
+        ("Dumpster", dumpster, "hero"),
+        ("Breaker", breaker_panel, "standard"),
+        ("ShopCounter", shop_counter, "standard"),
+        ("ShopShelf", shop_shelf, "hero"),
+        ("CarSedan", car_sedan, "vehicle"),
+        ("CarWagon", car_wagon, "vehicle"),
+        ("PicnicTable", picnic_table, "standard"),
+        ("Parasol", parasol, "standard"),
+        ("Fence", fence, "standard"),
+        ("Mailbox", mailbox, "standard"),
+        ("Vending", vending_machine, "standard"),
+        ("IceMachine", ice_machine, "standard"),
+        ("Campfire", campfire, "standard"),
+        ("Fountain", fountain, "standard"),
+    ],
 }
 # Triangle budget per object group (prop-artist tiers, mobile-adjusted).
-BUDGET = {"hero": 8000, "standard": 3000, "tree": 4000}
+BUDGET = {"hero": 8000, "standard": 3000, "tree": 4000, "vehicle": 8000}
 
 
 # ======================================================================
@@ -663,6 +1163,8 @@ def validate(obj):
     }
 
 
+if BATCH != "batch1":
+    BEVEL_SEGMENTS = 2
 col_geo = bpy.data.collections.new("COL_Geo_Kit_" + BATCH)
 scene.collection.children.link(col_geo)
 
@@ -774,6 +1276,8 @@ PREVIEW_TINT = {
     "SM_Prop_Door_Leaf": srgb(214, 84, 70),
     "SM_Prop_AC_Body": srgb(232, 234, 238),
     "SM_Veg_RoundTree_Canopy": srgb(250, 150, 54),
+    "SM_Vehicle_Sedan_Body": srgb(236, 120, 110),
+    "SM_Vehicle_Wagon_Body": srgb(120, 190, 220),
 }
 for obj in built:
     t = PREVIEW_TINT.get(obj.name)
@@ -833,6 +1337,25 @@ def group_box(objs):
     return lo, hi
 
 
+# Groups whose front is not +Y are turned toward the camera (preview only).
+PREVIEW_YAW = {
+    "LinenShelf": math.pi,
+    "Stove": math.pi / 2,
+    "Fridge": math.pi / 2,
+    "Breaker": math.pi / 2,
+    "ShopCounter": -math.pi / 2,
+}
+from mathutils import Matrix
+
+for g, yaw in PREVIEW_YAW.items():
+    objs = group_objects(g)
+    if objs:
+        lo, hi = group_box(objs)
+        pivot = Matrix.Translation(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, 0))
+        rot = pivot @ Matrix.Rotation(yaw, 4, "Z") @ pivot.inverted()
+        for o in objs:
+            o.matrix_world = rot @ o.matrix_world
+bpy.context.view_layer.update()
 names = [g for g, _b, _t in BATCHES[BATCH]]
 sheets = [names[i : i + 6] for i in range(0, len(names), 6)]
 for k, sheet in enumerate(sheets):
