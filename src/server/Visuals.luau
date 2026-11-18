@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UiAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiAssets"))
 local NpcRigs = require(script.Parent:WaitForChild("NpcRigs"))
 local Kit = require(script.Parent:WaitForChild("Kit"))
+local LightingFX = require(script.Parent:WaitForChild("LightingFX"))
 
 local Visuals = {}
 Visuals.__index = Visuals
@@ -890,31 +891,21 @@ function Visuals:applyLighting(core)
 	self.lightingKey = key
 	local P = self.C.Phase
 	local nightLike = core.phase == P.Night or core.phase == P.Closing
+	-- Presets live in LightingFX (cartoon sky, softer light).
 	if core.phase == P.Preparation then
-		Lighting.ClockTime = 17.6
-		Lighting.Brightness = 2
-		Lighting.Ambient = Color3.fromRGB(110, 100, 90)
-		Lighting.OutdoorAmbient = Color3.fromRGB(140, 130, 120)
+		LightingFX.phase("Preparation")
 	elseif nightLike then
-		Lighting.ClockTime = if core.phase == P.Night then 0.5 else 3
-		Lighting.Brightness = 1
-		if core.power then
-			Lighting.Ambient = Color3.fromRGB(80, 80, 105)
-			Lighting.OutdoorAmbient = Color3.fromRGB(95, 95, 125)
+		if not core.power then
+			LightingFX.phase("Blackout")
+		elseif core.phase == P.Night then
+			LightingFX.phase("Night")
 		else
-			Lighting.Ambient = Color3.fromRGB(45, 45, 65)
-			Lighting.OutdoorAmbient = Color3.fromRGB(60, 60, 85)
+			LightingFX.phase("Closing")
 		end
 	elseif core.phase == P.Report then
-		Lighting.ClockTime = 5.8
-		Lighting.Brightness = 1.5
-		Lighting.Ambient = Color3.fromRGB(100, 95, 110)
-		Lighting.OutdoorAmbient = Color3.fromRGB(120, 115, 130)
+		LightingFX.phase("Report")
 	else
-		Lighting.ClockTime = 14
-		Lighting.Brightness = 2
-		Lighting.Ambient = Color3.fromRGB(120, 120, 120)
-		Lighting.OutdoorAmbient = Color3.fromRGB(140, 140, 140)
+		LightingFX.phase("Day")
 	end
 	if core.rain then
 		Lighting.FogColor = Color3.fromRGB(60, 65, 80)
