@@ -5,12 +5,14 @@ Blender per object (headless bpy, no MCP).
 Run one batch:
   blender --background --factory-startup --python tools/blender/motel_kit.py -- <repo_root> <batch>
 
-Outputs (assets/models/kit/):
-  motel_kit_<batch>.fbx            every mesh of the batch (Y-up, 1 unit = 1 stud)
+Outputs (assets/models/kit/<batch>/), one folder per batch and per model:
+  motel_kit_<batch>.blend          editable source (COL_ collections, SM_ meshes)
   motel_kit_<batch>.json           manifest per mesh: group, size, center, tint, glow,
                                    collision hint, triangles + validation report
-  motel_kit_<batch>.blend          editable source (COL_ collections, SM_ meshes)
-  previews/motel_kit_<batch>_*.png lookdev contact sheets (EEVEE)
+  fbx/motel_kit_<batch>.fbx        every mesh of the batch in one file (one import)
+  previews/                        lookdev contact sheets of the batch (EEVEE)
+  <Group>/fbx/<Group>.fbx          one model (its meshes only), Y-up, 1 unit = 1 stud
+  <Group>/previews/<Group>_*.png   per-model preview renders (when rendered)
 
 Art direction (skills: blender-director, prop-artist, stylized-style,
 cartoon-style, vegetation-artist):
@@ -41,8 +43,31 @@ from mathutils import Matrix, Vector, noise
 ARGS = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 ROOT = ARGS[0] if ARGS else os.getcwd()
 BATCH = ARGS[1] if len(ARGS) > 1 else "batch1"
-OUT = os.path.join(ROOT, "assets", "models", "kit")
+KIT_ROOT = os.path.join(ROOT, "assets", "models", "kit")
+OUT = os.path.join(KIT_ROOT, BATCH)  # this batch's folder
 os.makedirs(os.path.join(OUT, "previews"), exist_ok=True)
+os.makedirs(os.path.join(OUT, "fbx"), exist_ok=True)
+
+
+def group_dir(group, *sub):
+    """assets/models/kit/<batch>/<Group>/<sub...> (created)."""
+    d = os.path.join(OUT, group, *sub)
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+FBX_SETTINGS = dict(
+    use_selection=True,
+    object_types={"MESH"},
+    apply_unit_scale=True,
+    apply_scale_options="FBX_SCALE_UNITS",
+    axis_forward="-Z",
+    axis_up="Y",
+    mesh_smooth_type="OFF",
+    use_triangles=True,
+    colors_type="SRGB",
+    add_leaf_bones=False,
+)
 
 
 # ======================================================================
@@ -4334,19 +4359,15 @@ bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, f"motel_kit_{BATCH}.blend
 bpy.ops.object.select_all(action="DESELECT")
 for obj in built:
     obj.select_set(True)
-bpy.ops.export_scene.fbx(
-    filepath=os.path.join(OUT, f"motel_kit_{BATCH}.fbx"),
-    use_selection=True,
-    object_types={"MESH"},
-    apply_unit_scale=True,
-    apply_scale_options="FBX_SCALE_UNITS",
-    axis_forward="-Z",
-    axis_up="Y",
-    mesh_smooth_type="OFF",
-    use_triangles=True,
-    colors_type="SRGB",
-    add_leaf_bones=False,
-)
+bpy.ops.export_scene.fbx(filepath=os.path.join(OUT, "fbx", f"motel_kit_{BATCH}.fbx"), **FBX_SETTINGS)
+# One FBX per model (group) in its own folder.
+for g, _b, _t in BATCHES[BATCH]:
+    bpy.ops.object.select_all(action="DESELECT")
+    objs = [o for o in built if manifest[o.name]["group"] == g]
+    for o in objs:
+        o.select_set(True)
+    if objs:
+        bpy.ops.export_scene.fbx(filepath=os.path.join(group_dir(g, "fbx"), f"{g}.fbx"), **FBX_SETTINGS)
 with open(os.path.join(OUT, f"motel_kit_{BATCH}.json"), "w", encoding="utf-8") as f:
     json.dump({"batch": BATCH, "units": "studs", "axes": "roblox", "meshes": manifest, "validation": report}, f, indent=2)
 print("[kit] exported", BATCH)
@@ -4604,6 +4625,6 @@ if BATCH in ("annex", "lobby", "xmas"):
             cam.location = look + Vector((d.x * math.cos(e), d.y * math.cos(e), math.sin(e))) * dist
             cam.rotation_euler = (look - cam.location).to_track_quat("-Z", "Y").to_euler()
             sun.rotation_euler = (math.radians(-50), 0, math.atan2(-d.x, d.y) + math.radians(-28))
-            scene.render.filepath = os.path.join(OUT, "previews", f"motel_kit_{BATCH}_{g}_{name}.png")
+            scene.render.filepath = os.path.join(group_dir(g, "previews"), f"{g}_{name}.png")
             bpy.ops.render.render(write_still=True)
 print("[kit] previews done")

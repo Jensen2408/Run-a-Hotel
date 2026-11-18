@@ -4,8 +4,8 @@ Stylized cartoon pine tree for Run a Motel (Roblox).
 Run headless:
   blender --background --factory-startup --python tools/blender/pine_tree.py -- <repo_root>
 
-Outputs (under <repo_root>/assets/models/):
-  pine_tree.fbx            game mesh (Y-up, units = studs, pivot at the trunk base)
+Outputs (under <repo_root>/assets/models/pine_tree/):
+  fbx/pine_tree.fbx        game mesh (Y-up, units = studs, pivot at the trunk base)
   pine_tree.blend          editable source
   previews/pine_tree.png   preview render
 
@@ -25,8 +25,9 @@ import bpy
 from mathutils import Vector
 
 ROOT = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else os.getcwd()
-OUT = os.path.join(ROOT, "assets", "models")
+OUT = os.path.join(ROOT, "assets", "models", "pine_tree")
 os.makedirs(os.path.join(OUT, "previews"), exist_ok=True)
+os.makedirs(os.path.join(OUT, "fbx"), exist_ok=True)
 
 
 def srgb(r, g, b):
@@ -270,7 +271,7 @@ bpy.ops.object.select_all(action="DESELECT")
 for obj in (leaves, trunk):
     obj.select_set(True)
 bpy.ops.export_scene.fbx(
-    filepath=os.path.join(OUT, "pine_tree.fbx"),
+    filepath=os.path.join(OUT, "fbx", "pine_tree.fbx"),
     use_selection=True,
     object_types={"MESH"},
     apply_unit_scale=True,
