@@ -1607,4 +1607,7 @@ return {
 		c = { -0.294, 14.023, 0 },
 		s = { 14.108, 19.755, 14.253 },
 	},
+	PineSnowTrunk = { group = "PineTreeSnow", c = { 0, 3.2, 0 }, s = { 2.804, 6.4, 2.948 } },
+	PineSnowLeaves = { group = "PineTreeSnow", c = { -0.294, 14.022, 0 }, s = { 14.108, 19.755, 14.253 } },
+	PineSnowCap = { group = "PineTreeSnow", c = { -0.253, 15.448, 0 }, s = { 11.838, 17.464, 11.925 } },
 }

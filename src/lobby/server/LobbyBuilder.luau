@@ -503,7 +503,13 @@ function LobbyBuilder.build(scale: number)
 	-- when the kit is available, else a trunk + wedge).
 	local rng = Random.new(77)
 	local kitPines = Kit.has("PineTree")
-	local snowPines = xmas and Kit.has("SnowPine")
+	-- Christmas: the pine_tree model with snow (PineTreeSnow), else the
+	-- simple SnowPine from batch xmas.
+	local snowPineGroup = if xmas and Kit.has("PineTreeSnow")
+		then "PineTreeSnow"
+		elseif xmas and Kit.has("SnowPine") then "SnowPine"
+		else nil
+	local snowPines = snowPineGroup ~= nil
 	for k = 1, 40 do
 		local a = rng:NextNumber(0, math.pi * 2)
 		local r = rng:NextNumber(70, 130)
@@ -511,10 +517,10 @@ function LobbyBuilder.build(scale: number)
 		local h = rng:NextNumber(22, 34)
 		if snowPines then
 			Kit.place(
-				"SnowPine",
+				snowPineGroup,
 				map,
 				CFrame.new(x, 0, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
-				{ scale = h / 23.6 }
+				{ scale = h / (if snowPineGroup == "PineTreeSnow" then 23.9 else 23.6) }
 			)
 			continue
 		end

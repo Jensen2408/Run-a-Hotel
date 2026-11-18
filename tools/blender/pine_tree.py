@@ -2,12 +2,16 @@
 Stylized cartoon pine tree for Run a Motel (Roblox).
 
 Run headless:
-  blender --background --factory-startup --python tools/blender/pine_tree.py -- <repo_root>
+  blender --background --factory-startup --python tools/blender/pine_tree.py -- <repo_root> [snow]
 
-Outputs (under <repo_root>/assets/models/pine_tree/):
+Outputs (under <repo_root>/assets/models/pine_tree/, or pine_tree_snow/):
   fbx/pine_tree.fbx        game mesh (Y-up, units = studs, pivot at the trunk base)
   pine_tree.blend          editable source
   previews/pine_tree.png   preview render
+
+"snow" = the winter variant (lobby Christmas theme): same tiers in deeper
+winter greens, plus a soft snow cap on every tier with drips over the lobes
+(third mesh PineSnowCap). Meshes: PineSnowTrunk, PineSnowLeaves, PineSnowCap.
 
 Look: stacked "skirt" tiers with drooping rounded lobes, dark green at the
 bottom to light green at the top, baked cartoon shading in vertex colours
@@ -24,8 +28,12 @@ import bmesh
 import bpy
 from mathutils import Vector
 
-ROOT = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else os.getcwd()
-OUT = os.path.join(ROOT, "assets", "models", "pine_tree")
+ARGS = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
+ROOT = ARGS[0] if ARGS else os.getcwd()
+SNOW = len(ARGS) > 1 and ARGS[1] == "snow"
+NAME = "pine_tree_snow" if SNOW else "pine_tree"
+PREFIX = "PineSnow" if SNOW else "Pine"
+OUT = os.path.join(ROOT, "assets", "models", NAME)
 os.makedirs(os.path.join(OUT, "previews"), exist_ok=True)
 os.makedirs(os.path.join(OUT, "fbx"), exist_ok=True)
 
@@ -52,6 +60,14 @@ LEAF_LIGHT = srgb(170, 228, 110)
 LEAF_SHADE = srgb(30, 92, 60)
 BARK = srgb(150, 96, 58)
 BARK_DARK = srgb(98, 60, 38)
+SNOW_TOP = srgb(250, 252, 255)
+SNOW_SHADE = srgb(196, 214, 238)
+if SNOW:
+    # Deeper winter greens so the snow reads (reference: dark snowy pines).
+    LEAF_DARK = srgb(30, 98, 62)
+    LEAF_MID = srgb(48, 128, 74)
+    LEAF_LIGHT = srgb(92, 166, 92)
+    LEAF_SHADE = srgb(18, 66, 48)
 
 # ---------------------------------------------------------------- scene
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -147,7 +163,49 @@ TIERS = [
 for k, (z, r, h, lobes, droop) in enumerate(TIERS):
     add_tier(leaves_bm, z, r, h, lobes, droop, phase=(math.pi / lobes) * (k % 2))
 bmesh.ops.recalc_face_normals(leaves_bm, faces=leaves_bm.faces)
-leaves = new_object("PineLeaves", leaves_bm)
+leaves = new_object(PREFIX + "Leaves", leaves_bm)
+
+
+def add_snow_cap(bm, base_z, radius, height, lobes, phase):
+    """Snow resting on a tier: follows the top of the skirt (slightly
+    outside it) down to a scalloped edge that drips over each lobe."""
+    n = lobes * SEG_PER_LOBE
+
+    def theta(i):
+        return i * 2 * math.pi / n
+
+    def s(i):
+        return scallop(theta(i), lobes, phase)
+
+    lift = 0.18
+    top = bm.verts.new((0, 0, base_z + height + lift + 0.1))
+    shoulder = ring(bm, n, lambda i: radius * (0.30 + 0.05 * s(i)) + 0.22, lambda i: base_z + height * 0.72 + lift)
+    upper = ring(bm, n, lambda i: radius * (0.58 + 0.08 * s(i)) + 0.2, lambda i: base_z + height * 0.48 + lift)
+    # Drip edge: lower over the lobes, tucked up at the notches.
+    edge = ring(
+        bm,
+        n,
+        lambda i: radius * (0.70 + 0.12 * s(i)) + 0.12,
+        lambda i: base_z + height * (0.40 - 0.16 * s(i)) + lift,
+    )
+    inner = ring(bm, n, lambda i: radius * (0.62 + 0.1 * s(i)), lambda i: base_z + height * (0.42 - 0.12 * s(i)))
+    core = ring(bm, n, lambda i: radius * 0.25, lambda i: base_z + height * 0.6)
+    fan(bm, top, shoulder, flip=True)
+    bridge(bm, upper, shoulder)
+    bridge(bm, edge, upper)
+    bridge(bm, inner, edge)
+    bridge(bm, core, inner)
+    fan(bm, bm.verts.new((0, 0, base_z + height * 0.62)), core)
+
+
+meshes = [leaves]
+if SNOW:
+    snow_bm = bmesh.new()
+    for k, (z, r, h, lobes, droop) in enumerate(TIERS):
+        add_snow_cap(snow_bm, z, r, h, lobes, phase=(math.pi / lobes) * (k % 2))
+    bmesh.ops.recalc_face_normals(snow_bm, faces=snow_bm.faces)
+    snow = new_object("PineSnowCap", snow_bm)
+    meshes.append(snow)
 
 # ---------------------------------------------------------------- trunk
 trunk_bm = bmesh.new()
@@ -162,7 +220,8 @@ bridge(trunk_bm, mid, top_ring)
 fan(trunk_bm, trunk_bm.verts.new((0, 0, 6.4)), top_ring, flip=True)
 fan(trunk_bm, trunk_bm.verts.new((0, 0, 0.0)), roots)
 bmesh.ops.recalc_face_normals(trunk_bm, faces=trunk_bm.faces)
-trunk = new_object("PineTrunk", trunk_bm)
+trunk = new_object(PREFIX + "Trunk", trunk_bm)
+meshes.append(trunk)
 
 
 # ---------------------------------------------------------------- shading
@@ -203,7 +262,15 @@ def bark_colour(co, normal):
     return mix(BARK_DARK, BARK, min(1.0, co.z / 3.5))
 
 
-for obj, fn in ((leaves, leaf_colour), (trunk, bark_colour)):
+def snow_colour(co, normal):
+    # Bright on top, cool blue on the drips and sides.
+    return mix(SNOW_SHADE, SNOW_TOP, max(0.0, normal.z) ** 0.8)
+
+
+painters = [(leaves, leaf_colour), (trunk, bark_colour)]
+if SNOW:
+    painters.append((snow, snow_colour))
+for obj, fn in painters:
     shade_smooth(obj)
     paint(obj, fn)
 
@@ -221,11 +288,21 @@ def material(name, colour):
     return m
 
 
-leaves.data.materials.append(material("PineLeaves", LEAF_MID))
-trunk.data.materials.append(material("PineTrunk", BARK))
+leaves.data.materials.append(material(PREFIX + "Leaves", LEAF_MID))
+trunk.data.materials.append(material(PREFIX + "Trunk", BARK))
+if SNOW:
+    snow.data.materials.append(material("PineSnowCap", SNOW_TOP))
 
-tris = sum(len(p.vertices) - 2 for o in (leaves, trunk) for p in o.data.polygons)
+tris = sum(len(p.vertices) - 2 for o in meshes for p in o.data.polygons)
 print(f"[pine] triangles: {tris}")
+# Bounding boxes in Roblox axes (x, y, z) = Blender (x, z, -y), for the kit manifest.
+for o in meshes:
+    xs = [v.co.x for v in o.data.vertices]
+    ys = [v.co.y for v in o.data.vertices]
+    zs = [v.co.z for v in o.data.vertices]
+    c = ((min(xs) + max(xs)) / 2, (min(zs) + max(zs)) / 2, -(min(ys) + max(ys)) / 2)
+    sz = (max(xs) - min(xs), max(zs) - min(zs), max(ys) - min(ys))
+    print(f"[pine] {o.name} center {[round(v, 3) for v in c]} size {[round(v, 3) for v in sz]}")
 
 # ---------------------------------------------------------------- preview render
 world = bpy.data.worlds.new("Sky")
@@ -250,7 +327,7 @@ ground_bm = bmesh.new()
 gr = ring(ground_bm, 32, lambda i: 11.0, lambda i: 0.0)
 fan(ground_bm, ground_bm.verts.new((0, 0, 0)), gr)
 ground = new_object("PreviewGround", ground_bm)
-paint(ground, lambda co, n: srgb(128, 186, 92))
+paint(ground, lambda co, n: srgb(236, 242, 250) if SNOW else srgb(128, 186, 92))
 
 cam_data = bpy.data.cameras.new("Cam")
 cam_data.lens = 55
@@ -260,18 +337,18 @@ cam.location = (30, -30, 16)
 direction = Vector((0, 0, 11)) - cam.location
 cam.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 scene.camera = cam
-scene.render.filepath = os.path.join(OUT, "previews", "pine_tree.png")
+scene.render.filepath = os.path.join(OUT, "previews", NAME + ".png")
 bpy.ops.render.render(write_still=True)
 
 # ---------------------------------------------------------------- export (game meshes only)
 bpy.data.objects.remove(ground, do_unlink=True)
 bpy.data.objects.remove(cam, do_unlink=True)
-bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, "pine_tree.blend"))
+bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, NAME + ".blend"))
 bpy.ops.object.select_all(action="DESELECT")
-for obj in (leaves, trunk):
+for obj in meshes:
     obj.select_set(True)
 bpy.ops.export_scene.fbx(
-    filepath=os.path.join(OUT, "fbx", "pine_tree.fbx"),
+    filepath=os.path.join(OUT, "fbx", NAME + ".fbx"),
     use_selection=True,
     object_types={"MESH"},
     apply_unit_scale=True,
@@ -282,4 +359,4 @@ bpy.ops.export_scene.fbx(
     colors_type="SRGB",
     add_leaf_bones=False,
 )
-print("[pine] exported", os.path.join(OUT, "pine_tree.fbx"))
+print("[pine] exported", os.path.join(OUT, "fbx", NAME + ".fbx"))

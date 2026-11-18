@@ -52,9 +52,18 @@ EXTRA = {
     # tools/blender/pine_tree.py -> assets/models/pine_tree/fbx/pine_tree.fbx
     "PineTrunk": {"group": "PineTree", "center": [0, 3.2, 0], "size": [2.804, 6.4, 2.948]},
     "PineLeaves": {"group": "PineTree", "center": [-0.294, 14.023, 0], "size": [14.108, 19.755, 14.253]},
+    # tools/blender/pine_tree.py <root> snow -> assets/models/pine_tree_snow/fbx/pine_tree_snow.fbx
+    # (same frame as PineTree: offsets from the trunk centre, printed by the script).
+    "PineSnowTrunk": {"group": "PineTreeSnow", "center": [0, 3.2, 0], "size": [2.804, 6.4, 2.948]},
+    "PineSnowLeaves": {"group": "PineTreeSnow", "center": [-0.294, 14.022, 0], "size": [14.108, 19.755, 14.253]},
+    "PineSnowCap": {"group": "PineTreeSnow", "center": [-0.253, 15.448, 0], "size": [11.838, 17.464, 11.925]},
 }
 for name, m in EXTRA.items():
-    fields = [f'id = "{ids[name]}"', f'group = "{m["group"]}"', f"c = {v3(m['center'])}", f"s = {v3(m['size'])}"]
+    fields = [f'group = "{m["group"]}"', f"c = {v3(m['center'])}", f"s = {v3(m['size'])}"]
+    if name in ids:
+        fields.insert(0, f'id = "{ids[name]}"')
+    else:
+        missing.append(name)
     lines.append(f"	{name} = {{ {', '.join(fields)} }},")
 lines.append("}")
 open(os.path.join(ROOT, "src", "server", "KitManifest.luau"), "w", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")
